@@ -1,0 +1,58 @@
+# 03-event-sourcing run 2026-09-26T15:53:20Z
+== fresh Postgres (docker compose down -v && up) ==
+ Container 03-event-sourcing-postgres-1 Healthy 
+== demo ==
+stream: account-f0ecb3a4-00de-4950-80f6-a48bd3caf1d7
+
+## 1. Commands produce events
+   concept: a command loads the stream, folds it into state, validates, and appends new facts; no row is ever updated
+   v0 balance=0 -> appended {"type":"AccountOpened","owner":"alice"}
+   v1 balance=0 -> appended {"type":"MoneyDeposited","amount":100}
+   v2 balance=100 -> appended {"type":"MoneyWithdrawn","amount":30}
+
+## 2. Invariants are checked against rebuilt state
+   concept: withdraw 500 with balance 70 must be rejected, and nothing is appended
+   rejected: insufficient funds: balance 70, asked 500
+
+## 3. Optimistic concurrency
+   concept: two writers read the same version; the first append wins, the second hits UNIQUE(stream_id, version)
+   writer A and writer B both read v3
+   writer A appended v4
+   writer B: ConcurrencyError=true (stream account-f0ecb3a4-00de-4950-80f6-a48bd3caf1d7 moved past v3)
+
+## 4. The stream is the source of truth
+   concept: the full history is stored; current state is only a left fold over it
+┌─────────┬───┬──────────────────┬─────────┬────────┐
+│ (index) │ v │ type             │ owner   │ amount │
+├─────────┼───┼──────────────────┼─────────┼────────┤
+│ 0       │ 1 │ 'AccountOpened'  │ 'alice' │        │
+│ 1       │ 2 │ 'MoneyDeposited' │         │ 100    │
+│ 2       │ 3 │ 'MoneyWithdrawn' │         │ 30     │
+│ 3       │ 4 │ 'MoneyDeposited' │         │ 1      │
+└─────────┴───┴──────────────────┴─────────┴────────┘
+   current state: { owner: 'alice', balance: 71, version: 4 }
+
+## 5. Time travel
+   concept: replay a prefix of the stream to get the state at any past version
+   as of v3: { owner: 'alice', balance: 70, version: 3 }
+   as of v1: { owner: 'alice', balance: 0, version: 1 }
+
+## 6. Projections (read models)
+   concept: any new view can be derived later by replaying the same events, e.g. total deposited
+   total deposited = 101
+
+== proof: raw events table (append-only, one row per fact) ==
+ global_position |                  stream_id                   | version |      type      |        data        
+-----------------+----------------------------------------------+---------+----------------+--------------------
+               1 | account-f0ecb3a4-00de-4950-80f6-a48bd3caf1d7 |       1 | AccountOpened  | {"owner": "alice"}
+               2 | account-f0ecb3a4-00de-4950-80f6-a48bd3caf1d7 |       2 | MoneyDeposited | {"amount": 100}
+               3 | account-f0ecb3a4-00de-4950-80f6-a48bd3caf1d7 |       3 | MoneyWithdrawn | {"amount": 30}
+               4 | account-f0ecb3a4-00de-4950-80f6-a48bd3caf1d7 |       4 | MoneyDeposited | {"amount": 1}
+(4 rows)
+
+== proof: the unique constraint that enforces optimistic concurrency ==
+           conname            |    pg_get_constraintdef     
+------------------------------+-----------------------------
+ events_stream_id_version_key | UNIQUE (stream_id, version)
+(1 row)
+

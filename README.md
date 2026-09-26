@@ -1,26 +1,33 @@
 # samples
 
-Five minimal, real TypeScript + Postgres examples of ways to keep track of change and publish it, numbered by complexity. Read them in order: each one assumes the concepts of the ones before it. For the wider landscape (strangler fig, expand/contract, sagas, who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
+Nine minimal, real TypeScript examples of how to change a running system without breaking it: tracking change, evolving schemas, replacing code, coordinating services and publishing events. They are numbered by complexity. Read them in order: each one assumes the concepts of the ones before it. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
 
 | # | Folder | New concepts | Infra | Run | Proof |
 | --- | --- | --- | --- | --- | --- |
 | 01 | [`01-crud-audit/`](01-crud-audit/) | transactions, before/after audit rows | Postgres | `./run-01-crud-audit.sh` | [`logs/01-crud-audit.log`](logs/01-crud-audit.log) |
-| 02 | [`02-event-sourcing/`](02-event-sourcing/) | events as source of truth, fold, optimistic concurrency, projections | Postgres | `./run-02-event-sourcing.sh` | [`logs/02-event-sourcing.log`](logs/02-event-sourcing.log) |
-| 03 | [`03-outbox-polling/`](03-outbox-polling/) | dual-write problem, outbox table, polling relay, `SKIP LOCKED`, at-least-once, idempotent consumer | Postgres, Kafka | `./run-03-outbox-polling.sh` | [`logs/03-outbox-polling.log`](logs/03-outbox-polling.log) |
-| 04 | [`04-cdc-debezium/`](04-cdc-debezium/) | WAL, logical decoding, replication slot, LSN, Debezium, Kafka Connect | Postgres, Kafka, Connect | `./run-04-cdc-debezium.sh` | [`logs/04-cdc-debezium.log`](logs/04-cdc-debezium.log) |
-| 05 | [`05-outbox-debezium/`](05-outbox-debezium/) | outbox relayed by CDC, EventRouter, immediate cleanup | Postgres, Kafka, Connect | `./run-05-outbox-debezium.sh` | [`logs/05-outbox-debezium.log`](logs/05-outbox-debezium.log) |
+| 02 | [`02-expand-contract/`](02-expand-contract/) | zero-downtime schema change, rolling deploys, backfill | Postgres | `./run-02-expand-contract.sh` | [`logs/02-expand-contract.log`](logs/02-expand-contract.log) |
+| 03 | [`03-event-sourcing/`](03-event-sourcing/) | events as source of truth, fold, optimistic concurrency, projections | Postgres | `./run-03-event-sourcing.sh` | [`logs/03-event-sourcing.log`](logs/03-event-sourcing.log) |
+| 04 | [`04-parallel-run/`](04-parallel-run/) | control vs candidate, mismatch reporting, cutover | none | `./run-04-parallel-run.sh` | [`logs/04-parallel-run.log`](logs/04-parallel-run.log) |
+| 05 | [`05-strangler-fig/`](05-strangler-fig/) | routing facade, capability-by-capability replacement, instant rollback | none (3 HTTP servers) | `./run-05-strangler-fig.sh` | [`logs/05-strangler-fig.log`](logs/05-strangler-fig.log) |
+| 06 | [`06-saga/`](06-saga/) | no distributed transactions, compensations, saga log, crash recovery, idempotent steps | Postgres (4 databases) | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
+| 07 | [`07-outbox-polling/`](07-outbox-polling/) | dual-write problem, outbox table, polling relay, `SKIP LOCKED`, at-least-once, idempotent consumer | Postgres, Kafka | `./run-07-outbox-polling.sh` | [`logs/07-outbox-polling.log`](logs/07-outbox-polling.log) |
+| 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | WAL, logical decoding, replication slot, LSN, Debezium, Kafka Connect | Postgres, Kafka, Connect | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
+| 09 | [`09-outbox-debezium/`](09-outbox-debezium/) | outbox relayed by CDC, EventRouter, immediate cleanup | Postgres, Kafka, Connect | `./run-09-outbox-debezium.sh` | [`logs/09-outbox-debezium.log`](logs/09-outbox-debezium.log) |
 
-Each script starts from a fresh database (`docker compose down -v && up`), installs deps, runs the demo, then dumps the raw tables as proof. Everything it prints goes to `logs/<name>.log`. Needs Docker and Node 22.
+Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw tables as proof. Everything it prints goes to `logs/<name>.log`. Needs Docker and Node 22.
 
-Ports (chosen to avoid clashing with other local Postgres instances):
+Ports (chosen to avoid clashing with other local services):
 
-| # | Postgres | Kafka | Kafka Connect |
-| --- | --- | --- | --- |
-| 01 | 55434 | | |
-| 02 | 55433 | | |
-| 03 | 55437 | 59094 | |
-| 04 | 55435 | 59092 | 58083 |
-| 05 | 55436 | 59093 | 58084 |
+| # | Postgres | Kafka | Kafka Connect | HTTP |
+| --- | --- | --- | --- | --- |
+| 01 | 55434 | | | |
+| 02 | 55438 | | | |
+| 03 | 55433 | | | |
+| 05 | | | | 53000 proxy, 53001 legacy, 53002 new |
+| 06 | 55439 | | | |
+| 07 | 55437 | 59094 | | |
+| 08 | 55435 | 59092 | 58083 | |
+| 09 | 55436 | 59093 | 58084 | |
 
 ---
 
@@ -32,7 +39,7 @@ Ports (chosen to avoid clashing with other local Postgres instances):
 - **Audit log**: a second, append-only table. Every write adds one row: `entity`, `entity_id`, `action` (create/update/delete), `actor`, `before` and `after` snapshots as JSONB, and `at`.
 - **Same transaction**: the data change and its audit row are committed together (`tx()` in `src/db.ts`). Either both exist or neither does. That is what makes the log trustworthy. If you write the audit afterwards, a crash between the two leaves a silent gap.
 - **Capturing `before`**: an update first runs `SELECT ... FOR UPDATE`. That locks the row, so no concurrent writer can change it between reading `before` and writing `after`.
-- **Trade-off**: the audit is only as complete as the code paths that call it. A manual `psql` UPDATE or another service writing the same table bypasses it. The alternatives are DB triggers (catch every writer) and CDC (04, reads the WAL). The audit also stores snapshots, not intent: it says the price went 49 -> 39, not *why*.
+- **Trade-off**: the audit is only as complete as the code paths that call it. A manual `psql` UPDATE or another service writing the same table bypasses it. The alternatives are DB triggers (catch every writer) and CDC (08, reads the WAL). The audit also stores snapshots, not intent: it says the price went 49 -> 39, not *why*.
 
 ### Proof (`logs/01-crud-audit.log`)
 
@@ -60,7 +67,56 @@ After the delete, `products` is empty but the history survives. Note id `4` is m
 
 ---
 
-## 02. Event sourcing (`02-event-sourcing/`)
+## 02. Expand / contract schema change (`02-expand-contract/`)
+
+Renames `users.name` to `display_name` with zero downtime. In every phase, the app versions that overlap during a rolling deploy must all keep working.
+
+### Concepts
+
+- **Rolling deploy**: new instances start while old ones still serve traffic, so two app versions always share one schema for a while. A schema change is safe only if it works for both the version before and the version after.
+- **Why a plain `RENAME` fails**: it is atomic for the database but instant breakage for every instance still running the old code. The same holds for dropping a column, adding `NOT NULL` without a default, or changing a type.
+- **Expand**: only additive, backward-compatible changes. Add `display_name` as nullable, and relax `NOT NULL` on `name` so a future version can stop writing it.
+- **Dual write**: v2 writes both columns and still reads the old one. It runs next to v1, which knows nothing about `display_name`.
+- **Backfill**: once v1 is fully retired, copy `name` into `display_name` for old rows (`UPDATE ... WHERE display_name IS NULL`; batch it on big tables). Doing it earlier would leave gaps, because v1 keeps writing rows without the new column.
+- **Switch reads**: v3 reads `display_name`. It is only safe after the backfill; the demo probes a premature switch and finds blank names.
+- **Tighten**: when every writer fills `display_name`, make it `NOT NULL`. Then v4 stops writing `name`.
+- **Contract**: when no running version touches `name`, drop it. Each phase is a separate deploy that can be paused or rolled back; only the contract step is one-way.
+- **Trade-offs**: one logical change becomes about four deploys and three migrations spread over days. Tools like `pgroll` and `reshape` automate the pattern with views and triggers so both schema versions are served at once.
+
+### Proof (`logs/02-expand-contract.log`)
+
+The naive rename breaks the running v1 instantly:
+
+```
+   migration naive: ALTER TABLE users RENAME COLUMN name TO display_name
+   v1 (write name, read name): FAILS: column "name" of relation "users" does not exist
+```
+
+Every phase keeps both overlapping versions working, and reading the new column before the backfill would show blanks:
+
+```
+## 1. Expand
+   v1 (write name, read name): write ok, read 2 rows, all have a name
+   v2 (write both, read name): write ok, read 3 rows, all have a name
+   probe v3 (write both, read display_name): 2 rows WITHOUT a name
+## 3. Switch reads
+   v2 (write both, read name): write ok, read 5 rows, all have a name
+   v3 (write both, read display_name): write ok, read 6 rows, all have a name
+## 4. Stop writing the old column
+   v3 (write both, read display_name): write ok, read 7 rows, all have a name
+   v4 (write display_name, read display_name): write ok, read 8 rows, all have a name
+```
+
+Contracting too early would have broken v3, which is why each phase waits for the previous version to be fully gone:
+
+```
+## Why the order matters
+   v3 (write both, read display_name): FAILS: column "name" of relation "users" does not exist
+```
+
+---
+
+## 03. Event sourcing (`03-event-sourcing/`)
 
 ### Concepts
 
@@ -73,7 +129,7 @@ After the delete, `products` is empty but the history survives. Note id `4` is m
 - **Projections / read models**: new views (a balance table, a "total deposited" report, a search index) are built by replaying the events. They can be thrown away and rebuilt at any time, including views nobody thought of when the events were written.
 - **Trade-offs**: queries across aggregates need projections, events are forever (so schema evolution/upcasting matters), and long streams need snapshots to stay fast. `global_position` gives a total order for projection builders to follow.
 
-### Proof (`logs/02-event-sourcing.log`)
+### Proof (`logs/03-event-sourcing.log`)
 
 The invariant is checked against rebuilt state, and two writers race:
 
@@ -110,7 +166,154 @@ The raw table has exactly 4 facts: nothing from the rejected withdrawal and noth
 
 ---
 
-## 03. Transactional outbox, polling relay (`03-outbox-polling/`)
+## 04. Parallel run, Scientist-style (`04-parallel-run/`)
+
+Proves a rewrite matches the legacy code on real traffic before it serves anyone.
+
+### Concepts
+
+- **Control and candidate**: every request runs the legacy function (control) and the rewrite (candidate). The caller always gets the control result, so users are never exposed to the rewrite while it is being checked.
+- **Experiment** (`src/scientist.ts`): runs both, compares results with deep equality, and records every mismatch with its input. It swallows candidate exceptions (the rewrite crashing must not hurt users) and randomizes which side runs first, so ordering effects show up.
+- **Real inputs beat unit tests**: legacy code encodes years of undocumented behavior. Production traffic finds the edge cases nobody wrote a test for; here, the free-shipping boundary (`>=` vs `>`), per-item vs per-order weight rounding, and empty carts.
+- **Iterate to zero**: fix the candidate and keep running until mismatches stay at zero over a meaningful volume.
+- **Cutover**: swap roles. The rewrite becomes control (it serves) and legacy becomes the candidate (it is still checked). Once that is quiet, delete legacy.
+- **Limits**: only safe for side-effect-free reads; running a write twice doubles it (for writes, compare against a shadow copy or use 05's routing instead). It costs double compute while it runs. For HTTP-level comparison, the same idea is called traffic shadowing or dark launching.
+
+### Proof (`logs/04-parallel-run.log`)
+
+The buggy rewrite disagrees on 567 of 1000 orders, yet every user got the legacy answer:
+
+```
+   experiment "shipping-v1": 1000 runs, 567 mismatches (188 candidate exceptions)
+   users unaffected: served total 1980900 === legacy total 1980900: true
+```
+
+The mismatches group into three distinct bugs, each with a concrete input to reproduce:
+
+```
+   188 candidate exceptions, swallowed by the experiment: "order has no items" (legacy quotes empty carts at the 1 kg minimum)
+   17 at exactly the free-shipping threshold: legacy uses >= 5000, rewrite uses > 5000
+   362 from weight rounding: legacy rounds the order total up to kg, rewrite rounds each item
+   example: {"zone":"eu","items":[{"sku":"sku-0","grams":1293,...},{"sku":"sku-1","grams":344,...}]} -> control 1800, candidate 2700
+```
+
+After the fix, the rewrite matches, takes over, and legacy becomes the check:
+
+```
+   experiment "shipping-v2": 1000 runs, 0 mismatches (0 candidate exceptions)
+   experiment "shipping-cutover": 1000 runs, 0 mismatches (0 candidate exceptions)
+   served total 1980900 === legacy total 1980900: true
+```
+
+---
+
+## 05. Strangler fig behind a proxy (`05-strangler-fig/`)
+
+Replaces a monolith one capability at a time, behind a routing facade that clients never see change.
+
+### Concepts
+
+- **Facade (the proxy)**: clients switch once to a proxy in front of the legacy system. From then on, every migration step is a routing change inside the proxy, invisible to clients. In production this is an API gateway, a load balancer rule, nginx or Envoy.
+- **Strangling**: build one capability (`/orders`) in the new service, then route only that path to it. The new system grows around the old one until nothing is left, like the fig vine the pattern is named after.
+- **Same contract**: the new service must answer exactly like legacy, or clients break. The demo records legacy's responses as a baseline and checks every proxied response against it. 04's parallel run is how you gain that confidence before flipping a route.
+- **Instant rollback**: pointing a route back is one config call (`PUT /_proxy/routes`), no deploy and no client change. That is what makes each step low-risk.
+- **Decommission signal**: once legacy receives zero traffic, it can be switched off.
+- **What the demo simplifies**: both services read the same in-memory fixtures. In a real migration, data ownership is the hard part. The new service needs the data legacy owns, usually via CDC (08) or events (07, 09) during the transition, and writes must have one owner per capability at any time.
+
+### Proof (`logs/05-strangler-fig.log`)
+
+Legacy traffic shrinks as routes move, with a rollback in the middle, and every response keeps legacy's contract:
+
+```
+## 1. Strangle the first capability
+   routes: /orders -> new
+   GET /users/1    -> legacy-monolith same contract as legacy: true
+   GET /orders/1   -> new-service     same contract as legacy: true
+   GET /invoices/1 -> legacy-monolith same contract as legacy: true
+   legacy handled 2/3 client requests
+
+## 2. Roll back in one call
+   routes: (none, everything falls through to legacy)
+   legacy handled 3/3 client requests
+
+## 3. Move more capabilities
+   routes: /orders -> new, /invoices -> new
+   legacy handled 1/3 client requests
+
+## 4. Last route moved, legacy receives nothing
+   routes: /orders -> new, /invoices -> new, /users -> new
+   GET /users/1    -> new-service     same contract as legacy: true
+   GET /orders/1   -> new-service     same contract as legacy: true
+   GET /invoices/1 -> new-service     same contract as legacy: true
+   legacy handled 0/3 client requests
+```
+
+---
+
+## 06. Saga, orchestrated (`06-saga/`)
+
+Places an order across inventory, payments and shipping, each with its own database, without a distributed transaction.
+
+### Concepts
+
+- **No transaction spans services**: each service owns its database (here, 4 real Postgres databases), so a `BEGIN ... COMMIT` cannot cover all three steps. Two-phase commit exists but couples every service's availability and is rarely used across services.
+- **Saga**: a sequence of local transactions (`reserveInventory`, `chargePayment`, `createShipment`). Each commits on its own. If a later step fails, earlier ones are undone by **compensating actions** (`release`, `refund`), run in reverse order.
+- **Compensation is semantic, not a rollback**: a refund is a new fact; the charge still happened. Some steps cannot be compensated (an email already sent), so put them last or make them pivot points.
+- **Orchestration vs choreography**: here a central orchestrator (`src/orchestrator.ts`) tells each service what to do next. In choreography, services react to each other's events instead (usually via 07/09's outbox). Orchestration is easier to follow; choreography has no central component.
+- **Saga log**: the orchestrator persists `state` and `step` after every step in its own database. After a crash, it reloads unfinished sagas and continues forward or keeps compensating.
+- **Idempotent steps**: a crash between "step ran" and "log updated" means the step runs again on recovery. Each step is keyed by saga id (`INSERT ... ON CONFLICT DO NOTHING`, `UPDATE ... WHERE status = 'charged'`), so running it twice has the effect of running it once.
+- **Trade-offs**: no isolation. Other transactions can see intermediate states (stock reserved, payment not yet taken). Countermeasures include semantic locks (a `PENDING` status) and ordering steps so the riskiest come first.
+
+### Proof (`logs/06-saga.log`)
+
+Payment failure compensates one step; shipping failure compensates two, in reverse:
+
+```
+   [order-B] step 2 chargePayment: FAILED (card declined for 5000.00) -> compensate 1 completed step(s)
+   [order-B] compensate reserveInventory: ok
+   [order-B] aborted
+
+   [order-C] step 3 createShipment: FAILED (address not deliverable: nowhere) -> compensate 2 completed step(s)
+   [order-C] compensate chargePayment: ok
+   [order-C] compensate reserveInventory: ok
+   [order-C] aborted
+```
+
+The process is killed after charging order-D but before logging it. The log says step 1, yet the charge exists:
+
+```
+   [order-D] CRASH after chargePayment ran, before the saga log recorded it
+ order-D | running   |    1 |
+
+ saga_id | amount | status
+ order-D |  42.00 | charged
+```
+
+A new process resumes from the log. It re-runs `chargePayment`, which is idempotent, and completes:
+
+```
+   [order-D] found running at step 1, resuming
+   [order-D] step 2 chargePayment: ok
+   [order-D] step 3 createShipment: ok
+   [order-D] completed
+```
+
+Every database ends consistent: stock `10 - 2 (A) - 1 (D) = 7`, C refunded, D charged exactly once, B never charged, only A and D shipped:
+
+```
+ keyboard |         7
+
+ order-A |  84.00 | charged
+ order-C | 126.00 | refunded
+ order-D |  42.00 | charged
+
+ order-A | Paris
+ order-D | Lyon
+```
+
+---
+
+## 07. Transactional outbox, polling relay (`07-outbox-polling/`)
 
 The simplest reliable way to publish events. No Debezium: just a table and a loop.
 
@@ -123,9 +326,9 @@ The simplest reliable way to publish events. No Debezium: just a table and a loo
 - **`FOR UPDATE SKIP LOCKED`**: claiming rows locks them, and other relay instances skip locked rows instead of waiting. You can run several relays for throughput or availability without sending the same row twice concurrently.
 - **At-least-once delivery**: the send to Kafka and the `published_at` update cannot be atomic either. If the relay crashes after sending and before committing, the rows stay unpublished and are sent again on restart. Duplicates are possible; loss is not. The relay's order is deliberate: send first, mark second.
 - **Idempotent consumer**: because of the above, consumers must dedupe. `src/consumer.ts` remembers processed `event_id`s and skips repeats. In real code that set is a `processed_events` table, updated in the same transaction as the consumer's own side effects.
-- **Trade-offs vs 05 (CDC relay)**: polling is simple (Postgres + any broker, no Connect, no replication slot), but it adds latency (the poll interval), load on the DB, and a growing table you must clean up (delete or partition published rows). 05 removes all three at the cost of Debezium.
+- **Trade-offs vs 09 (CDC relay)**: polling is simple (Postgres + any broker, no Connect, no replication slot), but it adds latency (the poll interval), load on the DB, and a growing table you must clean up (delete or partition published rows). 09 removes all three at the cost of Debezium.
 
-### Proof (`logs/03-outbox-polling.log`)
+### Proof (`logs/07-outbox-polling.log`)
 
 The app commits two events; bob's rolled back with his order. Before the relay runs, both rows are waiting:
 
@@ -158,15 +361,15 @@ relay: outbox drained
 The consumer got each event twice (at-least-once) and processed each once (idempotent):
 
 ```
-consumer: OrderPlaced key=1 event_id=9ec50f01-... payload={"total":"42.50","orderId":1,"customer":"alice"}
-consumer: OrderPaid key=1 event_id=b2dd7bf9-... payload={"orderId":1}
-consumer: DUPLICATE OrderPlaced event_id=9ec50f01-... skipped (idempotent consumer)
-consumer: DUPLICATE OrderPaid event_id=b2dd7bf9-... skipped (idempotent consumer)
+consumer: OrderPlaced key=1 event_id=<placed> payload={"total":"42.50","orderId":1,"customer":"alice"}
+consumer: OrderPaid key=1 event_id=<paid> payload={"orderId":1}
+consumer: DUPLICATE OrderPlaced event_id=<placed> skipped (idempotent consumer)
+consumer: DUPLICATE OrderPaid event_id=<paid> skipped (idempotent consumer)
 ```
 
 ---
 
-## 04. CDC: WAL -> Debezium -> Kafka (`04-cdc-debezium/`)
+## 08. CDC: WAL -> Debezium -> Kafka (`08-cdc-debezium/`)
 
 ### Concepts
 
@@ -181,7 +384,7 @@ consumer: DUPLICATE OrderPaid event_id=b2dd7bf9-... skipped (idempotent consumer
 - **Why CDC**: the writer (`src/writer.ts`) is plain SQL and knows nothing about Kafka. Every writer is captured, including manual SQL, and only *committed* changes are emitted. So there is no "DB committed but publish failed" dual-write problem.
 - **Trade-offs**: events are row diffs, not business intent (`status pending -> paid`, not `OrderPaid`), and they are coupled to your table schema. There are more moving parts (Kafka, Connect, a slot to monitor). Delivery is at-least-once, so consumers must be idempotent.
 
-### Proof (`logs/04-cdc-debezium.log`)
+### Proof (`logs/08-cdc-debezium.log`)
 
 What the writer did:
 
@@ -222,30 +425,30 @@ logical                                     <- SHOW wal_level
 
 ---
 
-## 05. Transactional outbox, CDC relay (`05-outbox-debezium/`)
+## 09. Transactional outbox, CDC relay (`09-outbox-debezium/`)
 
-Same outbox idea as 03, but the relay is Debezium reading the WAL (04) instead of a polling loop.
+Same outbox idea as 07, but the relay is Debezium reading the WAL (08) instead of a polling loop.
 
 ### Concepts
 
-- **Log-tailing relay**: instead of polling `outbox`, Debezium reads outbox inserts from the WAL through a replication slot (04). No poll interval, no query load, no `published_at` column to maintain.
+- **Log-tailing relay**: instead of polling `outbox`, Debezium reads outbox inserts from the WAL through a replication slot (08). No poll interval, no query load, no `published_at` column to maintain.
 - **Outbox row shape** (Debezium's convention): `id` (event id, uuid), `aggregatetype` (routes to the topic), `aggregateid` (becomes the Kafka key, so all events of one order stay ordered on one partition), `type` (event name), `payload` (JSON).
 - **EventRouter SMT**: a Kafka Connect transform. It unwraps Debezium's `{before, after, op}` envelope and emits just the payload to `outbox.event.<aggregatetype>`, with the event `id` and `eventType` as headers. Consumers see `OrderPaid {orderId}`, not a row diff.
-- **Outbox vs raw CDC**: raw CDC (04) publishes table changes, so consumers couple to your schema and must guess intent. The outbox publishes explicit, versionable business events: the table is private, the event is the public contract.
+- **Outbox vs raw CDC**: raw CDC (08) publishes table changes, so consumers couple to your schema and must guess intent. The outbox publishes explicit, versionable business events: the table is private, the event is the public contract.
 - **Immediate cleanup**: the outbox row can be deleted in the same transaction it was inserted in. The insert is already in the WAL, so Debezium still publishes it, and EventRouter ignores deletes. The table never grows.
-- **At-least-once + idempotent consumer**: same as 03. Debezium can re-send after a restart (it resumes from its last flushed offset), so consumers dedupe on the event `id` header (`seen` set in `src/consumer.ts`).
-- **Trade-offs vs 03**: lower latency, no DB polling, no table cleanup, but Kafka Connect, Debezium and a replication slot to run and monitor. Both share the core limit: every write path must remember to emit.
+- **At-least-once + idempotent consumer**: same as 07. Debezium can re-send after a restart (it resumes from its last flushed offset), so consumers dedupe on the event `id` header (`seen` set in `src/consumer.ts`).
+- **Trade-offs vs 07**: lower latency, no DB polling, no table cleanup, but Kafka Connect, Debezium and a replication slot to run and monitor. Both share the core limit: every write path must remember to emit.
 
-### Proof (`logs/05-outbox-debezium.log`)
+### Proof (`logs/09-outbox-debezium.log`)
 
 The app wrote four outbox rows. One was rolled back (bob), and in step 4 the rest were deleted in the same transaction as the insert. The app also committed carol's order without an outbox row (the dual-write simulation).
 
 ```
-   outbox <- OrderPlaced id=302d06e7-...          (alice)
-   outbox <- OrderPaid id=96e0094d-...
-   outbox <- OrderPlaced id=99cbb369-...          (bob)
+   outbox <- OrderPlaced id=<alice-placed>
+   outbox <- OrderPaid id=<alice-paid>
+   outbox <- OrderPlaced id=<bob-placed>
    rejected: payment provider down, order 2 aborted
-   outbox <- OrderShipped id=22a2891e-...
+   outbox <- OrderShipped id=<alice-shipped>
    outbox rows deleted in the same transaction (the WAL still has the inserts)
    order 3 committed to Postgres
    process crashes before producer.send(OrderPlaced) -> nothing will ever publish it
@@ -254,12 +457,12 @@ The app wrote four outbox rows. One was rolled back (bob), and in step 4 the res
 Exactly the three committed events arrived, in order, keyed by order id, as business events:
 
 ```
-consumer: outbox.event.order[0] key=1 eventType=OrderPlaced  id=302d06e7-... payload={"total":"42.50","orderId":1,"customer":"alice"}
-consumer: outbox.event.order[0] key=1 eventType=OrderPaid    id=96e0094d-... payload={"orderId":1}
-consumer: outbox.event.order[0] key=1 eventType=OrderShipped id=22a2891e-... payload={"carrier":"UPS","orderId":1}
+consumer: outbox.event.order[0] key=1 eventType=OrderPlaced  id=<alice-placed> payload={"total":"42.50","orderId":1,"customer":"alice"}
+consumer: outbox.event.order[0] key=1 eventType=OrderPaid    id=<alice-paid> payload={"orderId":1}
+consumer: outbox.event.order[0] key=1 eventType=OrderShipped id=<alice-shipped> payload={"carrier":"UPS","orderId":1}
 ```
 
-- bob's rolled-back `OrderPlaced` (`99cbb369`) never arrived, and bob has no order row.
+- bob's rolled-back `OrderPlaced` (`<bob-placed>`) never arrived, and bob has no order row.
 - carol's order exists but has no event: that is the dual-write loss the outbox prevents.
 - The `outbox` table has 0 rows, yet all three events were delivered.
 - The only app topic is `outbox.event.order` (no raw `app.public.outbox`).
@@ -277,10 +480,14 @@ consumer: outbox.event.order[0] key=1 eventType=OrderShipped id=22a2891e-... pay
 
 ## Which one when
 
-- **CRUD + audit**: most apps. You need "who changed what" for compliance or support, and reads of current state dominate.
-- **Event sourcing**: the history *is* the domain (ledgers, workflows, bookings). You need to rebuild state, add new read models later, or answer "what did we know at time T".
-- **CDC**: getting changes out of a database into other systems (search index, cache, warehouse) without touching the writing code, when row-level diffs are what the consumer wants.
-- **Outbox, polling (03)**: one service needs to reliably tell others that something happened in business terms, without dual writes, and you want the fewest moving parts. Start here.
-- **Outbox, CDC relay (05)**: same need, when poll latency, DB load or table cleanup start to hurt, or you already run Debezium. It is CDC applied to a table designed as a public event contract.
+- **CRUD + audit (01)**: most apps. You need "who changed what" for compliance or support, and reads of current state dominate.
+- **Expand / contract (02)**: any schema change on a system deployed without downtime. It is the default, not an advanced technique.
+- **Event sourcing (03)**: the history *is* the domain (ledgers, workflows, bookings). You need to rebuild state, add new read models later, or answer "what did we know at time T".
+- **Parallel run (04)**: replacing logic whose exact behavior nobody fully knows (pricing, tax, permissions), before trusting the rewrite.
+- **Strangler fig (05)**: replacing a whole system incrementally instead of a big-bang rewrite. It combines naturally with 04 (verify) and 08/09 (move the data).
+- **Saga (06)**: a business operation spans services that each own their data.
+- **Outbox, polling (07)**: one service needs to reliably tell others that something happened in business terms, without dual writes, with the fewest moving parts. Start here.
+- **CDC (08)**: getting changes out of a database into other systems (search index, cache, warehouse) without touching the writing code, when row-level diffs are what the consumer wants.
+- **Outbox, CDC relay (09)**: same need as 07, when poll latency, DB load or table cleanup start to hurt, or you already run Debezium.
 
-These combine: an event-sourced service can publish its events via an outbox/CDC relay, and CRUD + audit can sit alongside an outbox in the same transaction.
+These combine: a strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga publishes its events through an outbox; an event-sourced service can publish its events through an outbox/CDC relay.

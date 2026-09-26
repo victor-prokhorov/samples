@@ -1,0 +1,23 @@
+# 04-parallel-run run 2026-09-26T15:53:22Z
+== no infra: legacy and rewritten shipping calculators in one process, 1000 seeded orders ==
+
+## 1. Parallel run against the rewrite
+   concept: every request runs legacy (control) and rewrite (candidate); callers always get the control result
+   experiment "shipping-v1": 1000 runs, 567 mismatches (188 candidate exceptions)
+   users unaffected: served total 1980900 === legacy total 1980900: true
+
+## 2. Read the mismatches
+   concept: each mismatch is a real input where the rewrite disagrees; group them to find the bug
+   188 candidate exceptions, swallowed by the experiment: "order has no items" (legacy quotes empty carts at the 1 kg minimum)
+   17 at exactly the free-shipping threshold: legacy uses >= 5000, rewrite uses > 5000
+   362 from weight rounding: legacy rounds the order total up to kg, rewrite rounds each item
+   example: {"zone":"eu","items":[{"sku":"sku-0","grams":1293,"priceCents":2500},{"sku":"sku-1","grams":344,"priceCents":2000}]} -> control 1800, candidate 2700
+
+## 3. Fix the candidate and run again
+   concept: keep running until mismatches are zero on real traffic; only then is the rewrite trusted
+   experiment "shipping-v2": 1000 runs, 0 mismatches (0 candidate exceptions)
+
+## 4. Cut over
+   concept: swap control and candidate: the rewrite now serves, legacy keeps running as the check, then it is deleted
+   experiment "shipping-cutover": 1000 runs, 0 mismatches (0 candidate exceptions)
+   served total 1980900 === legacy total 1980900: true

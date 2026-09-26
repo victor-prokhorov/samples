@@ -133,14 +133,18 @@ Online, keep these open: martinfowler.com (bliki plus the Legacy Displacement se
 
 ## Runnable samples in this repo
 
-Five of these patterns run end to end here, in TypeScript on Postgres, numbered by complexity, each with a run script and a proof log. Concepts for each are explained in [README.md](README.md).
+Nine of these patterns run end to end here, in TypeScript, numbered by complexity, each with a run script and a proof log. Concepts for each are explained in [README.md](README.md).
 
 | # | Folder | Pattern from this map | Run | Proof |
 | --- | --- | --- | --- | --- |
 | 01 | [`01-crud-audit/`](01-crud-audit/) | Audit Log (same-transaction before/after rows) | `./run-01-crud-audit.sh` | [`logs/01-crud-audit.log`](logs/01-crud-audit.log) |
-| 02 | [`02-event-sourcing/`](02-event-sourcing/) | Event Sourcing, optimistic concurrency, projections | `./run-02-event-sourcing.sh` | [`logs/02-event-sourcing.log`](logs/02-event-sourcing.log) |
-| 03 | [`03-outbox-polling/`](03-outbox-polling/) | Transactional Outbox with a Polling Publisher, Idempotent Consumer | `./run-03-outbox-polling.sh` | [`logs/03-outbox-polling.log`](logs/03-outbox-polling.log) |
-| 04 | [`04-cdc-debezium/`](04-cdc-debezium/) | Change Data Capture via Postgres WAL and Debezium | `./run-04-cdc-debezium.sh` | [`logs/04-cdc-debezium.log`](logs/04-cdc-debezium.log) |
-| 05 | [`05-outbox-debezium/`](05-outbox-debezium/) | Transactional Outbox relayed by transaction log tailing (Debezium EventRouter) | `./run-05-outbox-debezium.sh` | [`logs/05-outbox-debezium.log`](logs/05-outbox-debezium.log) |
+| 02 | [`02-expand-contract/`](02-expand-contract/) | Expand / Contract (Parallel Change) with rolling deploys | `./run-02-expand-contract.sh` | [`logs/02-expand-contract.log`](logs/02-expand-contract.log) |
+| 03 | [`03-event-sourcing/`](03-event-sourcing/) | Event Sourcing, optimistic concurrency, projections | `./run-03-event-sourcing.sh` | [`logs/03-event-sourcing.log`](logs/03-event-sourcing.log) |
+| 04 | [`04-parallel-run/`](04-parallel-run/) | Parallel Run with a Scientist-style experiment | `./run-04-parallel-run.sh` | [`logs/04-parallel-run.log`](logs/04-parallel-run.log) |
+| 05 | [`05-strangler-fig/`](05-strangler-fig/) | Strangler Fig behind a routing proxy | `./run-05-strangler-fig.sh` | [`logs/05-strangler-fig.log`](logs/05-strangler-fig.log) |
+| 06 | [`06-saga/`](06-saga/) | Saga (orchestration) with compensations and a recoverable saga log | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
+| 07 | [`07-outbox-polling/`](07-outbox-polling/) | Transactional Outbox with a Polling Publisher, Idempotent Consumer | `./run-07-outbox-polling.sh` | [`logs/07-outbox-polling.log`](logs/07-outbox-polling.log) |
+| 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | Change Data Capture via Postgres WAL and Debezium | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
+| 09 | [`09-outbox-debezium/`](09-outbox-debezium/) | Transactional Outbox relayed by transaction log tailing (Debezium EventRouter) | `./run-09-outbox-debezium.sh` | [`logs/09-outbox-debezium.log`](logs/09-outbox-debezium.log) |
 
-Not yet built here, and natural next ones: expand/contract schema change, strangler fig behind a proxy, parallel run with a Scientist-style comparator, and a saga.
+Natural next ones, not built yet: choreographed saga over the outbox, branch by abstraction, feature-toggle cutover, and an anti-corruption layer in front of the legacy model.

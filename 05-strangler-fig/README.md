@@ -1,0 +1,10 @@
+# 05-strangler-fig
+
+Strangler fig with three real HTTP servers (`src/servers.ts`): a legacy monolith on `:53001`, a new service on `:53002`, and a routing proxy on `:53000` that clients call. `PUT /_proxy/routes` changes routing at runtime; unmatched paths fall through to legacy. The demo moves `/orders`, rolls back, then moves everything, checking each response against legacy's recorded contract and counting legacy traffic. No infra.
+
+```sh
+npm i
+npm start
+```
+
+One-shot run with proof: `../run-05-strangler-fig.sh` (log in `../logs/05-strangler-fig.log`). Concepts explained in `../README.md`.

@@ -1,0 +1,44 @@
+# 05-strangler-fig run 2026-09-26T15:53:22Z
+== no infra: legacy monolith, new service and routing proxy as three real HTTP servers ==
+proxy :53000 (clients only ever call this), legacy :53001, new service :53002
+recorded legacy responses as the contract baseline
+
+## 0. Put the facade in front
+   concept: clients switch to the proxy once; it forwards everything to legacy, nothing else changes
+   routes: (none, everything falls through to legacy)
+   GET /users/1    -> legacy-monolith same contract as legacy: true
+   GET /orders/1   -> legacy-monolith same contract as legacy: true
+   GET /invoices/1 -> legacy-monolith same contract as legacy: true
+   legacy handled 3/3 client requests
+
+## 1. Strangle the first capability
+   concept: build /orders in the new service, then flip one route; clients see the same contract
+   routes: /orders -> new
+   GET /users/1    -> legacy-monolith same contract as legacy: true
+   GET /orders/1   -> new-service     same contract as legacy: true
+   GET /invoices/1 -> legacy-monolith same contract as legacy: true
+   legacy handled 2/3 client requests
+
+## 2. Roll back in one call
+   concept: if the new service misbehaves, point the route back; no deploy, no client change
+   routes: (none, everything falls through to legacy)
+   GET /users/1    -> legacy-monolith same contract as legacy: true
+   GET /orders/1   -> legacy-monolith same contract as legacy: true
+   GET /invoices/1 -> legacy-monolith same contract as legacy: true
+   legacy handled 3/3 client requests
+
+## 3. Move more capabilities
+   concept: orders again, then invoices: the new system grows around the old one
+   routes: /orders -> new, /invoices -> new
+   GET /users/1    -> legacy-monolith same contract as legacy: true
+   GET /orders/1   -> new-service     same contract as legacy: true
+   GET /invoices/1 -> new-service     same contract as legacy: true
+   legacy handled 1/3 client requests
+
+## 4. Last route moved, legacy receives nothing
+   concept: zero traffic to legacy is the signal it can be switched off
+   routes: /orders -> new, /invoices -> new, /users -> new
+   GET /users/1    -> new-service     same contract as legacy: true
+   GET /orders/1   -> new-service     same contract as legacy: true
+   GET /invoices/1 -> new-service     same contract as legacy: true
+   legacy handled 0/3 client requests

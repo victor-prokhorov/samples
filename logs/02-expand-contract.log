@@ -1,0 +1,69 @@
+# 02-expand-contract run 2026-09-26T15:53:19Z
+== fresh Postgres (docker compose down -v && up) ==
+ Container 02-expand-contract-postgres-1 Healthy 
+== demo: rename users.name -> display_name while old and new app versions run side by side ==
+
+## 0. Starting point
+   concept: schema has users.name, v1 runs in production
+   v1 (write name, read name): write ok, read 1 rows, all have a name
+
+## Naive: rename in one step
+   concept: RENAME breaks every running instance the moment it commits; a rolling deploy always has old code running
+   migration naive: ALTER TABLE users RENAME COLUMN name TO display_name
+   v1 (write name, read name): FAILS: column "name" of relation "users" does not exist
+   migration undo: ALTER TABLE users RENAME COLUMN display_name TO name
+
+## 1. Expand
+   concept: only additive, backward-compatible changes: add the new column, relax NOT NULL on the old one; v1 and v2 run side by side
+   migration M1: ALTER TABLE users ADD COLUMN display_name TEXT, ALTER COLUMN name DROP NOT NULL
+   v1 (write name, read name): write ok, read 2 rows, all have a name
+   v2 (write both, read name): write ok, read 3 rows, all have a name
+   too early: reading the new column before the backfill would show blanks
+   probe v3 (write both, read display_name): 2 rows WITHOUT a name
+
+## 2. Migrate data
+   concept: v1 is fully retired, so every writer now fills both columns; backfill the old rows
+   migration M2: UPDATE users SET display_name = name WHERE display_name IS NULL
+   v2 (write both, read name): write ok, read 4 rows, all have a name
+
+## 3. Switch reads
+   concept: deploy v3 which reads the new column; v2 and v3 overlap during the rollout
+   v2 (write both, read name): write ok, read 5 rows, all have a name
+   v3 (write both, read display_name): write ok, read 6 rows, all have a name
+
+## 4. Stop writing the old column
+   concept: all writers fill display_name and the backfill is done, so it can become NOT NULL; deploy v4, overlapping with v3
+   migration M3: ALTER TABLE users ALTER COLUMN display_name SET NOT NULL
+   v3 (write both, read display_name): write ok, read 7 rows, all have a name
+   v4 (write display_name, read display_name): write ok, read 8 rows, all have a name
+
+## 5. Contract
+   concept: v3 is fully retired, nobody reads or writes name any more: drop it
+   migration M4: ALTER TABLE users DROP COLUMN name
+   v4 (write display_name, read display_name): write ok, read 9 rows, all have a name
+
+## Why the order matters
+   concept: had v3 still been running, the contract step would have broken it
+   v3 (write both, read display_name): FAILS: column "name" of relation "users" does not exist
+
+== proof: final schema has only display_name, NOT NULL ==
+ column_name  | is_nullable 
+--------------+-------------
+ id           | NO
+ display_name | NO
+(2 rows)
+
+== proof: every row written by every version across all phases has a display_name ==
+ id | display_name 
+----+--------------
+  1 | p0-v1
+  2 | p1-v1
+  3 | p1-v2
+  4 | p2-v2
+  5 | p3-v2
+  6 | p3-v3
+  7 | p4-v3
+  8 | p4-v4
+  9 | p5-v4
+(9 rows)
+

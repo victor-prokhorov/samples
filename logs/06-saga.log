@@ -1,0 +1,98 @@
+# 06-saga run 2026-09-26T15:53:22Z
+== fresh Postgres with one database per service (docker compose down -v && up) ==
+ Container 06-saga-postgres-1 Healthy 
+setup: 4 databases (inventory, payments, shipping, orchestrator), keyboard stock = 10
+== demo (the process is killed in scenario 4) ==
+
+## 1. Happy path
+   concept: three local transactions in three databases, one after another; the saga log records progress after each
+   [order-A] started {"sku":"keyboard","qty":2,"amount":"84.00","address":"Paris"}
+   [order-A] step 1 reserveInventory: ok
+   [order-A] step 2 chargePayment: ok
+   [order-A] step 3 createShipment: ok
+   [order-A] completed
+
+## 2. Payment fails
+   concept: no distributed rollback exists; the orchestrator undoes completed steps with compensating actions, in reverse
+   [order-B] started {"sku":"keyboard","qty":1,"amount":"5000.00","address":"Paris"}
+   [order-B] step 1 reserveInventory: ok
+   [order-B] step 2 chargePayment: FAILED (card declined for 5000.00) -> compensate 1 completed step(s)
+   [order-B] compensate reserveInventory: ok
+   [order-B] aborted
+
+## 3. Last step fails
+   concept: shipping refuses: refund the charge, then release the stock
+   [order-C] started {"sku":"keyboard","qty":3,"amount":"126.00","address":"nowhere"}
+   [order-C] step 1 reserveInventory: ok
+   [order-C] step 2 chargePayment: ok
+   [order-C] step 3 createShipment: FAILED (address not deliverable: nowhere) -> compensate 2 completed step(s)
+   [order-C] compensate chargePayment: ok
+   [order-C] compensate reserveInventory: ok
+   [order-C] aborted
+
+## 4. Orchestrator crashes mid-saga
+   concept: the charge ran but the log was not updated; the process dies here (resume picks it up)
+   [order-D] started {"sku":"keyboard","qty":1,"amount":"42.00","address":"Lyon"}
+   [order-D] step 1 reserveInventory: ok
+   [order-D] step 2 chargePayment: ok
+   [order-D] CRASH after chargePayment ran, before the saga log recorded it
+demo exited with 1
+== proof: saga log right after the crash (order-D stuck at step 1 although its charge exists) ==
+   id    |   state   | step |              error               
+---------+-----------+------+----------------------------------
+ order-A | completed |    3 | 
+ order-B | aborted   |    0 | card declined for 5000.00
+ order-C | aborted   |    0 | address not deliverable: nowhere
+ order-D | running   |    1 | 
+(4 rows)
+
+ saga_id | amount | status  
+---------+--------+---------
+ order-D |  42.00 | charged
+(1 row)
+
+== resume in a new process ==
+
+## 5. Recovery
+   concept: on restart, the orchestrator reloads unfinished sagas from its log and continues; steps are idempotent (keyed by saga id), so re-running chargePayment does not charge twice
+   [order-D] found running at step 1, resuming
+   [order-D] step 2 chargePayment: ok
+   [order-D] step 3 createShipment: ok
+   [order-D] completed
+
+== proof: saga log ==
+   id    |   state   | step |              error               
+---------+-----------+------+----------------------------------
+ order-A | completed |    3 | 
+ order-B | aborted   |    0 | card declined for 5000.00
+ order-C | aborted   |    0 | address not deliverable: nowhere
+ order-D | completed |    3 | 
+(4 rows)
+
+== proof: inventory (10 - 2 for A - 1 for D = 7; B and C released) ==
+   sku    | available 
+----------+-----------
+ keyboard |         7
+(1 row)
+
+ saga_id |   sku    | qty 
+---------+----------+-----
+ order-A | keyboard |   2
+ order-D | keyboard |   1
+(2 rows)
+
+== proof: payments (C refunded, D charged exactly once despite running the step twice, B never charged) ==
+ saga_id | amount |  status  
+---------+--------+----------
+ order-A |  84.00 | charged
+ order-C | 126.00 | refunded
+ order-D |  42.00 | charged
+(3 rows)
+
+== proof: shipping (only the completed sagas) ==
+ saga_id | address 
+---------+---------
+ order-A | Paris
+ order-D | Lyon
+(2 rows)
+
