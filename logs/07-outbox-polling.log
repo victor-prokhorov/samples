@@ -1,22 +1,21 @@
-# 07-outbox-polling run 2026-09-26T15:53:25Z
+# 07-outbox-polling run 2026-09-26T16:03:50Z
 == fresh Postgres + Kafka (docker compose down -v && up), no Debezium ==
- Container 07-outbox-polling-postgres-1 Healthy 
-{"level":"ERROR","timestamp":"2026-09-26T15:53:26.630Z","logger":"kafkajs","message":"[BrokerPool] Closed connection","retryCount":0,"retryTime":339}
+ Container 07-outbox-polling-kafka-1 Healthy 
 setup: orders + outbox tables, topic order-events
 == consumer (background) ==
 == app ==
 
 ## 1. Business write + event in one transaction
    concept: orders row and outbox row commit together; the app does not talk to Kafka
-   outbox <- OrderPlaced event_id=39339e81-320b-477e-b2d8-0faeea303d2f
+   outbox <- OrderPlaced event_id=4216c39a-b016-47e2-927b-f852066a49ce
 
 ## 2. Next state change, next event
    concept: each event is a row waiting for the relay (published_at IS NULL)
-   outbox <- OrderPaid event_id=62a1ffee-b954-4810-9ad5-a274ccefb242
+   outbox <- OrderPaid event_id=1539a42d-071c-446b-afa6-516d2fa40648
 
 ## 3. Rollback drops the event too
    concept: business write fails -> whole transaction rolls back -> no outbox row to publish
-   outbox <- OrderPlaced event_id=68d8f13b-8234-486b-ac53-f2bb8575ad97
+   outbox <- OrderPlaced event_id=df8cba68-83b5-48c7-b4bc-a28972e55ad1
    rejected: payment provider down, order 2 aborted
 
 == proof: outbox rows waiting for the relay (published_at is null) ==
@@ -50,10 +49,10 @@ relay: outbox drained
 
 == consumer output: 2 events, then the same 2 again from pass 2, skipped by event_id ==
 consumer: subscribed to order-events
-consumer: OrderPlaced key=1 event_id=39339e81-320b-477e-b2d8-0faeea303d2f payload={"total":"42.50","orderId":1,"customer":"alice"}
-consumer: OrderPaid key=1 event_id=62a1ffee-b954-4810-9ad5-a274ccefb242 payload={"orderId":1}
-consumer: DUPLICATE OrderPlaced event_id=39339e81-320b-477e-b2d8-0faeea303d2f skipped (idempotent consumer)
-consumer: DUPLICATE OrderPaid event_id=62a1ffee-b954-4810-9ad5-a274ccefb242 skipped (idempotent consumer)
+consumer: OrderPlaced key=1 event_id=4216c39a-b016-47e2-927b-f852066a49ce payload={"total":"42.50","orderId":1,"customer":"alice"}
+consumer: OrderPaid key=1 event_id=1539a42d-071c-446b-afa6-516d2fa40648 payload={"orderId":1}
+consumer: DUPLICATE OrderPlaced event_id=4216c39a-b016-47e2-927b-f852066a49ce skipped (idempotent consumer)
+consumer: DUPLICATE OrderPaid event_id=1539a42d-071c-446b-afa6-516d2fa40648 skipped (idempotent consumer)
 
 == proof: orders table (alice paid, no bob) ==
  id | customer | status | total 

@@ -1,6 +1,6 @@
 # 01-crud-audit
 
-`products` CRUD where each create/update/delete writes an `audit_log` row (`actor`, `action`, `before`, `after` as JSONB) in the same transaction, so the log can never drift from the data.
+`products` CRUD where each create/update/delete writes an `audit_log` row (`actor`, `action`, `before`, `after` as JSONB) in the same transaction, so an app write and its audit row commit or roll back together.
 
 ```sh
 docker compose up -d --wait

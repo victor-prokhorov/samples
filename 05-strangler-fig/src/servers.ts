@@ -30,11 +30,34 @@ export function startLegacy(port: number, hits: { count: number }) {
   );
 }
 
+type NewOrder = { orderId: number; customerId: number; totalCents: number; state: "PAID" | "PENDING" };
+
+type NewInvoice = { invoiceId: number; orderId: number; amountCents: number };
+
+type NewUser = { userId: number; displayName: string };
+
+const newOrders: Record<string, NewOrder> = { "1": { orderId: 1, customerId: 1, totalCents: 4250, state: "PAID" } };
+
+const newInvoices: Record<string, NewInvoice> = { "1": { invoiceId: 1, orderId: 1, amountCents: 4250 } };
+
+const newUsers: Record<string, NewUser> = { "1": { userId: 1, displayName: "alice" } };
+
+const money = (cents: number) => (cents / 100).toFixed(2);
+
 export function startModern(port: number) {
   const handlers: Record<string, (id: string) => object | undefined> = {
-    orders: (id) => orders[id],
-    invoices: (id) => invoices[id],
-    users: (id) => users[id],
+    orders: (id) => {
+      const o = newOrders[id];
+      return o && { id: o.orderId, userId: o.customerId, total: money(o.totalCents), status: o.state.toLowerCase() };
+    },
+    invoices: (id) => {
+      const i = newInvoices[id];
+      return i && { id: i.invoiceId, orderId: i.orderId, amount: money(i.amountCents) };
+    },
+    users: (id) => {
+      const u = newUsers[id];
+      return u && { id: u.userId, name: u.displayName };
+    },
   };
   return listen(
     http.createServer((req, res) => {
@@ -46,6 +69,22 @@ export function startModern(port: number) {
   );
 }
 
+function isRouteArray(value: unknown): value is Route[] {
+  return Array.isArray(value) && value.every((r) => typeof r === "object" && r !== null && typeof r.prefix === "string" && typeof r.port === "number");
+}
+
+function parse(body: string): unknown {
+  try {
+    return JSON.parse(body);
+  } catch {
+    return undefined;
+  }
+}
+
+function matches(url: string, prefix: string) {
+  return url === prefix || url.startsWith(`${prefix}/`);
+}
+
 export function startProxy(port: number, fallbackPort: number, routes: Route[]) {
   return listen(
     http.createServer((req, res) => {
@@ -53,17 +92,19 @@ export function startProxy(port: number, fallbackPort: number, routes: Route[]) 
         let body = "";
         req.on("data", (chunk) => (body += chunk));
         req.on("end", () => {
-          routes.splice(0, routes.length, ...(JSON.parse(body) as Route[]));
+          const next = parse(body);
+          if (!isRouteArray(next)) return json(res, "proxy", 400, { error: "expected [{ prefix, port }]" });
+          routes.splice(0, routes.length, ...next);
           json(res, "proxy", 200, { routes });
         });
         return;
       }
-      const port = routes.find((r) => req.url?.startsWith(r.prefix))?.port ?? fallbackPort;
+      const port = routes.find((r) => matches(req.url ?? "", r.prefix))?.port ?? fallbackPort;
       const upstream = http.request({ host: "localhost", port, path: req.url, method: req.method, headers: req.headers }, (up) => {
         res.writeHead(up.statusCode ?? 502, up.headers);
         up.pipe(res);
       });
-      upstream.on("error", (err) => json(res, "proxy", 502, { error: err.message }));
+      upstream.on("error", (err) => (res.headersSent ? res.destroy(err) : json(res, "proxy", 502, { error: err.message })));
       req.pipe(upstream);
     }),
     port,

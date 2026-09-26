@@ -21,7 +21,7 @@ echo "== consumer (background) =="
 out=$(mktemp)
 npm run --silent consume >"$out" 2>&1 &
 consumer=$!
-until grep -q "subscribed" "$out"; do sleep 1; done
+until grep -q "subscribed" "$out"; do kill -0 "$consumer" 2>/dev/null || { cat "$out"; echo "consumer died"; exit 1; }; sleep 1; done
 echo "== app =="
 npm run --silent app
 echo
@@ -30,11 +30,13 @@ for _ in $(seq 1 60); do [ "$(grep -c '^consumer: outbox' "$out")" -ge 3 ] && br
 sleep 3
 kill "$consumer" 2>/dev/null || true
 grep '^consumer:' "$out"
+got=$(grep -c '^consumer: outbox' "$out" || true)
 rm -f "$out"
+[ "$got" -eq 3 ] || { echo "expected 3 consumer events, got $got"; exit 1; }
 echo
 echo "== proof: orders table (alice shipped, carol committed without an event, no bob) =="
 psql -c "SELECT * FROM orders ORDER BY id"
-echo "== proof: outbox table is empty (rows were deleted in the same transaction) yet the events were delivered =="
+echo "== proof: outbox table is empty (rows were deleted right after insert) yet the events were delivered =="
 psql -c "SELECT count(*) AS outbox_rows FROM outbox"
 echo "== proof: Kafka topics (routed by aggregatetype to outbox.event.order, no raw app.public.outbox topic) =="
 docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list

@@ -26,11 +26,14 @@ export function open(state: Account, owner: string): AccountEvent[] {
 }
 
 export function deposit(state: Account, amount: number): AccountEvent[] {
+  if (state.version === 0) throw new Error("account not open");
   if (amount <= 0) throw new Error("amount must be positive");
   return [{ type: "MoneyDeposited", amount }];
 }
 
 export function withdraw(state: Account, amount: number): AccountEvent[] {
+  if (state.version === 0) throw new Error("account not open");
+  if (amount <= 0) throw new Error("amount must be positive");
   if (amount > state.balance) throw new Error(`insufficient funds: balance ${state.balance}, asked ${amount}`);
   return [{ type: "MoneyWithdrawn", amount }];
 }

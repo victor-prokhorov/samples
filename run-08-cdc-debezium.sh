@@ -23,20 +23,25 @@ echo "== consumer (background) =="
 out=$(mktemp)
 npm run --silent consume >"$out" 2>&1 &
 consumer=$!
-until grep -q "subscribed" "$out"; do sleep 1; done
+until grep -q "subscribed" "$out"; do kill -0 "$consumer" 2>/dev/null || { cat "$out"; echo "consumer died"; exit 1; }; sleep 1; done
 echo "== writer =="
 npm run --silent write
 echo "== waiting for 5 change events to reach the consumer =="
 for _ in $(seq 1 60); do [ "$(grep -c '^consumer: [A-Z]' "$out")" -ge 5 ] && break; sleep 1; done
 kill "$consumer" 2>/dev/null || true
 grep '^consumer:' "$out"
+got=$(grep -c '^consumer: [A-Z]' "$out" || true)
 rm -f "$out"
+[ "$got" -eq 5 ] || { echo "expected 5 consumer events, got $got"; exit 1; }
 echo
-echo "== proof: replication slot Debezium reads the WAL through (confirmed_flush_lsn advances as it consumes) =="
-psql -c "SELECT slot_name, plugin, slot_type, active, confirmed_flush_lsn FROM pg_replication_slots"
+sleep 3
+echo "== proof: replication slot Debezium reads the WAL through (confirmed_flush_lsn = last position Debezium acknowledged on an offset flush; Postgres may discard WAL before it) =="
+psql -c "SELECT slot_name, plugin, slot_type, active, confirmed_flush_lsn, confirmed_flush_lsn - '0/0' AS as_number FROM pg_replication_slots"
+echo "== proof: transaction outcomes (737 is the DELETE bob + ROLLBACK) =="
+psql -c "SELECT t AS tx, pg_xact_status(t::text::xid8) FROM (VALUES (734), (735), (736), (737), (738)) v(t)"
 echo "== proof: publication pgoutput uses to pick tables =="
 psql -c "SELECT * FROM pg_publication_tables"
-echo "== proof: Kafka topics (connector created app.public.orders) =="
+echo "== proof: Kafka topics (app.public.orders, pre-created by the consumer; the connector would create it on its first event) =="
 docker compose exec -T kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:9092 --list
 echo "== proof: orders table now (only bob left) =="
 psql -c "SELECT * FROM orders"

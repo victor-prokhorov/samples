@@ -11,6 +11,7 @@ const connector = {
   "database.dbname": "postgres",
   "topic.prefix": "app",
   "table.include.list": "public.orders",
+  "publication.autocreate.mode": "filtered",
   "tombstones.on.delete": "false",
   "decimal.handling.mode": "string",
   "key.converter": "org.apache.kafka.connect.json.JsonConverter",

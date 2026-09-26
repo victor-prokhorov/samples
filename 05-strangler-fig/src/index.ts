@@ -19,8 +19,8 @@ async function traffic(hits: { count: number }, baseline: Map<string, unknown>) 
   const before = hits.count;
   for (const path of PATHS) {
     const res = await fetch(`http://localhost:${PROXY}${path}`);
-    const body = await res.json();
-    console.log(`   GET ${path.padEnd(11)} -> ${res.headers.get("x-served-by")?.padEnd(15)} same contract as legacy: ${isDeepStrictEqual(body, baseline.get(path))}`);
+    const seen = { status: res.status, body: await res.json() };
+    console.log(`   GET ${path.padEnd(11)} -> ${res.headers.get("x-served-by")?.padEnd(15)} same contract as legacy: ${isDeepStrictEqual(seen, baseline.get(path))}`);
   }
   console.log(`   legacy handled ${hits.count - before}/${PATHS.length} client requests`);
 }
@@ -30,7 +30,10 @@ async function main() {
   const routes: Route[] = [];
   const servers = await Promise.all([startLegacy(LEGACY, hits), startModern(MODERN), startProxy(PROXY, LEGACY, routes)]);
   const baseline = new Map<string, unknown>();
-  for (const path of PATHS) baseline.set(path, await (await fetch(`http://localhost:${LEGACY}${path}`)).json());
+  for (const path of PATHS) {
+    const res = await fetch(`http://localhost:${LEGACY}${path}`);
+    baseline.set(path, { status: res.status, body: await res.json() });
+  }
   hits.count = 0;
   console.log(`proxy :${PROXY} (clients only ever call this), legacy :${LEGACY}, new service :${MODERN}`);
   console.log("recorded legacy responses as the contract baseline");

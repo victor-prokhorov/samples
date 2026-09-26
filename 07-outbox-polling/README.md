@@ -12,6 +12,6 @@ npm run relay     # drain the outbox to Kafka (add -- --crash-after-send to simu
 ```
 
 - Send first, mark published second: a crash in between means duplicates, never loss (at-least-once).
-- `SKIP LOCKED` lets several relays run at once without double-claiming rows.
+- `SKIP LOCKED` lets several relays run at once without double-claiming rows, at the cost of per-aggregate ordering.
 
 One-shot run with proof: `../run-07-outbox-polling.sh` (log in `../logs/07-outbox-polling.log`). Concepts explained in `../README.md`.

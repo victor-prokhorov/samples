@@ -1,4 +1,4 @@
-# 04-parallel-run run 2026-09-26T15:53:22Z
+# 04-parallel-run run 2026-09-26T16:03:47Z
 == no infra: legacy and rewritten shipping calculators in one process, 1000 seeded orders ==
 
 ## 1. Parallel run against the rewrite

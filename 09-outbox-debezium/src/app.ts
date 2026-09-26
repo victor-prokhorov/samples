@@ -55,7 +55,7 @@ function shipOrder(orderId: number, carrier: string) {
     await c.query("UPDATE orders SET status = 'shipped' WHERE id = $1", [orderId]);
     await emit(c, orderId, "OrderShipped", { orderId, carrier });
     await c.query("DELETE FROM outbox WHERE aggregateid = $1", [String(orderId)]);
-    console.log("   outbox rows deleted in the same transaction (the WAL still has the inserts)");
+    console.log("   all outbox rows for this order deleted, OrderShipped in the transaction that inserted it (the WAL still has every insert)");
   });
 }
 

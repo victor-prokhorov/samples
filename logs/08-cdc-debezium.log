@@ -1,6 +1,6 @@
-# 08-cdc-debezium run 2026-09-26T15:53:31Z
+# 08-cdc-debezium run 2026-09-26T16:06:25Z
 == fresh Postgres + Kafka + Debezium Connect (docker compose down -v && up) ==
- Container 08-cdc-debezium-connect-1 Healthy 
+ Container 08-cdc-debezium-kafka-1 Healthy 
 == proof: Postgres runs with logical WAL ==
 logical
 == waiting for Kafka Connect REST API ==
@@ -14,21 +14,31 @@ writer: plain SQL, the app knows nothing about Kafka
 writer: INSERT order 1
 writer: UPDATE order 1 status=paid
 writer: one transaction -> UPDATE order 1 status=shipped + INSERT bob (expect same tx id)
-writer: DELETE bob then ROLLBACK (expect no event: WAL only emits committed changes)
+writer: DELETE bob then ROLLBACK (expect no event: logical decoding only emits committed transactions)
 writer: DELETE order 1
 == waiting for 5 change events to reach the consumer ==
 consumer: subscribed to app.public.orders
-consumer: INSERT lsn=22142888 tx=734 before=null after={"id":1,"customer":"alice","status":"pending","total":"42.50"}
-consumer: UPDATE lsn=22143200 tx=735 before={"id":1,"customer":"alice","status":"pending","total":"42.50"} after={"id":1,"customer":"alice","status":"paid","total":"42.50"}
-consumer: UPDATE lsn=22143368 tx=736 before={"id":1,"customer":"alice","status":"paid","total":"42.50"} after={"id":1,"customer":"alice","status":"shipped","total":"42.50"}
-consumer: INSERT lsn=22143488 tx=736 before=null after={"id":2,"customer":"bob","status":"pending","total":"10.00"}
-consumer: DELETE lsn=22143808 tx=738 before={"id":1,"customer":"alice","status":"shipped","total":"42.50"} after=null
+consumer: INSERT lsn=22152232 tx=734 before=null after={"id":1,"customer":"alice","status":"pending","total":"42.50"}
+consumer: UPDATE lsn=22152520 tx=735 before={"id":1,"customer":"alice","status":"pending","total":"42.50"} after={"id":1,"customer":"alice","status":"paid","total":"42.50"}
+consumer: UPDATE lsn=22152688 tx=736 before={"id":1,"customer":"alice","status":"paid","total":"42.50"} after={"id":1,"customer":"alice","status":"shipped","total":"42.50"}
+consumer: INSERT lsn=22152808 tx=736 before=null after={"id":2,"customer":"bob","status":"pending","total":"10.00"}
+consumer: DELETE lsn=22153128 tx=738 before={"id":1,"customer":"alice","status":"shipped","total":"42.50"} after=null
 
-== proof: replication slot Debezium reads the WAL through (confirmed_flush_lsn advances as it consumes) ==
- slot_name |  plugin  | slot_type | active | confirmed_flush_lsn 
------------+----------+-----------+--------+---------------------
- debezium  | pgoutput | logical   | t      | 0/151DED8
+== proof: replication slot Debezium reads the WAL through (confirmed_flush_lsn = last position Debezium acknowledged on an offset flush; Postgres may discard WAL before it) ==
+ slot_name |  plugin  | slot_type | active | confirmed_flush_lsn | as_number 
+-----------+----------+-----------+--------+---------------------+-----------
+ debezium  | pgoutput | logical   | t      | 0/1520728           |  22153000
 (1 row)
+
+== proof: transaction outcomes (737 is the DELETE bob + ROLLBACK) ==
+ tx  | pg_xact_status 
+-----+----------------
+ 734 | committed
+ 735 | committed
+ 736 | committed
+ 737 | aborted
+ 738 | committed
+(5 rows)
 
 == proof: publication pgoutput uses to pick tables ==
      pubname     | schemaname | tablename |          attnames          | rowfilter 
@@ -36,7 +46,7 @@ consumer: DELETE lsn=22143808 tx=738 before={"id":1,"customer":"alice","status":
  dbz_publication | public     | orders    | {id,customer,status,total} | 
 (1 row)
 
-== proof: Kafka topics (connector created app.public.orders) ==
+== proof: Kafka topics (app.public.orders, pre-created by the consumer; the connector would create it on its first event) ==
 __consumer_offsets
 app.public.orders
 connect_configs

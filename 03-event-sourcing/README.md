@@ -10,6 +10,6 @@ npm start
 
 - `src/store.ts` event store: `append(streamId, expectedVersion, events)`, `readStream`. A stale `expectedVersion` hits the unique constraint -> `ConcurrencyError`.
 - `src/account.ts` events, `evolve` (fold), command handlers.
-- `src/index.ts` demo: happy path, rejected withdrawal, concurrent-write conflict, time travel (`as of v3`).
+- `src/index.ts` demo: happy path, rejected withdrawal, concurrent-write conflict, time travel (`as of v3`), a projection (total deposited).
 
 One-shot run with proof: `../run-03-event-sourcing.sh` (log in `../logs/03-event-sourcing.log`). Concepts explained in `../README.md`.

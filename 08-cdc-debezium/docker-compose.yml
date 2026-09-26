@@ -8,6 +8,10 @@ services:
       - "55435:5432"
   kafka:
     image: apache/kafka:3.8.0
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 2s
+      retries: 30
     ports:
       - "59092:59092"
     environment:
@@ -24,7 +28,11 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
   connect:
     image: quay.io/debezium/connect:3.0
-    depends_on: [kafka, postgres]
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_started
     ports:
       - "58083:8083"
     environment:
@@ -33,3 +41,4 @@ services:
       CONFIG_STORAGE_TOPIC: connect_configs
       OFFSET_STORAGE_TOPIC: connect_offsets
       STATUS_STORAGE_TOPIC: connect_statuses
+      OFFSET_FLUSH_INTERVAL_MS: 1000

@@ -7,7 +7,7 @@ docker compose up -d --wait
 npm i
 npm run setup     # create orders table (REPLICA IDENTITY FULL) + register connector
 npm run consume   # terminal 1: print change events
-npm run write     # terminal 2: insert, update x2, delete
+npm run write     # terminal 2: insert, update, tx (update + insert), rolled-back delete, delete
 ```
 
 - `wal_level=logical` on Postgres, `plugin.name=pgoutput` (built into Postgres, no extension).

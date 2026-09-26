@@ -18,7 +18,7 @@ async function main() {
   await client.query("BEGIN");
   await client.query("DELETE FROM orders WHERE customer = 'bob'");
   await client.query("ROLLBACK");
-  console.log("writer: DELETE bob then ROLLBACK (expect no event: WAL only emits committed changes)");
+  console.log("writer: DELETE bob then ROLLBACK (expect no event: logical decoding only emits committed transactions)");
   await client.query("DELETE FROM orders WHERE id = $1", [id]);
   console.log(`writer: DELETE order ${id}`);
   await client.end();

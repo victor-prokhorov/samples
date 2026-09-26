@@ -7,6 +7,10 @@ services:
       - "55437:5432"
   kafka:
     image: apache/kafka:3.8.0
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 2s
+      retries: 30
     ports:
       - "59094:59094"
     environment:

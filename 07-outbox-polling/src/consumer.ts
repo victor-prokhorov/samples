@@ -9,7 +9,8 @@ async function main() {
   console.log(`consumer: subscribed to ${TOPIC}`);
   await consumer.run({
     eachMessage: async ({ message }) => {
-      const eventId = message.headers?.eventId?.toString() ?? "";
+      const eventId = message.headers?.eventId?.toString();
+      if (!eventId) return console.log(`consumer: message at offset ${message.offset} has no eventId header, skipped`);
       const eventType = message.headers?.eventType?.toString();
       if (processed.has(eventId)) return console.log(`consumer: DUPLICATE ${eventType} event_id=${eventId} skipped (idempotent consumer)`);
       processed.add(eventId);

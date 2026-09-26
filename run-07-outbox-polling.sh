@@ -15,7 +15,7 @@ echo "== consumer (background) =="
 out=$(mktemp)
 npm run --silent consume >"$out" 2>&1 &
 consumer=$!
-until grep -q "subscribed" "$out"; do sleep 1; done
+until grep -q "subscribed" "$out"; do kill -0 "$consumer" 2>/dev/null || { cat "$out"; echo "consumer died"; exit 1; }; sleep 1; done
 echo "== app =="
 npm run --silent app
 echo
@@ -33,7 +33,9 @@ echo "== consumer output: 2 events, then the same 2 again from pass 2, skipped b
 for _ in $(seq 1 60); do [ "$(grep -c '^consumer: [A-Z]' "$out")" -ge 4 ] && break; sleep 1; done
 kill "$consumer" 2>/dev/null || true
 grep '^consumer:' "$out"
+got=$(grep -c '^consumer: [A-Z]' "$out" || true)
 rm -f "$out"
+[ "$got" -eq 4 ] || { echo "expected 4 consumer events, got $got"; exit 1; }
 echo
 echo "== proof: orders table (alice paid, no bob) =="
 psql -c "SELECT * FROM orders ORDER BY id"
