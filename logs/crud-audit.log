@@ -1,0 +1,44 @@
+# crud-audit run 2026-09-26T08:45:54Z
+== fresh Postgres (docker compose down -v && up) ==
+ Container crud-audit-postgres-1 Healthy 
+== demo ==
+
+## 1. Create
+   concept: INSERT the row and an audit entry (before=null, after=row) in one transaction
+   created: { id: 1, name: 'Keyboard', price: '49.00' }
+
+## 2. Update
+   concept: lock the row (SELECT ... FOR UPDATE), capture before, UPDATE, write audit with before and after
+   bob: { id: 1, name: 'Keyboard', price: '39.00' }
+   alice: { id: 1, name: 'Mech Keyboard', price: '39.00' }
+
+## 3. Atomicity
+   concept: if the audit insert fails (empty actor violates CHECK), the data change rolls back with it
+   rejected: new row for relation "audit_log" violates check constraint "audit_log_actor_check"
+   price still: 39.00
+
+## 4. Delete
+   concept: the row disappears from products, but the audit entry keeps its last value (before=row, after=null)
+   read after delete: null
+
+## 5. History
+   concept: the products table only knows the present; audit_log answers who changed what, when, from what to what
+   2026-09-26T08:45:55.803Z create by alice before=null after={"id":1,"name":"Keyboard","price":"49.00"}
+   2026-09-26T08:45:55.805Z update by bob   before={"id":1,"name":"Keyboard","price":"49.00"} after={"id":1,"name":"Keyboard","price":"39.00"}
+   2026-09-26T08:45:55.806Z update by alice before={"id":1,"name":"Keyboard","price":"39.00"} after={"id":1,"name":"Mech Keyboard","price":"39.00"}
+   2026-09-26T08:45:55.809Z delete by carol before={"id":1,"name":"Mech Keyboard","price":"39.00"} after=null
+
+== proof: products table (current state only, row is gone) ==
+ id | name | price 
+----+------+-------
+(0 rows)
+
+== proof: audit_log table (full history survives the delete, rolled-back change absent) ==
+ id | entity  | entity_id | action | actor |                        before                        |                        after                         
+----+---------+-----------+--------+-------+------------------------------------------------------+------------------------------------------------------
+  1 | product | 1         | create | alice |                                                      | {"id": 1, "name": "Keyboard", "price": "49.00"}
+  2 | product | 1         | update | bob   | {"id": 1, "name": "Keyboard", "price": "49.00"}      | {"id": 1, "name": "Keyboard", "price": "39.00"}
+  3 | product | 1         | update | alice | {"id": 1, "name": "Keyboard", "price": "39.00"}      | {"id": 1, "name": "Mech Keyboard", "price": "39.00"}
+  5 | product | 1         | delete | carol | {"id": 1, "name": "Mech Keyboard", "price": "39.00"} | 
+(4 rows)
+
