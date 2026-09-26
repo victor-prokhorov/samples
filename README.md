@@ -1,6 +1,6 @@
 # samples
 
-Four minimal, real TypeScript + Postgres examples of ways to keep track of change and publish it:
+Four minimal, real TypeScript + Postgres examples of ways to keep track of change and publish it. For the wider landscape (strangler fig, expand/contract, sagas, who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
 
 | Folder | Source of truth | History comes from | Run |
 | --- | --- | --- | --- |
