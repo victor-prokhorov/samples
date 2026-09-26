@@ -1,4 +1,4 @@
-# event-sourcing
+# 02-event-sourcing
 
 Bank account aggregate. Commands (`open`, `deposit`, `withdraw`) validate against state rebuilt from events and return new events. Nothing is updated in place.
 
@@ -12,4 +12,4 @@ npm start
 - `src/account.ts` events, `evolve` (fold), command handlers.
 - `src/index.ts` demo: happy path, rejected withdrawal, concurrent-write conflict, time travel (`as of v3`).
 
-One-shot run with proof: `../run-event-sourcing.sh` (log in `../logs/event-sourcing.log`). Concepts explained in `../README.md`.
+One-shot run with proof: `../run-02-event-sourcing.sh` (log in `../logs/02-event-sourcing.log`). Concepts explained in `../README.md`.

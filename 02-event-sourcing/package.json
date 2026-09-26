@@ -1,5 +1,5 @@
 {
-  "name": "event-sourcing",
+  "name": "02-event-sourcing",
   "private": true,
   "type": "module",
   "scripts": {

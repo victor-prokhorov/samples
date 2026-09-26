@@ -1,15 +1,12 @@
 {
-  "name": "outbox",
+  "name": "01-crud-audit",
   "private": true,
   "type": "module",
   "scripts": {
-    "setup": "tsx src/setup.ts",
-    "consume": "tsx src/consumer.ts",
-    "app": "tsx src/app.ts",
+    "start": "tsx src/index.ts",
     "typecheck": "tsc"
   },
   "dependencies": {
-    "kafkajs": "^2.2.4",
     "pg": "^8.13.0"
   },
   "devDependencies": {

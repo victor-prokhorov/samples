@@ -2,9 +2,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p logs
-exec > >(tee logs/crud-audit.log) 2>&1
-cd crud-audit
-echo "# crud-audit run $(date -u +%FT%TZ)"
+exec > >(tee logs/01-crud-audit.log) 2>&1
+cd 01-crud-audit
+echo "# 01-crud-audit run $(date -u +%FT%TZ)"
 echo "== fresh Postgres (docker compose down -v && up) =="
 docker compose down -v --remove-orphans >/dev/null 2>&1
 docker compose up -d --wait 2>&1 | tail -1

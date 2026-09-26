@@ -1,12 +1,15 @@
 {
-  "name": "crud-audit",
+  "name": "05-outbox-debezium",
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "tsx src/index.ts",
+    "setup": "tsx src/setup.ts",
+    "consume": "tsx src/consumer.ts",
+    "app": "tsx src/app.ts",
     "typecheck": "tsc"
   },
   "dependencies": {
+    "kafkajs": "^2.2.4",
     "pg": "^8.13.0"
   },
   "devDependencies": {

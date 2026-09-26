@@ -1,5 +1,5 @@
 {
-  "name": "cdc-debezium",
+  "name": "04-cdc-debezium",
   "private": true,
   "type": "module",
   "scripts": {

@@ -1,4 +1,4 @@
-# cdc-debezium
+# 04-cdc-debezium
 
 Change data capture: the app writes to Postgres normally; Debezium tails the WAL through a logical replication slot and publishes one Kafka message per row change (`op`, `before`, `after`, `lsn`, `txId`).
 
@@ -15,4 +15,4 @@ npm run write     # terminal 2: insert, update x2, delete
 - Topic name: `<topic.prefix>.<schema>.<table>` = `app.public.orders`.
 - Connector status: `curl localhost:58083/connectors/orders-connector/status`.
 
-One-shot run with proof: `../run-cdc-debezium.sh` (log in `../logs/cdc-debezium.log`). Concepts explained in `../README.md`.
+One-shot run with proof: `../run-04-cdc-debezium.sh` (log in `../logs/04-cdc-debezium.log`). Concepts explained in `../README.md`.

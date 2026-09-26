@@ -1,6 +1,6 @@
-# crud-audit run 2026-09-26T08:45:54Z
+# 01-crud-audit run 2026-09-26T15:44:04Z
 == fresh Postgres (docker compose down -v && up) ==
- Container crud-audit-postgres-1 Healthy 
+ Container 01-crud-audit-postgres-1 Healthy 
 == demo ==
 
 ## 1. Create
@@ -23,10 +23,10 @@
 
 ## 5. History
    concept: the products table only knows the present; audit_log answers who changed what, when, from what to what
-   2026-09-26T08:45:55.803Z create by alice before=null after={"id":1,"name":"Keyboard","price":"49.00"}
-   2026-09-26T08:45:55.805Z update by bob   before={"id":1,"name":"Keyboard","price":"49.00"} after={"id":1,"name":"Keyboard","price":"39.00"}
-   2026-09-26T08:45:55.806Z update by alice before={"id":1,"name":"Keyboard","price":"39.00"} after={"id":1,"name":"Mech Keyboard","price":"39.00"}
-   2026-09-26T08:45:55.809Z delete by carol before={"id":1,"name":"Mech Keyboard","price":"39.00"} after=null
+   2026-09-26T15:44:05.964Z create by alice before=null after={"id":1,"name":"Keyboard","price":"49.00"}
+   2026-09-26T15:44:05.966Z update by bob   before={"id":1,"name":"Keyboard","price":"49.00"} after={"id":1,"name":"Keyboard","price":"39.00"}
+   2026-09-26T15:44:05.967Z update by alice before={"id":1,"name":"Keyboard","price":"39.00"} after={"id":1,"name":"Mech Keyboard","price":"39.00"}
+   2026-09-26T15:44:05.970Z delete by carol before={"id":1,"name":"Mech Keyboard","price":"39.00"} after=null
 
 == proof: products table (current state only, row is gone) ==
  id | name | price 

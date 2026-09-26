@@ -133,13 +133,14 @@ Online, keep these open: martinfowler.com (bliki plus the Legacy Displacement se
 
 ## Runnable samples in this repo
 
-Four of these patterns run end to end here, in TypeScript on Postgres, each with a run script and a proof log. Concepts for each are explained in [README.md](README.md).
+Five of these patterns run end to end here, in TypeScript on Postgres, numbered by complexity, each with a run script and a proof log. Concepts for each are explained in [README.md](README.md).
 
-| Folder | Pattern from this map | Run | Proof |
-| --- | --- | --- | --- |
-| [`event-sourcing/`](event-sourcing/) | Event Sourcing, optimistic concurrency, projections | `./run-event-sourcing.sh` | [`logs/event-sourcing.log`](logs/event-sourcing.log) |
-| [`crud-audit/`](crud-audit/) | Audit Log (same-transaction before/after rows) | `./run-crud-audit.sh` | [`logs/crud-audit.log`](logs/crud-audit.log) |
-| [`cdc-debezium/`](cdc-debezium/) | Change Data Capture via Postgres WAL and Debezium | `./run-cdc-debezium.sh` | [`logs/cdc-debezium.log`](logs/cdc-debezium.log) |
-| [`outbox/`](outbox/) | Transactional Outbox with Debezium's EventRouter | `./run-outbox.sh` | [`logs/outbox.log`](logs/outbox.log) |
+| # | Folder | Pattern from this map | Run | Proof |
+| --- | --- | --- | --- | --- |
+| 01 | [`01-crud-audit/`](01-crud-audit/) | Audit Log (same-transaction before/after rows) | `./run-01-crud-audit.sh` | [`logs/01-crud-audit.log`](logs/01-crud-audit.log) |
+| 02 | [`02-event-sourcing/`](02-event-sourcing/) | Event Sourcing, optimistic concurrency, projections | `./run-02-event-sourcing.sh` | [`logs/02-event-sourcing.log`](logs/02-event-sourcing.log) |
+| 03 | [`03-outbox-polling/`](03-outbox-polling/) | Transactional Outbox with a Polling Publisher, Idempotent Consumer | `./run-03-outbox-polling.sh` | [`logs/03-outbox-polling.log`](logs/03-outbox-polling.log) |
+| 04 | [`04-cdc-debezium/`](04-cdc-debezium/) | Change Data Capture via Postgres WAL and Debezium | `./run-04-cdc-debezium.sh` | [`logs/04-cdc-debezium.log`](logs/04-cdc-debezium.log) |
+| 05 | [`05-outbox-debezium/`](05-outbox-debezium/) | Transactional Outbox relayed by transaction log tailing (Debezium EventRouter) | `./run-05-outbox-debezium.sh` | [`logs/05-outbox-debezium.log`](logs/05-outbox-debezium.log) |
 
 Not yet built here, and natural next ones: expand/contract schema change, strangler fig behind a proxy, parallel run with a Scientist-style comparator, and a saga.

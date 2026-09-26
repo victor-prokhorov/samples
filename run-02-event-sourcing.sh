@@ -2,9 +2,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p logs
-exec > >(tee logs/event-sourcing.log) 2>&1
-cd event-sourcing
-echo "# event-sourcing run $(date -u +%FT%TZ)"
+exec > >(tee logs/02-event-sourcing.log) 2>&1
+cd 02-event-sourcing
+echo "# 02-event-sourcing run $(date -u +%FT%TZ)"
 echo "== fresh Postgres (docker compose down -v && up) =="
 docker compose down -v --remove-orphans >/dev/null 2>&1
 docker compose up -d --wait 2>&1 | tail -1

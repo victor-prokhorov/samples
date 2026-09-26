@@ -2,9 +2,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 mkdir -p logs
-exec > >(tee logs/cdc-debezium.log) 2>&1
-cd cdc-debezium
-echo "# cdc-debezium run $(date -u +%FT%TZ)"
+exec > >(tee logs/04-cdc-debezium.log) 2>&1
+cd 04-cdc-debezium
+echo "# 04-cdc-debezium run $(date -u +%FT%TZ)"
 echo "== fresh Postgres + Kafka + Debezium Connect (docker compose down -v && up) =="
 docker compose down -v --remove-orphans >/dev/null 2>&1
 docker compose up -d --wait 2>&1 | tail -1
