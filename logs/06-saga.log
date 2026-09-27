@@ -1,4 +1,4 @@
-# 06-saga run 2026-09-27T19:47:28Z
+# 06-saga run 2026-09-27T19:50:01Z
 == fresh Postgres with one database per service (docker compose down -v && up) ==
  Container 06-saga-postgres-1 Healthy 
 setup: 4 databases (inventory, payments, shipping, orchestrator), keyboard stock = 10
@@ -93,44 +93,44 @@ demo exited with 1
 
 ## 6. Durable timer
    concept: a saga that has to wait (here a 30s fraud hold, in real life days) does not keep a process alive; it writes wake_at to the saga log and the process is free to exit
-   19:47:30 starting order-E
+   19:50:04 starting order-E
    [order-E] started {"sku":"keyboard","qty":1,"amount":"42.00","address":"Lille","holdSec":30}
       -> HTTP POST inventory-service/reservations/order-E
    [order-E] step 1 reserveInventory: ok
       -> HTTP POST payments-service/charges/order-E
    [order-E] step 2 chargePayment: ok
-   19:47:30 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 19:48:00; this process stops driving it
-   19:47:30 timer process exits; order-E now exists only as a row
+   19:50:04 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 19:50:34; this process stops driving it
+   19:50:04 timer process exits; order-E now exists only as a row
    id    |  state  | step |            wake_at            
 ---------+---------+------+-------------------------------
- order-E | waiting |    3 | 2026-09-27 19:48:00.555308+00
+ order-E | waiting |    3 | 2026-09-27 19:50:34.125534+00
 (1 row)
 
 == waker #1, killed after 10s (the timer is a row, so nothing is lost) ==
 
-## waker (pid 78398)
+## waker (pid 79410)
    concept: a loop polls the saga log every 5s, claims sagas whose wake_at has passed, and drives them on from the step after the timer
-   19:47:30 tick: order-E due in 30s
-   19:47:35 tick: order-E due in 25s
-   19:47:40 waker #1 killed (exit 143)
+   19:50:04 tick: order-E due in 30s
+   19:50:09 tick: order-E due in 25s
+   19:50:14 waker #1 killed (exit 143)
    id    |  state  | step |            wake_at            
 ---------+---------+------+-------------------------------
- order-E | waiting |    3 | 2026-09-27 19:48:00.555308+00
+ order-E | waiting |    3 | 2026-09-27 19:50:34.125534+00
 (1 row)
 
 == waker #2, a new process: picks order-E up when due, runs until no saga is waiting ==
 
-## waker (pid 78721)
+## waker (pid 79440)
    concept: a loop polls the saga log every 5s, claims sagas whose wake_at has passed, and drives them on from the step after the timer
-   19:47:41 tick: order-E due in 20s
-   19:47:46 tick: order-E due in 15s
-   19:47:51 tick: order-E due in 10s
-   19:47:56 tick: order-E due in 5s
-   19:48:01 [order-E] due, claimed (waiting -> running, 0.5s after wake_at because of the poll interval)
+   19:50:14 tick: order-E due in 20s
+   19:50:19 tick: order-E due in 15s
+   19:50:24 tick: order-E due in 10s
+   19:50:29 tick: order-E due in 5s
+   19:50:34 [order-E] due, claimed (waiting -> running, 0.5s after wake_at because of the poll interval)
       -> HTTP POST shipping-service/shipments/order-E
    [order-E] step 4 createShipment: ok
    [order-E] completed
-   19:48:01 no saga waiting, waker exits
+   19:50:34 no saga waiting, waker exits
 
 == proof: saga log after the timer ==
    id    |   state   | step |            wake_at            |              error               
@@ -139,7 +139,7 @@ demo exited with 1
  order-B | aborted   |    0 |                               | card declined for 5000.00
  order-C | aborted   |    0 |                               | address not deliverable: nowhere
  order-D | completed |    4 |                               | 
- order-E | completed |    4 | 2026-09-27 19:48:00.555308+00 | 
+ order-E | completed |    4 | 2026-09-27 19:50:34.125534+00 | 
 (5 rows)
 
 == proof: inventory (10 - 2 for A - 1 for D - 1 for E = 6; B and C released) ==

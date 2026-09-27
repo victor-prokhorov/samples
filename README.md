@@ -342,23 +342,23 @@ A new process resumes from the log. It re-runs `chargePayment`, which is idempot
 order-E has a 30s fraud hold. The process that starts it parks it and exits:
 
 ```
-   19:47:30 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 19:48:00; this process stops driving it
-   19:47:30 timer process exits; order-E now exists only as a row
- order-E | waiting |    3 | 2026-09-27 19:48:00.555308+00
+   19:50:04 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 19:50:34; this process stops driving it
+   19:50:04 timer process exits; order-E now exists only as a row
+ order-E | waiting |    3 | 2026-09-27 19:50:34.125534+00
 ```
 
 A first waker is killed 10s in and the row is untouched. A second waker process picks order-E up when it is due and finishes it:
 
 ```
-   19:47:35 tick: order-E due in 25s
-   19:47:40 waker #1 killed (exit 143)
- order-E | waiting |    3 | 2026-09-27 19:48:00.555308+00
+   19:50:09 tick: order-E due in 25s
+   19:50:14 waker #1 killed (exit 143)
+ order-E | waiting |    3 | 2026-09-27 19:50:34.125534+00
 
-## waker (pid 78721)
-   19:47:41 tick: order-E due in 20s
+## waker (pid 79440)
+   19:50:14 tick: order-E due in 20s
    ...
-   19:47:56 tick: order-E due in 5s
-   19:48:01 [order-E] due, claimed (waiting -> running, 0.5s after wake_at because of the poll interval)
+   19:50:29 tick: order-E due in 5s
+   19:50:34 [order-E] due, claimed (waiting -> running, 0.5s after wake_at because of the poll interval)
       -> HTTP POST shipping-service/shipments/order-E
    [order-E] step 4 createShipment: ok
    [order-E] completed
