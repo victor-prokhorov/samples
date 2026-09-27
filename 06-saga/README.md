@@ -4,7 +4,7 @@
 
 **Reach for it when** one business operation spans services that each own their data, including long-running flows that wait (the `fraudHold` timer here).
 
-**Do not reach for it when** the data lives in one database: use a transaction. A step cannot be compensated and must be atomic with another: redesign the boundary instead. The flow has many branches, waits and human steps: use a workflow engine (Temporal) rather than a hand-rolled step table. Splitting a service that needs strong consistency, then patching it with sagas, is the classic antipattern.
+**Do not reach for it when** the data lives in one database: use a transaction. The operation needs isolation, so nobody may see or act on the half-done state: a saga has none (ACD, not ACID), so draw the service boundary around that data instead. The flow has many branches, long waits or human steps: use a workflow engine (Temporal) rather than a hand-rolled step table.
 
 Orchestrated saga across three services, each with its own Postgres database (`inventory`, `payments`, `shipping`) plus the orchestrator's saga log (`orchestrator`). Steps: reserve stock, charge, ship; compensations: release, refund. Every step is idempotent by saga id, so recovery can safely re-run it. A `fraudHold` timer step parks a saga in the log (`state = 'waiting'`, `wake_at`) instead of blocking a process; a separate waker polls and resumes it. Services are in-process functions standing in for remote microservices; each call logs `-> HTTP`.
 

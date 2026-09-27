@@ -4,7 +4,7 @@
 
 **Reach for it when** you have 07's need and poll latency, query load or table cleanup start to hurt, or Debezium is already running for 08.
 
-**Do not reach for it when** nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (13's audit events): immediate cleanup relies on the slot, and a lost slot loses those events for good.
+**Do not reach for it when** nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. You would delete outbox rows at once but cannot afford to lose an event: a dropped slot then loses them for good, so keep rows until shipped and poll them, as 13 does.
 
 Transactional outbox with a CDC relay (the log-tailing version of `07-outbox-polling`). The app writes the business row and an `outbox` row in one Postgres transaction. Debezium tails the WAL, and its `EventRouter` transform turns each outbox insert into a business event on `outbox.event.<aggregatetype>`.
 

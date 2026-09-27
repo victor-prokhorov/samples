@@ -4,7 +4,7 @@
 
 **Reach for it when** one table got big enough that indexes, vacuum or retention hurt, and the hot queries filter on one key. Old data expires by time (`RANGE` by month, then `DROP` old partitions instead of a huge `DELETE`).
 
-**Do not reach for it when** the table is small: partitioning adds planning cost and rules for nothing. Most queries do not filter on the partition key, so each one scans every partition. You expect more CPU, RAM or write throughput: it is still one machine (11). You need a unique constraint that does not include the key.
+**Do not reach for it when** the table is small or a better index would fix the slow query: partitioning adds planning cost and rules for nothing. Most queries do not filter on the partition key, so each one scans every partition. You would cut it into thousands of small partitions: planning time and memory grow with the count. You need more CPU, RAM or write throughput: it is still one machine (11).
 
 Native Postgres hash partitioning on one server: `orders PARTITION BY HASH (customer_id)` into 4 partitions. The app only ever talks to `orders`; Postgres routes every row and prunes every query. This is the single-machine step before `11-sharding-replicas`, which moves the same split onto separate servers.
 

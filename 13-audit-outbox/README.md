@@ -1,10 +1,10 @@
 # 13-audit-outbox
 
-**Pain: central audit trail.** Each service can audit itself in the same transaction (01), but compliance and support need one trail across services, with the actor, that cannot miss a change made through the app or be edited afterwards.
+**Pain: scattered audit logs.** Each service can audit itself in the same transaction (01), but compliance and support need one trail across services, with the actor, that cannot miss a change made through the app or be edited afterwards. Sending it to a central store straight from app code is a dual write that loses events (07).
 
 **Reach for it when** the audit trail of record spans several services and needs the actor and the reason from the app, a guarantee that no change made through the app exists without its audit event, and one central, append-only store.
 
-**Do not reach for it when** there is one service and one database: 01's audit table is enough, with no shipper to run. You need to catch writes that bypass the app (psql, scripts, migrations): that is `pgaudit` or triggers, alongside this. The central trail must reflect a change the instant it commits: shipping adds lag.
+**Do not reach for it when** there is one service and one database: 01's audit table is enough, with no shipper to run. You need to catch writes that bypass the app (psql, scripts, migrations): run `pgaudit` or triggers alongside this. The central trail must show a change the instant it commits, or in one exact order across services: shipping adds lag, and cross-service order is only as good as the clocks.
 
 01's audit table combined with 07's outbox. Two services (`orders`, `billing`), each with its own Postgres database, write an audit event (actor, reason, before, after) into their own `audit_outbox` in the same transaction as the change. `src/shipper.ts` copies the events into a central `audit` database, where `audit_events` dedupes by `event_id` and a trigger rejects any update or delete.
 

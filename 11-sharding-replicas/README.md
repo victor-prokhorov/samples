@@ -4,7 +4,7 @@
 
 **Reach for it when** one server can no longer hold the data or absorb the writes, after a bigger machine, partitioning (10) and replicas, and almost every query stays within one key (tenant, customer).
 
-**Do not reach for it when** a bigger machine or read replicas alone would do: sharding is the most expensive step to undo. Queries or transactions routinely span keys (joins, reports): move those to a warehouse, or pick another key. Every read must see the latest write: then replica reads are wrong for it.
+**Do not reach for it when** a bigger machine, partitioning (10) or read replicas would do: sharding is the most expensive step to undo. Transactions or joins routinely span shard keys: pick another key, and send cross-shard reports to a warehouse. The key is skewed, so one tenant or one hot value outgrows its shard. Every read must see the latest write: serve it from the primary, not a replica.
 
 The partitions of `10-partitioning` turned into servers. Two shards, each a Postgres primary with read replicas fed by built-in streaming replication. A small router in the app hashes `customer_id` to a shard, sends writes to that shard's primary and spreads reads over its replicas. No Citus, no proxy, no failover. No query or transaction spans shards: cross-shard reads would need fan-out and merge in the router, cross-shard writes a saga (06).
 

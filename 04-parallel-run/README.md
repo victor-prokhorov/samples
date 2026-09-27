@@ -2,7 +2,7 @@
 
 **Pain: blind rewrite.** Tests cannot show that a rewrite matches legacy on every real input, so you find the differences after cutover, through users.
 
-**Reach for it when** replacing logic whose exact behavior nobody fully knows (pricing, tax, permissions), when outputs can be compared, before the rewrite serves anyone.
+**Reach for it when** you replace logic whose exact behavior nobody fully knows (pricing, tax, permissions, a query against a new data store) and its outputs can be compared on real production inputs before the new code serves anyone.
 
 **Do not reach for it when** the code has side effects that must not happen twice (charging, emailing) and the candidate cannot be stubbed. Outputs are nondeterministic (timestamps, random ids) and you will not normalize them. The rewrite changes behavior on purpose: every mismatch is noise.
 

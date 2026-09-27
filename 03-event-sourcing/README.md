@@ -1,10 +1,10 @@
 # 03-event-sourcing
 
-**Pain: state without its story.** A current-state table forgets how it got there, and a separate audit log (01) can drift from it. Here the history is the state.
+**Pain: lost business history.** A current-state table keeps only the latest values, so what happened (`MoneyWithdrawn`, `OrderCancelled`) and in what order is gone. An audit log beside it (01) records snapshots, not intent, and is not the source of truth, so nothing guarantees it replays into the current state.
 
-**Reach for it when** the history is the domain: ledgers, bookings, workflows. You need to rebuild state, answer "what was it at time T", or add new read models from old events.
+**Reach for it when** the history is the domain (ledgers, bookings, workflows) and you need to rebuild state, answer "what was it at time T", or build new read models from events already stored.
 
-**Do not reach for it when** the domain is plain CRUD and nobody asks how a row got here. You only need an audit log (01 is far cheaper). You would apply it to a whole system by default: every event schema is a contract you version forever, and every current-state query needs a projection.
+**Do not reach for it when** the domain is plain CRUD and you only need to know who changed what: 01 is far cheaper. You would apply it to a whole system by default: every event schema is a contract you version forever, and every current-state query needs a projection that lags the write. You want it as the way services talk to each other: publish separate integration events through an outbox (07) instead of exposing the event store.
 
 Bank account aggregate. Commands (`open`, `deposit`, `withdraw`) validate against state rebuilt from events and return new events. Nothing is updated in place.
 

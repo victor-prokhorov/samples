@@ -1,10 +1,10 @@
 # 08-cdc-debezium
 
-**Pain: invasive publishing.** Other systems (search, cache, warehouse) need every change, and making every write path publish is intrusive and misses writes that bypass the app (scripts, manual SQL).
+**Pain: derived data drift.** Search indexes, caches and the warehouse must mirror the database, but dual writes from app code race, fail halfway and miss writes that bypass the app (scripts, manual SQL), while nightly batch copies are hours stale.
 
 **Reach for it when** keeping derived copies in sync with the source of truth: search indexes (Elasticsearch, Meilisearch), cache invalidation, a data warehouse or lake, a new database during a migration (05), or publishing changes from code you cannot change. The consumer wants every row change, including ones made outside the app, and does not care why the row changed.
 
-**Do not reach for it when** consumers need business intent (`OrderPaid`, not `status pending -> paid`): use an outbox (07, 09), or they couple to your table schema. You want it as the audit log of record, which fails for three reasons. There is no actor: the WAL records the database role, not which user acted. It is asynchronous: a dropped slot or a re-snapshot silently loses changes, while 01's audit row commits with the change. Schema changes are not in it: an `ALTER TABLE` is not decoded, and Debezium skips `TRUNCATE` by default. It is fine as a broad "what changed" history on the side; `pgaudit` is the tool for catching scripts and migrations with the role that ran them.
+**Do not reach for it when** consumers need business intent (`OrderPaid`, not `status pending -> paid`): use an outbox (07, 09), or every consumer couples to your table schema. You want the audit log of record: the WAL knows the database role, not the user, and a dropped slot loses the changes made while it was gone, while 01's audit row commits with the change (`pgaudit` catches scripts with their role). Nobody will watch the replication slot: a stalled consumer makes Postgres keep WAL until the disk fills.
 
 Change data capture: the app writes to Postgres normally; Debezium tails the WAL through a logical replication slot and publishes one Kafka message per row change (`op`, `before`, `after`, `lsn`, `txId`).
 

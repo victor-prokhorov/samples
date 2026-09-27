@@ -6,17 +6,17 @@ Thirteen minimal, real TypeScript examples of how to change a running system wit
 | --- | --- | --- | --- | --- | --- | --- |
 | 01 | [`01-crud-audit/`](01-crud-audit/) | lost history | transactions, before/after audit rows | Postgres | `./run-01-crud-audit.sh` | [`logs/01-crud-audit.log`](logs/01-crud-audit.log) |
 | 02 | [`02-expand-contract/`](02-expand-contract/) | deploy breakage | zero-downtime schema change, rolling deploys, backfill | Postgres | `./run-02-expand-contract.sh` | [`logs/02-expand-contract.log`](logs/02-expand-contract.log) |
-| 03 | [`03-event-sourcing/`](03-event-sourcing/) | state without its story | events as source of truth, fold, optimistic concurrency, projections | Postgres | `./run-03-event-sourcing.sh` | [`logs/03-event-sourcing.log`](logs/03-event-sourcing.log) |
+| 03 | [`03-event-sourcing/`](03-event-sourcing/) | lost business history | events as source of truth, fold, optimistic concurrency, projections | Postgres | `./run-03-event-sourcing.sh` | [`logs/03-event-sourcing.log`](logs/03-event-sourcing.log) |
 | 04 | [`04-parallel-run/`](04-parallel-run/) | blind rewrite | control vs candidate, mismatch reporting, cutover | none | `./run-04-parallel-run.sh` | [`logs/04-parallel-run.log`](logs/04-parallel-run.log) |
 | 05 | [`05-strangler-fig/`](05-strangler-fig/) | big-bang cutover | routing facade, capability-by-capability replacement, instant rollback | none (3 HTTP servers) | `./run-05-strangler-fig.sh` | [`logs/05-strangler-fig.log`](logs/05-strangler-fig.log) |
 | 06 | [`06-saga/`](06-saga/) | partial failure | no distributed transactions, compensations, saga log, crash recovery, idempotent steps, durable timer and waker | Postgres (4 databases) | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
 | 07 | [`07-outbox-polling/`](07-outbox-polling/) | dual write | dual-write problem, outbox table, polling relay, `SKIP LOCKED`, at-least-once, idempotent consumer | Postgres, Kafka | `./run-07-outbox-polling.sh` | [`logs/07-outbox-polling.log`](logs/07-outbox-polling.log) |
-| 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | invasive publishing | WAL, logical decoding, replication slot, LSN, Debezium, Kafka Connect | Postgres, Kafka, Connect | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
+| 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | derived data drift | WAL, logical decoding, replication slot, LSN, Debezium, Kafka Connect | Postgres, Kafka, Connect | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
 | 09 | [`09-outbox-debezium/`](09-outbox-debezium/) | polling overhead | outbox relayed by CDC, EventRouter, immediate cleanup | Postgres, Kafka, Connect | `./run-09-outbox-debezium.sh` | [`logs/09-outbox-debezium.log`](logs/09-outbox-debezium.log) |
 | 10 | [`10-partitioning/`](10-partitioning/) | table too big | declarative partitioning, partition key, pruning, unique-key limit | Postgres | `./run-10-partitioning.sh` | [`logs/10-partitioning.log`](logs/10-partitioning.log) |
 | 11 | [`11-sharding-replicas/`](11-sharding-replicas/) | one-machine ceiling | shard key, app-side router, streaming replication, read replicas, replica lag, CP writes / AP reads | Postgres (2 primaries + scalable replicas) | `./run-11-sharding-replicas.sh` | [`logs/11-sharding-replicas.log`](logs/11-sharding-replicas.log) |
-| 12 | [`12-serializable/`](12-serializable/) | race conditions | isolation levels, lost update, write skew, SSI, 40001 retry, materialized conflict | Postgres | `./run-12-serializable.sh` | [`logs/12-serializable.log`](logs/12-serializable.log) |
-| 13 | [`13-audit-outbox/`](13-audit-outbox/) | central audit trail | audit events through per-service outboxes, shipper, dedupe by `event_id`, append-only store, the bypass gap | Postgres (3 databases) | `./run-13-audit-outbox.sh` | [`logs/13-audit-outbox.log`](logs/13-audit-outbox.log) |
+| 12 | [`12-serializable/`](12-serializable/) | write skew | isolation levels, lost update, write skew, SSI, 40001 retry, materialized conflict | Postgres | `./run-12-serializable.sh` | [`logs/12-serializable.log`](logs/12-serializable.log) |
+| 13 | [`13-audit-outbox/`](13-audit-outbox/) | scattered audit logs | audit events through per-service outboxes, shipper, dedupe by `event_id`, append-only store, the bypass gap | Postgres (3 databases) | `./run-13-audit-outbox.sh` | [`logs/13-audit-outbox.log`](logs/13-audit-outbox.log) |
 
 Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw tables as proof. Everything it prints goes to `logs/<name>.log`. Needs Docker and Node 22.
 
@@ -45,7 +45,7 @@ Ports (chosen to avoid clashing with other local services):
 
 **Reach for it when** support or compliance asks who changed what, and reads of current state dominate: most business apps, with one service and one database.
 
-**Do not reach for it when** the history is the domain and you need to rebuild state or add read models later (03). Writes that bypass the app must be caught too (triggers or `pgaudit`). Several services need one central trail (13).
+**Do not reach for it when** the history is the domain and you need to rebuild state or add read models later (03). Writes that bypass the app must be audited too: use triggers (with `SET LOCAL app.actor` for the user) or `pgaudit`. Several services need one central trail (13).
 
 ### Concepts
 
@@ -93,11 +93,11 @@ After the delete, `products` is empty but the history survives. Note id `4` is m
 
 ## 02. Expand / contract schema change (`02-expand-contract/`)
 
-**Pain: deploy breakage.** Old and new app versions run side by side during a rolling deploy, so a plain `RENAME` breaks whichever one expects the other name.
+**Pain: deploy breakage.** During a rolling deploy or a rollback, old and new app versions run against the same schema, so a plain `RENAME` or type change breaks whichever version expects the other shape.
 
 **Reach for it when** you change a schema (rename, split, type change) on a system where old and new app versions, or other readers of the table, run at the same time.
 
-**Do not reach for it when** you can take downtime, or the app and migration deploy together as one unit (pre-launch, internal tool): the multi-release dance is pure cost. Purely additive changes (a new nullable column) are already safe and need no contract phase.
+**Do not reach for it when** you can take downtime, or the app and schema deploy as one unit with no other readers (pre-launch, internal tool): the multi-release dance is pure cost. The change is purely additive (a new nullable column): it is already backward compatible and needs no contract phase. Nobody will schedule the contract step: a half-done migration leaves two columns and the write-both code in place forever.
 
 Renames `users.name` to `display_name` with zero downtime. In every phase, the app versions that overlap during a rolling deploy must all keep working.
 
@@ -156,11 +156,11 @@ Contracting too early would have broken v3, which is why each phase waits for th
 
 ## 03. Event sourcing (`03-event-sourcing/`)
 
-**Pain: state without its story.** A current-state table forgets how it got there, and a separate audit log (01) can drift from it. Here the history is the state.
+**Pain: lost business history.** A current-state table keeps only the latest values, so what happened (`MoneyWithdrawn`, `OrderCancelled`) and in what order is gone. An audit log beside it (01) records snapshots, not intent, and is not the source of truth, so nothing guarantees it replays into the current state.
 
-**Reach for it when** the history is the domain: ledgers, bookings, workflows. You need to rebuild state, answer "what was it at time T", or add new read models from old events.
+**Reach for it when** the history is the domain (ledgers, bookings, workflows) and you need to rebuild state, answer "what was it at time T", or build new read models from events already stored.
 
-**Do not reach for it when** the domain is plain CRUD and nobody asks how a row got here. You only need an audit log (01 is far cheaper). You would apply it to a whole system by default: every event schema is a contract you version forever, and every current-state query needs a projection.
+**Do not reach for it when** the domain is plain CRUD and you only need to know who changed what: 01 is far cheaper. You would apply it to a whole system by default: every event schema is a contract you version forever, and every current-state query needs a projection that lags the write. You want it as the way services talk to each other: publish separate integration events through an outbox (07) instead of exposing the event store.
 
 ### Concepts
 
@@ -229,7 +229,7 @@ The raw table has exactly 5 facts: nothing from the rejected withdrawals and not
 
 **Pain: blind rewrite.** Tests cannot show that a rewrite matches legacy on every real input, so you find the differences after cutover, through users.
 
-**Reach for it when** replacing logic whose exact behavior nobody fully knows (pricing, tax, permissions), when outputs can be compared, before the rewrite serves anyone.
+**Reach for it when** you replace logic whose exact behavior nobody fully knows (pricing, tax, permissions, a query against a new data store) and its outputs can be compared on real production inputs before the new code serves anyone.
 
 **Do not reach for it when** the code has side effects that must not happen twice (charging, emailing) and the candidate cannot be stubbed. Outputs are nondeterministic (timestamps, random ids) and you will not normalize them. The rewrite changes behavior on purpose: every mismatch is noise.
 
@@ -287,7 +287,7 @@ After the fix, the rewrite matches, takes over, and legacy becomes the check:
 
 **Reach for it when** replacing a large live system incrementally, when traffic can be routed by capability (URL, message type) and each piece can move on its own.
 
-**Do not reach for it when** the system is small enough to rewrite in one go. Capabilities share one database so tightly that routing moves code but not data (the coupling stays). There is no commitment to finish: a half-strangled system runs two stacks forever.
+**Do not reach for it when** the system is small enough to replace in one release. The capability sits deep inside the monolith with no seam to route on: use branch by abstraction there. You would move the code but leave the shared database in place: plan the data move too (08, 09), or the coupling stays. There is no commitment to finish: a half-strangled system runs two stacks forever.
 
 Replaces a monolith one capability at a time, behind a routing facade that clients never see change. Named by Martin Fowler (bliki "StranglerFigApplication", 2004).
 
@@ -344,7 +344,7 @@ Legacy traffic shrinks as routes move, with a rollback in the middle, and every 
 
 **Reach for it when** one business operation spans services that each own their data, including long-running flows that wait (the `fraudHold` timer here).
 
-**Do not reach for it when** the data lives in one database: use a transaction. A step cannot be compensated and must be atomic with another: redesign the boundary instead. The flow has many branches, waits and human steps: use a workflow engine (Temporal) rather than a hand-rolled step table. Splitting a service that needs strong consistency, then patching it with sagas, is the classic antipattern.
+**Do not reach for it when** the data lives in one database: use a transaction. The operation needs isolation, so nobody may see or act on the half-done state: a saga has none (ACD, not ACID), so draw the service boundary around that data instead. The flow has many branches, long waits or human steps: use a workflow engine (Temporal) rather than a hand-rolled step table.
 
 Places an order across inventory, payments and shipping, each with its own database, without a distributed transaction.
 
@@ -460,9 +460,9 @@ Every database ends consistent: stock `10 - 2 (A) - 1 (D) - 1 (E) = 6`, C refund
 
 **Pain: dual write.** The app must update its database and tell Kafka, two systems with no shared transaction. A crash between the two writes loses the event or publishes one for a change that never committed.
 
-**Reach for it when** a service must reliably tell others that something happened, in business terms, after changing its own database. Start here; it covers most volumes.
+**Reach for it when** a service changes its own database and must reliably tell others what happened in business terms (`OrderPlaced`), and consumers can handle a duplicate: delivery is at least once. Start here; a polling relay covers most volumes.
 
-**Do not reach for it when** consumers want every row change from any writer, not business events (08). Losing a notification is acceptable: just publish, best effort. Poll latency, query load or table cleanup already hurt (09).
+**Do not reach for it when** consumers want every row change from any writer, not business events (08). Losing a notification is acceptable: publish best effort. The caller needs the other side's answer before it can reply: that is a synchronous call, not an event. Poll latency, query load or table cleanup already hurt (09).
 
 The simplest reliable way to publish events. No Debezium: just a table and a loop.
 
@@ -528,11 +528,11 @@ consumer: DUPLICATE OrderPaid event_id=<paid> skipped (idempotent consumer)
 
 ## 08. CDC: WAL -> Debezium -> Kafka (`08-cdc-debezium/`)
 
-**Pain: invasive publishing.** Other systems (search, cache, warehouse) need every change, and making every write path publish is intrusive and misses writes that bypass the app (scripts, manual SQL).
+**Pain: derived data drift.** Search indexes, caches and the warehouse must mirror the database, but dual writes from app code race, fail halfway and miss writes that bypass the app (scripts, manual SQL), while nightly batch copies are hours stale.
 
 **Reach for it when** keeping derived copies in sync with the source of truth: search indexes (Elasticsearch, Meilisearch), cache invalidation, a data warehouse or lake, a new database during a migration (05), or publishing changes from code you cannot change. The consumer wants every row change, including ones made outside the app, and does not care why the row changed.
 
-**Do not reach for it when** consumers need business intent (`OrderPaid`, not `status pending -> paid`): use an outbox (07, 09), or they couple to your table schema. You want it as the audit log of record, which fails for three reasons. There is no actor: the WAL records the database role, not which user acted. It is asynchronous: a dropped slot or a re-snapshot silently loses changes, while 01's audit row commits with the change. Schema changes are not in it: an `ALTER TABLE` is not decoded, and Debezium skips `TRUNCATE` by default. It is fine as a broad "what changed" history on the side; `pgaudit` is the tool for catching scripts and migrations with the role that ran them.
+**Do not reach for it when** consumers need business intent (`OrderPaid`, not `status pending -> paid`): use an outbox (07, 09), or every consumer couples to your table schema. You want the audit log of record: the WAL knows the database role, not the user, and a dropped slot loses the changes made while it was gone, while 01's audit row commits with the change (`pgaudit` catches scripts with their role). Nobody will watch the replication slot: a stalled consumer makes Postgres keep WAL until the disk fills.
 
 ### Concepts
 
@@ -546,7 +546,7 @@ consumer: DUPLICATE OrderPaid event_id=<paid> skipped (idempotent consumer)
 - **Debezium**: a Kafka Connect source connector. It holds the slot, turns each row change into an event `{op, before, after, source: {lsn, txId, table}, ts_ms}` and publishes it to the topic `<topic.prefix>.<schema>.<table>` = `app.public.orders`, keyed by primary key (so all changes to one row stay in order on one partition).
 - **Kafka Connect**: runs connectors, stores their config and offsets in Kafka topics (`connect_configs`, `connect_offsets`, `connect_statuses`). It is configured through a REST API, which `src/setup.ts` calls with `PUT /connectors/orders-connector/config`.
 - **Why CDC**: the writer (`src/writer.ts`) is plain SQL and knows nothing about Kafka. Every writer is captured, including manual SQL, and only *committed* changes are emitted. So there is no "DB committed but publish failed" dual-write problem.
-- **Trade-offs**: events are row diffs, not business intent (`status pending -> paid`, not `OrderPaid`), and they are coupled to your table schema. There are more moving parts (Kafka, Connect, a slot to monitor). Delivery is at-least-once, so consumers must be idempotent.
+- **Trade-offs**: events are row diffs, not business intent (`status pending -> paid`, not `OrderPaid`), and they are coupled to your table schema. Schema changes are not decoded (an `ALTER TABLE` never appears as an event) and Debezium skips `TRUNCATE` by default. There are more moving parts (Kafka, Connect, a slot to monitor). Delivery is at-least-once, so consumers must be idempotent.
 
 ### Proof (`logs/08-cdc-debezium.log`)
 
@@ -606,7 +606,7 @@ logical                                     <- SHOW wal_level
 
 **Reach for it when** you have 07's need and poll latency, query load or table cleanup start to hurt, or Debezium is already running for 08.
 
-**Do not reach for it when** nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (13's audit events): immediate cleanup relies on the slot, and a lost slot loses those events for good.
+**Do not reach for it when** nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. You would delete outbox rows at once but cannot afford to lose an event: a dropped slot then loses them for good, so keep rows until shipped and poll them, as 13 does.
 
 Same outbox idea as 07, but the relay is Debezium reading the WAL (08) instead of a polling loop.
 
@@ -672,7 +672,7 @@ consumer: outbox.event.order[0] key=1 eventType=OrderShipped id=<alice-shipped> 
 
 **Reach for it when** one table got big enough that indexes, vacuum or retention hurt, and the hot queries filter on one key. Old data expires by time (`RANGE` by month, then `DROP` old partitions instead of a huge `DELETE`).
 
-**Do not reach for it when** the table is small: partitioning adds planning cost and rules for nothing. Most queries do not filter on the partition key, so each one scans every partition. You expect more CPU, RAM or write throughput: it is still one machine (11). You need a unique constraint that does not include the key.
+**Do not reach for it when** the table is small or a better index would fix the slow query: partitioning adds planning cost and rules for nothing. Most queries do not filter on the partition key, so each one scans every partition. You would cut it into thousands of small partitions: planning time and memory grow with the count. You need more CPU, RAM or write throughput: it is still one machine (11).
 
 Splits one table into four on the same Postgres. First of two steps: here the split is local; in 11 each piece moves to its own server.
 
@@ -730,7 +730,7 @@ No global uniqueness, but atomic transactions across partitions (alice's insert 
 
 **Reach for it when** one server can no longer hold the data or absorb the writes, after a bigger machine, partitioning (10) and replicas, and almost every query stays within one key (tenant, customer).
 
-**Do not reach for it when** a bigger machine or read replicas alone would do: sharding is the most expensive step to undo. Queries or transactions routinely span keys (joins, reports): move those to a warehouse, or pick another key. Every read must see the latest write: then replica reads are wrong for it.
+**Do not reach for it when** a bigger machine, partitioning (10) or read replicas would do: sharding is the most expensive step to undo. Transactions or joins routinely span shard keys: pick another key, and send cross-shard reports to a warehouse. The key is skewed, so one tenant or one hot value outgrows its shard. Every read must see the latest write: serve it from the primary, not a replica.
 
 The four partitions of 10, reduced to two, each moved onto its own server (a shard), and each shard given read replicas. Everything is vanilla Postgres plus a small router in the app. Scope: no query spans two shards.
 
@@ -805,11 +805,11 @@ With `shard1-primary` stopped, its writes fail, shard 0 is unaffected, and shard
 
 ## 12. SERIALIZABLE: when it is a must (`12-serializable/`)
 
-**Pain: race conditions.** Concurrent transactions each check a rule ("is stock left?") and each write, so both pass and you oversell. Postgres's default isolation does not stop it.
+**Pain: write skew.** Concurrent transactions each check a rule over several rows ("fewer than 10 tickets sold?", "someone else still on call?"), each write a different row, and all commit, so the rule breaks. Postgres's default READ COMMITTED, and even REPEATABLE READ, let it through.
 
-**Reach for it when** an invariant spans several rows or depends on rows that do not exist yet (capacity, overbooking, on-call rules), and cannot be a constraint or a lock on one parent row.
+**Reach for it when** an invariant spans several rows or depends on rows that do not exist yet (capacity, overbooking, on-call rules) and cannot be a constraint or a lock on one parent row, or when there are too many such rules to find and guard each one by hand.
 
-**Do not reach for it when** the rule is about one row: a conditional `UPDATE` or `FOR UPDATE` is enough. The app does not retry on `40001`: SERIALIZABLE then turns races into errors users see. A hot row is contended by many writers: retries pile up, so materialize the conflict or lock the parent row (scenario 8).
+**Do not reach for it when** the rule is about one row, or is uniqueness or no overlap: a conditional `UPDATE`, `FOR UPDATE` or a constraint (`UNIQUE`, `EXCLUDE`) is enough. The app cannot retry the whole transaction on `40001`: SERIALIZABLE then turns races into errors users see. Many writers hit the same hot spot: aborts and retries pile up, so lock the parent row instead (scenario 8). Some writers of those tables would stay at READ COMMITTED: SSI only protects transactions that all run SERIALIZABLE.
 
 Never sell more than we have: 10 keyboards or 10 concert tickets, 20 buyers at once. Back to one server: isolation levels are a guarantee of one Postgres, so under sharding (11) the rule must live inside one shard (here, `event_id` as the shard key).
 
@@ -884,11 +884,11 @@ Each level raises its own `40001`: REPEATABLE READ for two writers of one row, S
 
 ## 13. Audit trail through the outbox (`13-audit-outbox/`)
 
-**Pain: central audit trail.** Each service can audit itself in the same transaction (01), but compliance and support need one trail across services, with the actor, that cannot miss a change made through the app or be edited afterwards.
+**Pain: scattered audit logs.** Each service can audit itself in the same transaction (01), but compliance and support need one trail across services, with the actor, that cannot miss a change made through the app or be edited afterwards. Sending it to a central store straight from app code is a dual write that loses events (07).
 
 **Reach for it when** the audit trail of record spans several services and needs the actor and the reason from the app, a guarantee that no change made through the app exists without its audit event, and one central, append-only store.
 
-**Do not reach for it when** there is one service and one database: 01's audit table is enough, with no shipper to run. You need to catch writes that bypass the app (psql, scripts, migrations): that is `pgaudit` or triggers, alongside this. The central trail must reflect a change the instant it commits: shipping adds lag.
+**Do not reach for it when** there is one service and one database: 01's audit table is enough, with no shipper to run. You need to catch writes that bypass the app (psql, scripts, migrations): run `pgaudit` or triggers alongside this. The central trail must show a change the instant it commits, or in one exact order across services: shipping adds lag, and cross-service order is only as good as the clocks.
 
 01's audit table combined with 07's outbox. Two services (`orders`, `billing`), each with its own database, write audit events into their own `audit_outbox`. A shipper copies them into a central `audit` database.
 
