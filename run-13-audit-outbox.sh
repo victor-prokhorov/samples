@@ -21,14 +21,18 @@ psql -d orders -c "SELECT id, entity, entity_id, action, actor, shipped_at FROM 
 psql -d billing -c "SELECT id, entity, entity_id, action, actor, shipped_at FROM audit_outbox ORDER BY id"
 echo "== shipper pass 1: stores the orders events centrally, crashes before marking them shipped =="
 npm run --silent ship -- --crash-after-send || echo "shipper exited with $?"
+echo "== proof: orders rows still unshipped locally (the crashed transaction rolled back), yet already stored centrally =="
+psql -d orders -c "SELECT id, shipped_at FROM audit_outbox ORDER BY id"
+psql -d audit -c "SELECT count(*) AS stored_centrally FROM audit_events"
 echo "== shipper pass 2: re-sends the orders events (deduped by event_id), then the billing ones =="
 npm run --silent ship
 echo
 echo "== proof: central timeline across services, one row per event despite the re-send =="
-psql -d audit -c "SELECT service, entity, entity_id, action, actor, before, after FROM audit_events ORDER BY occurred_at, service"
+psql -d audit -c "SELECT service, source_id, entity, entity_id, action, actor, reason, before, after FROM audit_events ORDER BY occurred_at, service"
 echo "== proof: the central log is append-only =="
 psql -d audit -c "UPDATE audit_events SET actor = 'nobody' WHERE actor = 'bob (support)'" || true
 psql -d audit -c "DELETE FROM audit_events" || true
+psql -d audit -c "TRUNCATE audit_events" || true
 echo "== proof: the gap. orders says total 0, the audit trail's last word is 38.25 (the psql UPDATE left no trace) =="
 psql -d orders -c "SELECT * FROM orders"
 psql -d audit -c "SELECT after->>'total' AS last_audited_total FROM audit_events WHERE entity = 'order' AND entity_id = '1' ORDER BY occurred_at DESC LIMIT 1"

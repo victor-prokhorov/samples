@@ -787,9 +787,9 @@ Each level raises its own `40001`: REPEATABLE READ for two writers of one row, S
 
 ## 13. Audit trail through the outbox (`13-audit-outbox/`)
 
-**Pain: central audit trail.** Each service can audit itself in the same transaction (01), but compliance and support need one trail across services, with the actor, that cannot miss a change or be edited afterwards.
+**Pain: central audit trail.** Each service can audit itself in the same transaction (01), but compliance and support need one trail across services, with the actor, that cannot miss a change made through the app or be edited afterwards.
 
-**Reach for it when** the audit trail of record spans several services and needs the actor and intent from the app, a guarantee that no change exists without its audit event, and one central, append-only store.
+**Reach for it when** the audit trail of record spans several services and needs the actor and the reason from the app, a guarantee that no change made through the app exists without its audit event, and one central, append-only store.
 
 **Do not reach for it when** there is one service and one database: 01's audit table is enough, with no shipper to run. You need to catch writes that bypass the app (psql, scripts, migrations): that is `pgaudit` or triggers, alongside this. The central trail must reflect a change the instant it commits: shipping adds lag.
 
@@ -797,32 +797,38 @@ Each level raises its own `40001`: REPEATABLE READ for two writers of one row, S
 
 ### Concepts
 
-- **Audit event in the same transaction**: `audit()` in `src/services.ts` inserts into the service's `audit_outbox` using the business transaction's client. The app supplies what the database cannot know: the actor (`bob (support)`, `system:billing`) and the before/after snapshots. A rolled-back change (mallory's) leaves no audit event, and a committed one cannot be missing its event.
+- **Audit event in the same transaction**: `audit()` in `src/services.ts` inserts into the service's `audit_outbox` using the business transaction's client. The app supplies what the database cannot know: the actor (`bob (support)`, `system:billing`), the reason (`goodwill discount after late delivery`) and the before/after snapshots. A rolled-back change (mallory's) leaves no audit event, and a committed app change cannot be missing its event.
 - **The outbox is a temporary local copy**: rows wait with `shipped_at IS NULL` (partial index, as in 07). Once shipped they can be deleted on a retention schedule. The central store is the permanent record.
-- **Shipper**: `src/shipper.ts` claims unshipped rows per service (`FOR UPDATE SKIP LOCKED`), inserts them into `audit_events`, then marks them shipped. Send first, mark second: a crash in between means a re-send, never a loss. In production a broker (Kafka) usually sits between the shippers and the store; the guarantees are the same.
+- **Shipper**: `src/shipper.ts` loops per service: claim up to 100 unshipped rows (`FOR UPDATE SKIP LOCKED`), insert them into `audit_events`, mark them shipped, commit, until a claim comes back empty. Send first, mark second: a crash in between means a re-send, never a loss. In production a broker (Kafka) usually sits between the shippers and the store; the guarantees are the same.
 - **Dedupe by `event_id`**: `event_id` is the central table's primary key and the insert is `ON CONFLICT (event_id) DO NOTHING`. The re-sent events after the crash are skipped, so the trail has exactly one row per event.
-- **Append-only, enforced**: a trigger rejects `UPDATE`, `DELETE` and `TRUNCATE` on `audit_events`. It fires for superusers too, but a superuser can disable it, so in production the services connect with a role that has `INSERT` only, and the store has its own credentials: a compromised service can append but never rewrite, and consider hash-chaining rows to make tampering detectable.
+- **Append-only, enforced**: a trigger rejects `UPDATE`, `DELETE` and `TRUNCATE` on `audit_events`. The table owner or a superuser can still disable or bypass it (`ALTER TABLE ... DISABLE TRIGGER`, `session_replication_role = replica`, `DROP TABLE`), so in production the shipper connects with a non-owner role granted `INSERT` only, and the store has its own credentials that no service holds. Hash-chaining rows makes tampering detectable too.
 - **The bypass gap**: the trail only contains what app code emits. The run's manual `psql` UPDATE sets the order total to 0 and leaves no trace: the audit trail's last word stays 38.25. Database-level auditing (`pgaudit`, or triggers) catches such writes, with the database role instead of the user; run it alongside, not instead.
-- **Cross-service order is approximate**: `occurred_at` comes from each service's clock, so a timeline across services is only as good as clock sync. Order within one service is exact (outbox `id`).
+- **Order is per entity, not global**: the central row keeps `source_id` (the outbox `id`). For one entity the row lock (`FOR UPDATE` in `changeTotal`) serializes writers, so `source_id` gives that entity's exact order. Across entities it does not: a `BIGSERIAL` is assigned at insert, not at commit. Across services, `occurred_at` (`clock_timestamp()` on each service's clock) is only as good as clock sync. A global timeline is approximate.
 
 ### Proof (`logs/13-audit-outbox.log`)
 
-The shipper crashes after storing the orders events and before marking them. The next pass re-sends them and the central store skips them:
+The shipper crashes after storing the orders events and before marking them. Locally they are still unshipped, centrally they are already stored; the next pass re-sends them and the store skips them (abridged):
 
 ```
 shipper: orders #2 order 1 update by bob (support) -> stored
 shipper: CRASH after sending the orders events, before marking them shipped
+  1 |
+  2 |
+ stored_centrally
+                2
 shipper: orders #1 order 1 create by alice -> DUPLICATE, already in the central log, skipped
 shipper: orders #2 order 1 update by bob (support) -> DUPLICATE, already in the central log, skipped
+shipper: orders marked 2 shipped
 shipper: billing #1 invoice 1 create by system:billing -> stored
 ```
 
-One timeline across both services, with actors. There is no row for mallory's rolled-back change:
+One timeline across both services, with actors and reasons. There is no row for mallory's rolled-back change (before/after columns cut):
 
 ```
- orders  | order   | 1         | create | alice          |                                                  | {"id": 1, "total": "42.50", "customer": "alice"}
- orders  | order   | 1         | update | bob (support)  | {"id": 1, "total": "42.50", "customer": "alice"} | {"id": 1, "total": "38.25", "customer": "alice"}
- billing | invoice | 1         | create | system:billing |                                                  | {"id": 1, "amount": "38.25", "order_id": 1}
+ service | source_id | entity  | entity_id | action |     actor      |                reason
+ orders  |         1 | order   | 1         | create | alice          | checkout
+ orders  |         2 | order   | 1         | update | bob (support)  | goodwill discount after late delivery
+ billing |         1 | invoice | 1         | create | system:billing | order total confirmed
 ```
 
 The store refuses edits, and the psql UPDATE is the gap:
@@ -830,6 +836,7 @@ The store refuses edits, and the psql UPDATE is the gap:
 ```
 ERROR:  audit_events is append-only: UPDATE rejected
 ERROR:  audit_events is append-only: DELETE rejected
+ERROR:  audit_events is append-only: TRUNCATE rejected
 
  id | customer | total
   1 | alice    |  0.00
@@ -854,6 +861,6 @@ ERROR:  audit_events is append-only: DELETE rejected
 - **Partitioning (10)**: one table got big enough that indexes, vacuum or retention hurt, and the hot queries filter on one key. Try it before sharding: it is config, not code.
 - **Sharding + read replicas (11)**: one server can no longer hold the data or absorb the writes (shards), or the reads (replicas), and almost every query stays within one key. Stale reads must be acceptable wherever you read from replicas.
 - **SERIALIZABLE (12)**: an invariant spans several rows or depends on rows that do not exist yet (capacity, overbooking, on-call rules), and cannot be written as a constraint or reduced to a lock on one parent row. One-row rules only need a conditional `UPDATE` or `FOR UPDATE`.
-- **Audit trail through the outbox (13)**: several services need one audit trail of record with actors, that cannot miss a change or be edited.
+- **Audit trail through the outbox (13)**: several services need one audit trail of record with actors and reasons, that cannot miss a change made through the app or be edited.
 
 These combine: a strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga publishes its events through an outbox; an event-sourced service can publish its events through an outbox/CDC relay.

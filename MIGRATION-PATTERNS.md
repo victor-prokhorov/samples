@@ -133,7 +133,7 @@ Online, keep these open: martinfowler.com (bliki plus the Legacy Displacement se
 
 ## Runnable samples in this repo
 
-Nine of these patterns run end to end here, in TypeScript, numbered by complexity, each with a run script and a proof log. Concepts for each are explained in [README.md](README.md).
+Ten of these patterns run end to end here (10-12 are data-scaling samples outside this map), in TypeScript, numbered by complexity, each with a run script and a proof log. Concepts for each are explained in [README.md](README.md).
 
 | # | Folder | Pattern from this map | Run | Proof |
 | --- | --- | --- | --- | --- |

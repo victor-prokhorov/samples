@@ -8,9 +8,10 @@ const OUTBOX = `
     entity_id TEXT NOT NULL,
     action TEXT NOT NULL,
     actor TEXT NOT NULL,
+    reason TEXT NOT NULL,
     before JSONB,
     after JSONB,
-    occurred_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     shipped_at TIMESTAMPTZ
   );
   CREATE INDEX IF NOT EXISTS audit_outbox_unshipped ON audit_outbox (id) WHERE shipped_at IS NULL`;
@@ -26,10 +27,12 @@ async function main() {
     CREATE TABLE IF NOT EXISTS audit_events (
       event_id UUID PRIMARY KEY,
       service TEXT NOT NULL,
+      source_id BIGINT NOT NULL,
       entity TEXT NOT NULL,
       entity_id TEXT NOT NULL,
       action TEXT NOT NULL,
       actor TEXT NOT NULL,
+      reason TEXT NOT NULL,
       before JSONB,
       after JSONB,
       occurred_at TIMESTAMPTZ NOT NULL,
