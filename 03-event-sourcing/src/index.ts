@@ -9,6 +9,10 @@ function step(title: string, concept: string) {
 /**
  * Application service / command handler pipeline (DDD + CQRS): load (read stream) -> rehydrate (fold) ->
  * decide (enforce invariants, produce events) -> append with expected version. The only side effect is the append.
+ *
+ * Toy aspect: every command replays the whole stream from v1 and the state is thrown away afterwards. Fine for a
+ * handful of events; in prod long-lived streams load the latest snapshot (state + version, stored every N events)
+ * and fold only the events after it, or close the books into period streams.
  */
 async function handle(streamId: string, decide: (s: Account) => AccountEvent[] | Promise<AccountEvent[]>) {
   const history = await readStream<AccountEvent>(streamId);
@@ -37,6 +41,9 @@ async function handleWithRetry(label: string, streamId: string, decide: (s: Acco
 
 async function main() {
   await migrate();
+  // Production-shaped, not a shortcut: stream id = <category>-<random id>, generated once when the aggregate is created
+  // and reused by every later command. Random (UUIDv7 in prod for index locality) rather than a natural key like an
+  // email or IBAN, which can change, is PII, and leaks into logs and topic keys.
   const id = `account-${randomUUID()}`;
   console.log(`stream: ${id}`);
   step("1. Commands produce events", "a command loads the stream, folds it into state, validates, and appends new facts; no row is ever updated");
