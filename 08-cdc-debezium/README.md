@@ -1,5 +1,7 @@
 # 08-cdc-debezium
 
+**Pain: invasive publishing.** Other systems (search, cache, warehouse) need every change, and making every write path publish is intrusive and misses writes that bypass the app (scripts, manual SQL).
+
 Change data capture: the app writes to Postgres normally; Debezium tails the WAL through a logical replication slot and publishes one Kafka message per row change (`op`, `before`, `after`, `lsn`, `txId`).
 
 ```sh

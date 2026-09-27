@@ -1,5 +1,7 @@
 # 05-strangler-fig
 
+**Pain: big-bang cutover.** Replacing a whole system in one switch is all-or-nothing: months without shipping, then one risky day with no easy way back.
+
 Strangler fig with three real HTTP servers (`src/servers.ts`): a legacy monolith on `:53001`, a new service on `:53002`, and a routing proxy on `:53000` that clients call. `PUT /_proxy/routes` changes routing at runtime; unmatched paths fall through to legacy. The demo moves `/orders`, rolls back, then moves everything, checking each response against legacy's recorded contract and counting legacy traffic. No infra.
 
 ```sh

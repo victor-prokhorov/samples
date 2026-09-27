@@ -1,5 +1,7 @@
 # 09-outbox-debezium
 
+**Pain: polling overhead.** 07's relay adds poll latency and query load, and its outbox table keeps growing until something cleans it up.
+
 Transactional outbox with a CDC relay (the log-tailing version of `07-outbox-polling`). The app writes the business row and an `outbox` row in one Postgres transaction. Debezium tails the WAL, and its `EventRouter` transform turns each outbox insert into a business event on `outbox.event.<aggregatetype>`.
 
 ```sh

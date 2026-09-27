@@ -1,5 +1,7 @@
 # 11-sharding-replicas
 
+**Pain: one-machine ceiling.** Writes, storage and reads eventually exceed one Postgres server, and partitioning (10) does not help because it stays on that server.
+
 The partitions of `10-partitioning` turned into servers. Two shards, each a Postgres primary with read replicas fed by built-in streaming replication. A small router in the app hashes `customer_id` to a shard, sends writes to that shard's primary and spreads reads over its replicas. No Citus, no proxy, no failover. No query or transaction spans shards: cross-shard reads would need fan-out and merge in the router, cross-shard writes a saga (06).
 
 ```sh

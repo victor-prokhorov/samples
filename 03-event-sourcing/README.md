@@ -1,5 +1,7 @@
 # 03-event-sourcing
 
+**Pain: state without its story.** A current-state table forgets how it got there, and a separate audit log (01) can drift from it. Here the history is the state.
+
 Bank account aggregate. Commands (`open`, `deposit`, `withdraw`) validate against state rebuilt from events and return new events. Nothing is updated in place.
 
 ```sh

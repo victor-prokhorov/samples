@@ -1,5 +1,7 @@
 # 10-partitioning
 
+**Pain: table too big.** One huge table means huge indexes, slow vacuum and expensive retention deletes.
+
 Native Postgres hash partitioning on one server: `orders PARTITION BY HASH (customer_id)` into 4 partitions. The app only ever talks to `orders`; Postgres routes every row and prunes every query. This is the single-machine step before `11-sharding-replicas`, which moves the same split onto separate servers.
 
 ```sh

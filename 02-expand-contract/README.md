@@ -1,5 +1,7 @@
 # 02-expand-contract
 
+**Pain: deploy breakage.** Old and new app versions run side by side during a rolling deploy, so a plain `RENAME` breaks whichever one expects the other name.
+
 Zero-downtime rename of `users.name` to `display_name`. Four app versions (`src/versions.ts`) and four migrations; in every phase the two versions that overlap during a rolling deploy both keep working. Also shows the naive `RENAME` breaking v1, a premature read switch, and a premature contract.
 
 ```sh

@@ -2,20 +2,20 @@
 
 Twelve minimal, real TypeScript examples of how to change a running system without breaking it: tracking change, evolving schemas, replacing code, coordinating services, publishing events, splitting data across servers and keeping invariants under concurrency. They are numbered by complexity. Read them in order: each one assumes the concepts of the ones before it. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
 
-| # | Folder | New concepts | Infra | Run | Proof |
-| --- | --- | --- | --- | --- | --- |
-| 01 | [`01-crud-audit/`](01-crud-audit/) | transactions, before/after audit rows | Postgres | `./run-01-crud-audit.sh` | [`logs/01-crud-audit.log`](logs/01-crud-audit.log) |
-| 02 | [`02-expand-contract/`](02-expand-contract/) | zero-downtime schema change, rolling deploys, backfill | Postgres | `./run-02-expand-contract.sh` | [`logs/02-expand-contract.log`](logs/02-expand-contract.log) |
-| 03 | [`03-event-sourcing/`](03-event-sourcing/) | events as source of truth, fold, optimistic concurrency, projections | Postgres | `./run-03-event-sourcing.sh` | [`logs/03-event-sourcing.log`](logs/03-event-sourcing.log) |
-| 04 | [`04-parallel-run/`](04-parallel-run/) | control vs candidate, mismatch reporting, cutover | none | `./run-04-parallel-run.sh` | [`logs/04-parallel-run.log`](logs/04-parallel-run.log) |
-| 05 | [`05-strangler-fig/`](05-strangler-fig/) | routing facade, capability-by-capability replacement, instant rollback | none (3 HTTP servers) | `./run-05-strangler-fig.sh` | [`logs/05-strangler-fig.log`](logs/05-strangler-fig.log) |
-| 06 | [`06-saga/`](06-saga/) | no distributed transactions, compensations, saga log, crash recovery, idempotent steps, durable timer and waker | Postgres (4 databases) | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
-| 07 | [`07-outbox-polling/`](07-outbox-polling/) | dual-write problem, outbox table, polling relay, `SKIP LOCKED`, at-least-once, idempotent consumer | Postgres, Kafka | `./run-07-outbox-polling.sh` | [`logs/07-outbox-polling.log`](logs/07-outbox-polling.log) |
-| 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | WAL, logical decoding, replication slot, LSN, Debezium, Kafka Connect | Postgres, Kafka, Connect | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
-| 09 | [`09-outbox-debezium/`](09-outbox-debezium/) | outbox relayed by CDC, EventRouter, immediate cleanup | Postgres, Kafka, Connect | `./run-09-outbox-debezium.sh` | [`logs/09-outbox-debezium.log`](logs/09-outbox-debezium.log) |
-| 10 | [`10-partitioning/`](10-partitioning/) | declarative partitioning, partition key, pruning, unique-key limit | Postgres | `./run-10-partitioning.sh` | [`logs/10-partitioning.log`](logs/10-partitioning.log) |
-| 11 | [`11-sharding-replicas/`](11-sharding-replicas/) | shard key, app-side router, streaming replication, read replicas, replica lag, CP writes / AP reads | Postgres (2 primaries + scalable replicas) | `./run-11-sharding-replicas.sh` | [`logs/11-sharding-replicas.log`](logs/11-sharding-replicas.log) |
-| 12 | [`12-serializable/`](12-serializable/) | isolation levels, lost update, write skew, SSI, 40001 retry, materialized conflict | Postgres | `./run-12-serializable.sh` | [`logs/12-serializable.log`](logs/12-serializable.log) |
+| # | Folder | Pain | New concepts | Infra | Run | Proof |
+| --- | --- | --- | --- | --- | --- | --- |
+| 01 | [`01-crud-audit/`](01-crud-audit/) | lost history | transactions, before/after audit rows | Postgres | `./run-01-crud-audit.sh` | [`logs/01-crud-audit.log`](logs/01-crud-audit.log) |
+| 02 | [`02-expand-contract/`](02-expand-contract/) | deploy breakage | zero-downtime schema change, rolling deploys, backfill | Postgres | `./run-02-expand-contract.sh` | [`logs/02-expand-contract.log`](logs/02-expand-contract.log) |
+| 03 | [`03-event-sourcing/`](03-event-sourcing/) | state without its story | events as source of truth, fold, optimistic concurrency, projections | Postgres | `./run-03-event-sourcing.sh` | [`logs/03-event-sourcing.log`](logs/03-event-sourcing.log) |
+| 04 | [`04-parallel-run/`](04-parallel-run/) | blind rewrite | control vs candidate, mismatch reporting, cutover | none | `./run-04-parallel-run.sh` | [`logs/04-parallel-run.log`](logs/04-parallel-run.log) |
+| 05 | [`05-strangler-fig/`](05-strangler-fig/) | big-bang cutover | routing facade, capability-by-capability replacement, instant rollback | none (3 HTTP servers) | `./run-05-strangler-fig.sh` | [`logs/05-strangler-fig.log`](logs/05-strangler-fig.log) |
+| 06 | [`06-saga/`](06-saga/) | partial failure | no distributed transactions, compensations, saga log, crash recovery, idempotent steps, durable timer and waker | Postgres (4 databases) | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
+| 07 | [`07-outbox-polling/`](07-outbox-polling/) | dual write | dual-write problem, outbox table, polling relay, `SKIP LOCKED`, at-least-once, idempotent consumer | Postgres, Kafka | `./run-07-outbox-polling.sh` | [`logs/07-outbox-polling.log`](logs/07-outbox-polling.log) |
+| 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | invasive publishing | WAL, logical decoding, replication slot, LSN, Debezium, Kafka Connect | Postgres, Kafka, Connect | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
+| 09 | [`09-outbox-debezium/`](09-outbox-debezium/) | polling overhead | outbox relayed by CDC, EventRouter, immediate cleanup | Postgres, Kafka, Connect | `./run-09-outbox-debezium.sh` | [`logs/09-outbox-debezium.log`](logs/09-outbox-debezium.log) |
+| 10 | [`10-partitioning/`](10-partitioning/) | table too big | declarative partitioning, partition key, pruning, unique-key limit | Postgres | `./run-10-partitioning.sh` | [`logs/10-partitioning.log`](logs/10-partitioning.log) |
+| 11 | [`11-sharding-replicas/`](11-sharding-replicas/) | one-machine ceiling | shard key, app-side router, streaming replication, read replicas, replica lag, CP writes / AP reads | Postgres (2 primaries + scalable replicas) | `./run-11-sharding-replicas.sh` | [`logs/11-sharding-replicas.log`](logs/11-sharding-replicas.log) |
+| 12 | [`12-serializable/`](12-serializable/) | race conditions | isolation levels, lost update, write skew, SSI, 40001 retry, materialized conflict | Postgres | `./run-12-serializable.sh` | [`logs/12-serializable.log`](logs/12-serializable.log) |
 
 Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw tables as proof. Everything it prints goes to `logs/<name>.log`. Needs Docker and Node 22.
 
@@ -38,6 +38,8 @@ Ports (chosen to avoid clashing with other local services):
 ---
 
 ## 01. CRUD with audit log (`01-crud-audit/`)
+
+**Pain: lost history.** An `UPDATE` or `DELETE` overwrites the old value, so nobody can later say who changed what, when, or what it was before.
 
 ### Concepts
 
@@ -77,6 +79,8 @@ After the delete, `products` is empty but the history survives. Note id `4` is m
 ---
 
 ## 02. Expand / contract schema change (`02-expand-contract/`)
+
+**Pain: deploy breakage.** Old and new app versions run side by side during a rolling deploy, so a plain `RENAME` breaks whichever one expects the other name.
 
 Renames `users.name` to `display_name` with zero downtime. In every phase, the app versions that overlap during a rolling deploy must all keep working.
 
@@ -126,6 +130,8 @@ Contracting too early would have broken v3, which is why each phase waits for th
 ---
 
 ## 03. Event sourcing (`03-event-sourcing/`)
+
+**Pain: state without its story.** A current-state table forgets how it got there, and a separate audit log (01) can drift from it. Here the history is the state.
 
 ### Concepts
 
@@ -184,6 +190,8 @@ The raw table has exactly 5 facts: nothing from the rejected withdrawals and not
 
 ## 04. Parallel run, Scientist-style (`04-parallel-run/`)
 
+**Pain: blind rewrite.** Tests cannot show that a rewrite matches legacy on every real input, so you find the differences after cutover, through users.
+
 Proves a rewrite matches the legacy code on real traffic before it serves anyone.
 
 ### Concepts
@@ -225,6 +233,8 @@ After the fix, the rewrite matches, takes over, and legacy becomes the check:
 ---
 
 ## 05. Strangler fig behind a proxy (`05-strangler-fig/`)
+
+**Pain: big-bang cutover.** Replacing a whole system in one switch is all-or-nothing: months without shipping, then one risky day with no easy way back.
 
 Replaces a monolith one capability at a time, behind a routing facade that clients never see change. Named by Martin Fowler (bliki "StranglerFigApplication", 2004).
 
@@ -268,6 +278,8 @@ Legacy traffic shrinks as routes move, with a rollback in the middle, and every 
 ---
 
 ## 06. Saga, orchestrated (`06-saga/`)
+
+**Pain: partial failure.** Each service owns its database, so no transaction covers the whole order. A failure halfway leaves stock reserved and money taken for an order that will never ship.
 
 Places an order across inventory, payments and shipping, each with its own database, without a distributed transaction.
 
@@ -371,6 +383,8 @@ Every database ends consistent: stock `10 - 2 (A) - 1 (D) - 1 (E) = 6`, C refund
 
 ## 07. Transactional outbox, polling relay (`07-outbox-polling/`)
 
+**Pain: dual write.** The app must update its database and tell Kafka, two systems with no shared transaction. A crash between the two writes loses the event or publishes one for a change that never committed.
+
 The simplest reliable way to publish events. No Debezium: just a table and a loop.
 
 ### Concepts
@@ -426,6 +440,8 @@ consumer: DUPLICATE OrderPaid event_id=<paid> skipped (idempotent consumer)
 ---
 
 ## 08. CDC: WAL -> Debezium -> Kafka (`08-cdc-debezium/`)
+
+**Pain: invasive publishing.** Other systems (search, cache, warehouse) need every change, and making every write path publish is intrusive and misses writes that bypass the app (scripts, manual SQL).
 
 ### Concepts
 
@@ -487,6 +503,8 @@ logical                                     <- SHOW wal_level
 
 ## 09. Transactional outbox, CDC relay (`09-outbox-debezium/`)
 
+**Pain: polling overhead.** 07's relay adds poll latency and query load, and its outbox table keeps growing until something cleans it up.
+
 Same outbox idea as 07, but the relay is Debezium reading the WAL (08) instead of a polling loop.
 
 ### Concepts
@@ -540,6 +558,8 @@ consumer: outbox.event.order[0] key=1 eventType=OrderShipped id=<alice-shipped> 
 
 ## 10. Partitioning, one server (`10-partitioning/`)
 
+**Pain: table too big.** One huge table means huge indexes, slow vacuum and expensive retention deletes.
+
 Splits one table into four on the same Postgres. First of two steps: here the split is local; in 11 each piece moves to its own server.
 
 ### Concepts
@@ -583,6 +603,8 @@ No global uniqueness, but atomic transactions across partitions (alice's insert 
 ---
 
 ## 11. Sharding with read replicas (`11-sharding-replicas/`)
+
+**Pain: one-machine ceiling.** Writes, storage and reads eventually exceed one Postgres server, and partitioning (10) does not help because it stays on that server.
 
 The four partitions of 10, reduced to two, each moved onto its own server (a shard), and each shard given read replicas. Everything is vanilla Postgres plus a small router in the app. Scope: no query spans two shards.
 
@@ -647,6 +669,8 @@ With `shard1-primary` stopped, its writes fail, shard 0 is unaffected, and shard
 ---
 
 ## 12. SERIALIZABLE: when it is a must (`12-serializable/`)
+
+**Pain: race conditions.** Concurrent transactions each check a rule ("is stock left?") and each write, so both pass and you oversell. Postgres's default isolation does not stop it.
 
 Never sell more than we have: 10 keyboards or 10 concert tickets, 20 buyers at once. Back to one server: isolation levels are a guarantee of one Postgres, so under sharding (11) the rule must live inside one shard (here, `event_id` as the shard key).
 

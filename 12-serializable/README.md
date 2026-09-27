@@ -1,5 +1,7 @@
 # 12-serializable
 
+**Pain: race conditions.** Concurrent transactions each check a rule ("is stock left?") and each write, so both pass and you oversell. Postgres's default isolation does not stop it.
+
 When SERIALIZABLE is a must and when it is not, on the "never sell more than we have" rule. 20 concurrent buyers compete for 10 items in 8 scenarios. Each one reports what the buyers were told and what the database recorded, and exits 1 if a scenario does not end as expected.
 
 ```sh

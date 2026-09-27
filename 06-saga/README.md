@@ -1,5 +1,7 @@
 # 06-saga
 
+**Pain: partial failure.** Each service owns its database, so no transaction covers the whole order. A failure halfway leaves stock reserved and money taken for an order that will never ship.
+
 Orchestrated saga across three services, each with its own Postgres database (`inventory`, `payments`, `shipping`) plus the orchestrator's saga log (`orchestrator`). Steps: reserve stock, charge, ship; compensations: release, refund. Every step is idempotent by saga id, so recovery can safely re-run it. A `fraudHold` timer step parks a saga in the log (`state = 'waiting'`, `wake_at`) instead of blocking a process; a separate waker polls and resumes it. Services are in-process functions standing in for remote microservices; each call logs `-> HTTP`.
 
 ```sh
