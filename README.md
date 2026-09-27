@@ -82,6 +82,13 @@ After the delete, `products` is empty but the history survives. Note id `4` is m
   5 | product | 1         | delete | carol | {"id": 1, "name": "Mech Keyboard", "price": "39.00"} |
 ```
 
+
+### Origins and further reading
+
+- Article: "Audit Log", Martin Fowler, 2004. https://martinfowler.com/eaaDev/AuditLog.html
+- Article: "Temporal Patterns", Martin Fowler, mid-2000s. https://martinfowler.com/eaaDev/timeNarrative.html
+- Book: *Developing Time-Oriented Database Applications in SQL*, Richard T. Snodgrass, 1999 (free PDF from the author). https://www2.cs.arizona.edu/~rts/tdbbook.pdf
+
 ---
 
 ## 02. Expand / contract schema change (`02-expand-contract/`)
@@ -136,6 +143,14 @@ Contracting too early would have broken v3, which is why each phase waits for th
 ## Why the order matters
    v3 (write both, read display_name): FAILS: column "name" of relation "users" does not exist
 ```
+
+
+### Origins and further reading
+
+- Article: "Parallel Change", Danilo Sato, 2014 (the name for expand/contract). https://martinfowler.com/bliki/ParallelChange.html
+- Book: *Refactoring Databases: Evolutionary Database Design*, Scott Ambler and Pramod Sadalage, 2006. https://www.martinfowler.com/books/refactoringDatabases.html
+- Article: "Evolutionary Database Design", Pramod Sadalage and Martin Fowler, revised 2016. https://www.martinfowler.com/articles/evodb.html
+- Article: "Online migrations at scale", Jacqueline Xu (Stripe), 2017 (a data migration in four dual-write steps, a close cousin of expand/contract). https://stripe.com/blog/online-migrations
 
 ---
 
@@ -200,6 +215,14 @@ The raw table has exactly 5 facts: nothing from the rejected withdrawals and not
  events_stream_id_version_key | UNIQUE (stream_id, version)
 ```
 
+
+### Origins and further reading
+
+- Article: "Event Sourcing", Martin Fowler, 2005. https://martinfowler.com/eaaDev/EventSourcing.html
+- Talk: "CQRS and Event Sourcing", Greg Young, Code on the Beach 2014. https://www.youtube.com/watch?v=JHGkaShoyNs
+- Talk: "Event Sourcing", Greg Young, GOTO Aarhus 2014. https://www.youtube.com/watch?v=8JKjvY4etTY
+- Talk: "A Decade of DDD, CQRS, Event Sourcing", Greg Young, DDD Europe 2016. https://www.youtube.com/watch?v=LDW0QWie21s
+
 ---
 
 ## 04. Parallel run, Scientist-style (`04-parallel-run/`)
@@ -247,6 +270,14 @@ After the fix, the rewrite matches, takes over, and legacy becomes the check:
    experiment "shipping-cutover": 1000 runs, 0 mismatches (0 candidate exceptions)
    served total 1980900 === legacy total 1980900: true
 ```
+
+
+### Origins and further reading
+
+- Book: *Monolith to Microservices*, Sam Newman, 2019 (Parallel Run pattern). https://samnewman.io/books/monolith-to-microservices/
+- Article: Scientist 1.0 launch post, Jesse Toth, GitHub blog, 2016. https://github.blog/developer-skills/application-development/scientist/
+- Talk: "Easy Rewrites with Ruby and Science!", Jesse Toth, RubyConf 2014. https://www.youtube.com/watch?v=kgDqUHWVw4A
+- Article: "Move Fast and Fix Things", Vicent Marti, GitHub blog, 2015 (Scientist used on git merge code). https://github.blog/engineering/engineering-principles/move-fast/
 
 ---
 
@@ -296,6 +327,14 @@ Legacy traffic shrinks as routes move, with a rollback in the middle, and every 
    GET /invoices/1 -> new-service     same contract as legacy: true
    legacy handled 0/3 client requests
 ```
+
+
+### Origins and further reading
+
+- Article: "Strangler Fig Application", Martin Fowler, 2004, revised later. https://www.martinfowler.com/bliki/StranglerFigApplication.html
+- Book: *Monolith to Microservices*, Sam Newman, 2019. https://samnewman.io/books/monolith-to-microservices/
+- Talk: "Monolith Decomposition Patterns", Sam Newman, GOTO Berlin 2019. https://www.youtube.com/watch?v=9I9GdSQ1bbM
+- Talk: "Dissecting our Legacy: The Strangler Fig Pattern with Apache Kafka, Debezium and MongoDB", Gunnar Morling and co-speaker, 2021. https://www.youtube.com/watch?v=R1kOuvLYcYo
 
 ---
 
@@ -405,6 +444,16 @@ Every database ends consistent: stock `10 - 2 (A) - 1 (D) - 1 (E) = 6`, C refund
  order-E | Lille
 ```
 
+
+### Origins and further reading
+
+- Paper: "Sagas", Hector Garcia-Molina and Kenneth Salem, SIGMOD 1987. https://dl.acm.org/doi/10.1145/38713.38742
+- Article: "Pattern: Saga", Chris Richardson, microservices.io. https://microservices.io/patterns/data/saga.html
+- Talk: "Distributed Sagas: A Protocol for Coordinating Microservices", Caitie McCaffrey, J On The Beach 2017. https://www.youtube.com/watch?v=0UTOLRTwOX0
+- Talk: "Using sagas to maintain data consistency in a microservice architecture", Chris Richardson, 2017. https://www.youtube.com/watch?v=YPbGW3Fnmbc
+- Article: "The definitive guide to Durable Execution", Temporal blog (what Temporal adds on top of the timer and waker). https://temporal.io/blog/what-is-durable-execution
+- Article: "Designing a Workflow Engine from First Principles", Maxim Fateev (Temporal). https://temporal.io/blog/workflow-engine-principles
+
 ---
 
 ## 07. Transactional outbox, polling relay (`07-outbox-polling/`)
@@ -466,6 +515,14 @@ consumer: OrderPaid key=1 event_id=<paid> payload={"orderId":1}
 consumer: DUPLICATE OrderPlaced event_id=<placed> skipped (idempotent consumer)
 consumer: DUPLICATE OrderPaid event_id=<paid> skipped (idempotent consumer)
 ```
+
+
+### Origins and further reading
+
+- Article: "Pattern: Transactional outbox", Chris Richardson, microservices.io. https://microservices.io/patterns/data/transactional-outbox.html
+- Article: "Pattern: Polling publisher", Chris Richardson, microservices.io. https://microservices.io/patterns/data/polling-publisher.html
+- Book: *Microservices Patterns*, Chris Richardson, 2018. https://www.manning.com/books/microservices-patterns
+- Article: "Revisiting the Outbox Pattern", Gunnar Morling. https://www.morling.dev/blog/revisiting-the-outbox-pattern/
 
 ---
 
@@ -533,6 +590,14 @@ logical                                     <- SHOW wal_level
  dbz_publication | public     | orders    | {id,customer,status,total} |
 ```
 
+
+### Origins and further reading
+
+- Article: "Pattern: Transaction log tailing", Chris Richardson, microservices.io. https://microservices.io/patterns/data/transaction-log-tailing.html
+- Talk: "Turning the database inside out with Apache Samza", Martin Kleppmann, Strange Loop 2014. https://www.youtube.com/watch?v=fU9hR3kiOK0 (transcript: https://martin.kleppmann.com/2015/03/04/turning-the-database-inside-out.html)
+- Talk: "Change Data Streaming Patterns in Distributed Systems", Gunnar Morling, 2021. https://www.youtube.com/watch?v=CLv2EcYnr2g
+- Book: *Designing Data-Intensive Applications*, Martin Kleppmann, 2017 (logs, CDC, derived data). https://dataintensive.net/
+
 ---
 
 ## 09. Transactional outbox, CDC relay (`09-outbox-debezium/`)
@@ -592,6 +657,13 @@ consumer: outbox.event.order[0] key=1 eventType=OrderShipped id=<alice-shipped> 
            0
 ```
 
+
+### Origins and further reading
+
+- Article: "Reliable Microservices Data Exchange With the Outbox Pattern", Gunnar Morling, Debezium blog, 2019. https://debezium.io/blog/2019/02/19/reliable-microservices-data-exchange-with-the-outbox-pattern/
+- Docs: "Outbox Event Router", Debezium. https://debezium.io/documentation/reference/stable/transformations/outbox-event-router.html
+- Talk: "Ins and Outs of the Outbox Pattern", Gunnar Morling, 2025. https://www.youtube.com/watch?v=PkrzOR_tIQI
+
 ---
 
 ## 10. Partitioning, one server (`10-partitioning/`)
@@ -641,6 +713,14 @@ No global uniqueness, but atomic transactions across partitions (alice's insert 
    rejected: null value in column "item" of relation "orders_p2" violates not-null constraint
    alice's cable rows after rollback: 0
 ```
+
+
+### Origins and further reading
+
+- Docs: "Table Partitioning", PostgreSQL documentation. https://www.postgresql.org/docs/current/ddl-partitioning.html
+- Talk: "PostgreSQL Partitioning: Slicing and Dicing for Performance and Easier Maintenance", Ryan Booz, POSETTE 2024. https://www.youtube.com/watch?v=dKJyMj_P-XA
+- Slides: "Declarative Partitioning Has Arrived!", Amit Langote and Ashutosh Bapat, PGConf.ASIA 2017 (Langote led the Postgres 10 work). https://www.pgconf.asia/JA/2017/wp-content/uploads/sites/2/2017/12/D2-A4-2.pdf
+- Article: "Partitioning with Native Postgres and pg_partman", Crunchy Data. https://www.crunchydata.com/blog/native-partitioning-with-postgres
 
 ---
 
@@ -711,6 +791,15 @@ With `shard1-primary` stopped, its writes fail, shard 0 is unaffected, and shard
 
    read dave -> shard1-replica-1: 1 orders (in recovery: true)
 ```
+
+
+### Origins and further reading
+
+- Book: *Designing Data-Intensive Applications*, Martin Kleppmann, 2017 (chapter 5 replication, chapter 6 partitioning, in the first edition; a second edition with Chris Riccomini came out in 2026). https://dataintensive.net/
+- Article: "Sharding & IDs at Instagram", Instagram Engineering, 2011. https://instagram-engineering.com/sharding-ids-at-instagram-1cf5a71e5a5c
+- Article: "Herding elephants: lessons learned from sharding Postgres at Notion", Notion, 2021. https://www.notion.com/blog/sharding-postgres-at-notion
+- Article: "How Figma's databases team lived to tell the scale", Figma, 2024 (vertical split first, horizontal sharding later). https://www.figma.com/blog/how-figmas-databases-team-lived-to-tell-the-scale/
+- Talk: "Scaling Instagram Infrastructure", Lisa Guo, QCon 2016/2017. https://www.youtube.com/watch?v=hnpzNAPiC0E
 
 ---
 
@@ -783,6 +872,14 @@ Each level raises its own `40001`: REPEATABLE READ for two writers of one row, S
    aborted with: could not serialize access due to read/write dependencies among transactions
 ```
 
+
+### Origins and further reading
+
+- Paper: "Serializable Isolation for Snapshot Databases", Michael J. Cahill, Uwe Röhm, Alan Fekete, SIGMOD 2008. https://dl.acm.org/doi/10.1145/1376616.1376690
+- Paper: "Serializable Snapshot Isolation in PostgreSQL", Dan R. K. Ports and Kevin Grittner, VLDB 2012. https://arxiv.org/abs/1208.4179
+- Talk: "Transactions: myths, surprises and opportunities", Martin Kleppmann, Strange Loop 2015. https://www.youtube.com/watch?v=5ZjhNTM8XU8
+- Article and repo: "Hermitage: Testing the 'I' in ACID", Martin Kleppmann, 2014. https://martin.kleppmann.com/2014/11/25/hermitage-testing-the-i-in-acid.html
+
 ---
 
 ## 13. Audit trail through the outbox (`13-audit-outbox/`)
@@ -844,6 +941,14 @@ ERROR:  audit_events is append-only: TRUNCATE rejected
  last_audited_total
  38.25
 ```
+
+
+### Origins and further reading
+
+- Article: "Pattern: Audit logging", Chris Richardson, microservices.io. https://microservices.io/patterns/observability/audit-logging.html
+- Article: "Pattern: Transactional outbox", Chris Richardson, microservices.io (the transport half; this sample composes the two, it is not a separately named pattern). https://microservices.io/patterns/data/transactional-outbox.html
+- Article: "Building Audit Logs with Change Data Capture and Stream Processing", Gunnar Morling, Debezium blog, 2019 (the CDC route, with the actor added through a transaction metadata table). https://debezium.io/blog/2019/10/01/audit-logs-with-change-data-capture-and-stream-processing/
+- Tool: pgAudit (statement and session logging to the Postgres log, not before/after rows). https://github.com/pgaudit/pgaudit
 
 ---
 
