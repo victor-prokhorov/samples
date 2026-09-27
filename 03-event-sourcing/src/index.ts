@@ -10,12 +10,29 @@ function step(title: string, concept: string) {
  * Application service / command handler pipeline (DDD + CQRS): load (read stream) -> rehydrate (fold) ->
  * decide (enforce invariants, produce events) -> append with expected version. The only side effect is the append.
  */
-async function handle(streamId: string, decide: (s: Account) => AccountEvent[]) {
+async function handle(streamId: string, decide: (s: Account) => AccountEvent[] | Promise<AccountEvent[]>) {
   const history = await readStream<AccountEvent>(streamId);
   const state = rehydrate(history.map((h) => h.event));
-  const events = decide(state);
+  const events = await decide(state);
   await append(streamId, state.version, events);
   console.log(`   v${state.version} balance=${state.balance} -> appended ${events.map((e) => JSON.stringify(e)).join(", ")}`);
+}
+
+/**
+ * Retry on wrong expected version: a ConcurrencyError means our decision was made on stale state, so the whole
+ * load -> rehydrate -> decide -> append cycle runs again against the fresh stream. Re-deciding (not re-appending the
+ * same events) is the point: the invariants are checked again, so the retry may now legitimately reject the command.
+ * Business rejections are not retried; attempts are bounded so a hot stream cannot spin forever.
+ */
+async function handleWithRetry(label: string, streamId: string, decide: (s: Account) => AccountEvent[] | Promise<AccountEvent[]>, attempts = 3) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return await handle(streamId, decide);
+    } catch (err) {
+      if (!(err instanceof ConcurrencyError) || attempt === attempts) throw err;
+      console.log(`   ${label}: conflict on attempt ${attempt} (${err.message}), reloading and deciding again`);
+    }
+  }
 }
 
 async function main() {
@@ -36,6 +53,18 @@ async function main() {
   await append(id, stale.version, deposit(stale, 1)).catch((err) =>
     console.log(`   writer B: ConcurrencyError=${err instanceof ConcurrencyError} (${err instanceof Error ? err.message : String(err)})`),
   );
+  step("3b. Retry", "two concurrent withdrawals of 60 from 71: the loser reloads, re-decides against the new balance, and is rejected instead of overdrawing");
+  // Demo-only barrier: hold both deciders until both writers have read the stream, so the race is deterministic.
+  let arrived = 0;
+  let release = () => {};
+  const bothRead = new Promise<void>((resolve) => (release = resolve));
+  const racer = async (s: Account) => {
+    if (++arrived === 2) release();
+    await bothRead;
+    return withdraw(s, 60);
+  };
+  const outcomes = await Promise.allSettled([handleWithRetry("writer A", id, racer), handleWithRetry("writer B", id, racer)]);
+  outcomes.forEach((o, i) => o.status === "rejected" && console.log(`   writer ${"AB"[i]} rejected: ${o.reason instanceof Error ? o.reason.message : String(o.reason)}`));
   step("4. The stream is the source of truth", "the full history is stored; current state is only a left fold over it");
   const history = await readStream<AccountEvent>(id);
   console.table(history.map((h) => ({ v: h.version, ...h.event })));

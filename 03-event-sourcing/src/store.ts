@@ -24,6 +24,9 @@ export async function migrate() {
       type TEXT NOT NULL,
       data JSONB NOT NULL,
       at TIMESTAMPTZ NOT NULL DEFAULT now(),
+      -- One event per position per stream. Writers claim position expectedVersion + 1; the unique index makes that
+      -- claim atomic, so of two writers that read the same version exactly one wins and the other gets 23505.
+      -- The same index serves readStream (WHERE stream_id = $1 ORDER BY version).
       UNIQUE (stream_id, version)
     )`);
 }
