@@ -6,6 +6,10 @@ function step(title: string, concept: string) {
   console.log(`\n## ${title}\n   concept: ${concept}`);
 }
 
+/**
+ * Application service / command handler pipeline (DDD + CQRS): load (read stream) -> rehydrate (fold) ->
+ * decide (enforce invariants, produce events) -> append with expected version. The only side effect is the append.
+ */
 async function handle(streamId: string, decide: (s: Account) => AccountEvent[]) {
   const history = await readStream<AccountEvent>(streamId);
   const state = rehydrate(history.map((h) => h.event));
@@ -40,6 +44,7 @@ async function main() {
   console.log("   as of v3:", rehydrate(history.slice(0, 3).map((h) => h.event)));
   console.log("   as of v1:", rehydrate(history.slice(0, 1).map((h) => h.event)));
   step("6. Projections (read models)", "any new view can be derived later by replaying the same events, e.g. total deposited");
+  // Projection / read model (CQRS read side): a query-shaped view folded from events, possibly across many streams.
   const deposited = history.reduce((sum, h) => (h.event.type === "MoneyDeposited" ? sum + h.event.amount : sum), 0);
   console.log(`   total deposited = ${deposited}`);
   await pool.end();
