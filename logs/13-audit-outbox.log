@@ -1,0 +1,81 @@
+# 13-audit-outbox run 2026-09-27T20:56:57Z
+== fresh Postgres with databases orders, billing, audit (docker compose down -v && up) ==
+ Container 13-audit-outbox-postgres-1 Healthy 
+setup: databases orders and billing (each with its own audit_outbox), audit (central, append-only audit_events)
+== demo: app writes, each with its audit event in the same transaction ==
+
+## 1. Business write + audit event in one transaction
+   concept: the app knows who acted and why, and writes the audit event into its own outbox in the same transaction as the change
+      audit_outbox <- order 1 create by alice event_id=449f469a-9942-4de2-b8d7-d280f85e6dd9
+      audit_outbox <- order 1 update by bob (support) event_id=a1035b1e-14ab-41b6-a132-7762b180fb37
+
+## 2. Another service, its own outbox
+   concept: billing has its own database and its own audit_outbox; no service writes to the central audit store directly
+      audit_outbox <- invoice 1 create by system:billing event_id=966f5295-369c-4655-9818-322903be7413
+
+## 3. Rollback drops the audit event too
+   concept: the change fails -> the whole transaction rolls back -> no audit event for a change that never happened
+      audit_outbox <- order 1 update by mallory event_id=ad491585-e4e4-47e7-9b82-08e72621d070
+   rejected: discount service down, change to order 1 aborted
+
+== yolo: a manual UPDATE in psql, outside the app ==
+UPDATE 1
+== proof: audit events waiting in each service's outbox (no row for mallory's rolled-back change, none for the psql UPDATE) ==
+ id | entity | entity_id | action |     actor     | shipped_at 
+----+--------+-----------+--------+---------------+------------
+  1 | order  | 1         | create | alice         | 
+  2 | order  | 1         | update | bob (support) | 
+(2 rows)
+
+ id | entity  | entity_id | action |     actor      | shipped_at 
+----+---------+-----------+--------+----------------+------------
+  1 | invoice | 1         | create | system:billing | 
+(1 row)
+
+== shipper pass 1: stores the orders events centrally, crashes before marking them shipped ==
+shipper: orders #1 order 1 create by alice -> stored
+shipper: orders #2 order 1 update by bob (support) -> stored
+shipper: CRASH after sending the orders events, before marking them shipped
+shipper exited with 1
+== shipper pass 2: re-sends the orders events (deduped by event_id), then the billing ones ==
+shipper: orders #1 order 1 create by alice -> DUPLICATE, already in the central log, skipped
+shipper: orders #2 order 1 update by bob (support) -> DUPLICATE, already in the central log, skipped
+shipper: orders marked 2 shipped
+shipper: billing #1 invoice 1 create by system:billing -> stored
+shipper: billing marked 1 shipped
+
+== proof: central timeline across services, one row per event despite the re-send ==
+ service | entity  | entity_id | action |     actor      |                      before                      |                      after                       
+---------+---------+-----------+--------+----------------+--------------------------------------------------+--------------------------------------------------
+ orders  | order   | 1         | create | alice          |                                                  | {"id": 1, "total": "42.50", "customer": "alice"}
+ orders  | order   | 1         | update | bob (support)  | {"id": 1, "total": "42.50", "customer": "alice"} | {"id": 1, "total": "38.25", "customer": "alice"}
+ billing | invoice | 1         | create | system:billing |                                                  | {"id": 1, "amount": "38.25", "order_id": 1}
+(3 rows)
+
+== proof: the central log is append-only ==
+ERROR:  audit_events is append-only: UPDATE rejected
+CONTEXT:  PL/pgSQL function reject_change() line 3 at RAISE
+ERROR:  audit_events is append-only: DELETE rejected
+CONTEXT:  PL/pgSQL function reject_change() line 3 at RAISE
+== proof: the gap. orders says total 0, the audit trail's last word is 38.25 (the psql UPDATE left no trace) ==
+ id | customer | total 
+----+----------+-------
+  1 | alice    |  0.00
+(1 row)
+
+ last_audited_total 
+--------------------
+ 38.25
+(1 row)
+
+== proof: local outboxes are drained; shipped rows can now be deleted on a retention schedule ==
+ unshipped | total 
+-----------+-------
+         0 |     2
+(1 row)
+
+ unshipped | total 
+-----------+-------
+         0 |     1
+(1 row)
+

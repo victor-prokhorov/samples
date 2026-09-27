@@ -18,6 +18,6 @@ npm run app       # terminal 2
 
 Reach for it when the same need as 07, once poll latency, query load or table cleanup start to hurt, or when Debezium is already running for 08.
 
-Do not reach for it when nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (audit events, for example): immediate cleanup relies on the slot, and a lost slot loses those events for good.
+Do not reach for it when nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (13's audit events): immediate cleanup relies on the slot, and a lost slot loses those events for good.
 
 One-shot run with proof: `../run-09-outbox-debezium.sh` (log in `../logs/09-outbox-debezium.log`). Concepts explained in `../README.md`.

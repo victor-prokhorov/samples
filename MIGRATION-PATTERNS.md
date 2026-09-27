@@ -146,5 +146,6 @@ Nine of these patterns run end to end here, in TypeScript, numbered by complexit
 | 07 | [`07-outbox-polling/`](07-outbox-polling/) | Transactional Outbox with a Polling Publisher, Idempotent Consumer | `./run-07-outbox-polling.sh` | [`logs/07-outbox-polling.log`](logs/07-outbox-polling.log) |
 | 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | Change Data Capture via Postgres WAL and Debezium | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
 | 09 | [`09-outbox-debezium/`](09-outbox-debezium/) | Transactional Outbox relayed by transaction log tailing (Debezium EventRouter) | `./run-09-outbox-debezium.sh` | [`logs/09-outbox-debezium.log`](logs/09-outbox-debezium.log) |
+| 13 | [`13-audit-outbox/`](13-audit-outbox/) | Audit Log shipped through per-service Transactional Outboxes to a central append-only store | `./run-13-audit-outbox.sh` | [`logs/13-audit-outbox.log`](logs/13-audit-outbox.log) |
 
 Natural next ones, not built yet: choreographed saga over the outbox, branch by abstraction, feature-toggle cutover, and an anti-corruption layer in front of the legacy model.

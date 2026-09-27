@@ -1,6 +1,6 @@
 # samples
 
-Twelve minimal, real TypeScript examples of how to change a running system without breaking it: tracking change, evolving schemas, replacing code, coordinating services, publishing events, splitting data across servers and keeping invariants under concurrency. They are numbered by complexity. Read them in order: each one assumes the concepts of the ones before it. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
+Thirteen minimal, real TypeScript examples of how to change a running system without breaking it: tracking change, evolving schemas, replacing code, coordinating services, publishing events, splitting data across servers and keeping invariants under concurrency. They are numbered by complexity. Read them in order: each one assumes the concepts of the ones before it. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
 
 | # | Folder | Pain | New concepts | Infra | Run | Proof |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -16,6 +16,7 @@ Twelve minimal, real TypeScript examples of how to change a running system witho
 | 10 | [`10-partitioning/`](10-partitioning/) | table too big | declarative partitioning, partition key, pruning, unique-key limit | Postgres | `./run-10-partitioning.sh` | [`logs/10-partitioning.log`](logs/10-partitioning.log) |
 | 11 | [`11-sharding-replicas/`](11-sharding-replicas/) | one-machine ceiling | shard key, app-side router, streaming replication, read replicas, replica lag, CP writes / AP reads | Postgres (2 primaries + scalable replicas) | `./run-11-sharding-replicas.sh` | [`logs/11-sharding-replicas.log`](logs/11-sharding-replicas.log) |
 | 12 | [`12-serializable/`](12-serializable/) | race conditions | isolation levels, lost update, write skew, SSI, 40001 retry, materialized conflict | Postgres | `./run-12-serializable.sh` | [`logs/12-serializable.log`](logs/12-serializable.log) |
+| 13 | [`13-audit-outbox/`](13-audit-outbox/) | central audit trail | audit events through per-service outboxes, shipper, dedupe by `event_id`, append-only store, the bypass gap | Postgres (3 databases) | `./run-13-audit-outbox.sh` | [`logs/13-audit-outbox.log`](logs/13-audit-outbox.log) |
 
 Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw tables as proof. Everything it prints goes to `logs/<name>.log`. Needs Docker and Node 22.
 
@@ -34,6 +35,7 @@ Ports (chosen to avoid clashing with other local services):
 | 10 | 55440 | | | |
 | 11 | 55441 shard 0 primary, 55442 shard 1 primary, replicas on random ports | | | |
 | 12 | 55443 | | | |
+| 13 | 55444 | | | |
 
 ---
 
@@ -53,7 +55,7 @@ Ports (chosen to avoid clashing with other local services):
 ### When to use
 
 - **Reach for it when**: most business apps: support or compliance asks who changed what, and reads of current state dominate. One service, one database.
-- **Do not reach for it when**: the history is the domain and you need to rebuild state or add read models later (03). Writes that bypass the app must be caught too (triggers or `pgaudit`).
+- **Do not reach for it when**: the history is the domain and you need to rebuild state or add read models later (03). Writes that bypass the app must be caught too (triggers or `pgaudit`). Several services need one central trail (13).
 
 ### Proof (`logs/01-crud-audit.log`)
 
@@ -560,7 +562,7 @@ Same outbox idea as 07, but the relay is Debezium reading the WAL (08) instead o
 ### When to use
 
 - **Reach for it when**: the same need as 07, once poll latency, query load or table cleanup start to hurt, or when Debezium is already running for 08.
-- **Do not reach for it when**: nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (audit events, for example): immediate cleanup relies on the slot, and a lost slot loses those events for good.
+- **Do not reach for it when**: nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (13's audit events): immediate cleanup relies on the slot, and a lost slot loses those events for good.
 
 ### Proof (`logs/09-outbox-debezium.log`)
 
@@ -795,6 +797,62 @@ Each level raises its own `40001`: REPEATABLE READ for two writers of one row, S
 
 ---
 
+## 13. Audit trail through the outbox (`13-audit-outbox/`)
+
+**Pain: central audit trail.** Each service can audit itself in the same transaction (01), but compliance and support need one trail across services, with the actor, that cannot miss a change or be edited afterwards.
+
+01's audit table combined with 07's outbox. Two services (`orders`, `billing`), each with its own database, write audit events into their own `audit_outbox`. A shipper copies them into a central `audit` database.
+
+### Concepts
+
+- **Audit event in the same transaction**: `audit()` in `src/services.ts` inserts into the service's `audit_outbox` using the business transaction's client. The app supplies what the database cannot know: the actor (`bob (support)`, `system:billing`) and the before/after snapshots. A rolled-back change (mallory's) leaves no audit event, and a committed one cannot be missing its event.
+- **The outbox is a temporary local copy**: rows wait with `shipped_at IS NULL` (partial index, as in 07). Once shipped they can be deleted on a retention schedule. The central store is the permanent record.
+- **Shipper**: `src/shipper.ts` claims unshipped rows per service (`FOR UPDATE SKIP LOCKED`), inserts them into `audit_events`, then marks them shipped. Send first, mark second: a crash in between means a re-send, never a loss. In production a broker (Kafka) usually sits between the shippers and the store; the guarantees are the same.
+- **Dedupe by `event_id`**: `event_id` is the central table's primary key and the insert is `ON CONFLICT (event_id) DO NOTHING`. The re-sent events after the crash are skipped, so the trail has exactly one row per event.
+- **Append-only, enforced**: a trigger rejects `UPDATE`, `DELETE` and `TRUNCATE` on `audit_events`. It fires for superusers too, but a superuser can disable it, so in production the services connect with a role that has `INSERT` only, and the store has its own credentials: a compromised service can append but never rewrite, and consider hash-chaining rows to make tampering detectable.
+- **The bypass gap**: the trail only contains what app code emits. The run's manual `psql` UPDATE sets the order total to 0 and leaves no trace: the audit trail's last word stays 38.25. Database-level auditing (`pgaudit`, or triggers) catches such writes, with the database role instead of the user; run it alongside, not instead.
+- **Cross-service order is approximate**: `occurred_at` comes from each service's clock, so a timeline across services is only as good as clock sync. Order within one service is exact (outbox `id`).
+
+### When to use
+
+- **Reach for it when**: the audit trail of record spans several services and needs the actor and intent from the app, a guarantee that no change exists without its audit event, and one central, append-only store.
+- **Do not reach for it when**: there is one service and one database: 01's audit table is enough, with no shipper to run. You need to catch writes that bypass the app (psql, scripts, migrations): that is `pgaudit` or triggers, alongside this. The central trail must reflect a change the instant it commits: shipping adds lag.
+
+### Proof (`logs/13-audit-outbox.log`)
+
+The shipper crashes after storing the orders events and before marking them. The next pass re-sends them and the central store skips them:
+
+```
+shipper: orders #2 order 1 update by bob (support) -> stored
+shipper: CRASH after sending the orders events, before marking them shipped
+shipper: orders #1 order 1 create by alice -> DUPLICATE, already in the central log, skipped
+shipper: orders #2 order 1 update by bob (support) -> DUPLICATE, already in the central log, skipped
+shipper: billing #1 invoice 1 create by system:billing -> stored
+```
+
+One timeline across both services, with actors. There is no row for mallory's rolled-back change:
+
+```
+ orders  | order   | 1         | create | alice          |                                                  | {"id": 1, "total": "42.50", "customer": "alice"}
+ orders  | order   | 1         | update | bob (support)  | {"id": 1, "total": "42.50", "customer": "alice"} | {"id": 1, "total": "38.25", "customer": "alice"}
+ billing | invoice | 1         | create | system:billing |                                                  | {"id": 1, "amount": "38.25", "order_id": 1}
+```
+
+The store refuses edits, and the psql UPDATE is the gap:
+
+```
+ERROR:  audit_events is append-only: UPDATE rejected
+ERROR:  audit_events is append-only: DELETE rejected
+
+ id | customer | total
+  1 | alice    |  0.00
+
+ last_audited_total
+ 38.25
+```
+
+---
+
 ## Which one when
 
 - **CRUD + audit (01)**: most apps. You need "who changed what" for compliance or support, and reads of current state dominate.
@@ -809,5 +867,6 @@ Each level raises its own `40001`: REPEATABLE READ for two writers of one row, S
 - **Partitioning (10)**: one table got big enough that indexes, vacuum or retention hurt, and the hot queries filter on one key. Try it before sharding: it is config, not code.
 - **Sharding + read replicas (11)**: one server can no longer hold the data or absorb the writes (shards), or the reads (replicas), and almost every query stays within one key. Stale reads must be acceptable wherever you read from replicas.
 - **SERIALIZABLE (12)**: an invariant spans several rows or depends on rows that do not exist yet (capacity, overbooking, on-call rules), and cannot be written as a constraint or reduced to a lock on one parent row. One-row rules only need a conditional `UPDATE` or `FOR UPDATE`.
+- **Audit trail through the outbox (13)**: several services need one audit trail of record with actors, that cannot miss a change or be edited.
 
 These combine: a strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga publishes its events through an outbox; an event-sourced service can publish its events through an outbox/CDC relay.
