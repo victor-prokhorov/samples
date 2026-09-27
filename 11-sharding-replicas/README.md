@@ -2,6 +2,10 @@
 
 **Pain: one-machine ceiling.** Writes, storage and reads eventually exceed one Postgres server, and partitioning (10) does not help because it stays on that server.
 
+**Reach for it when** one server can no longer hold the data or absorb the writes, after a bigger machine, partitioning (10) and replicas, and almost every query stays within one key (tenant, customer).
+
+**Do not reach for it when** a bigger machine or read replicas alone would do: sharding is the most expensive step to undo. Queries or transactions routinely span keys (joins, reports): move those to a warehouse, or pick another key. Every read must see the latest write: then replica reads are wrong for it.
+
 The partitions of `10-partitioning` turned into servers. Two shards, each a Postgres primary with read replicas fed by built-in streaming replication. A small router in the app hashes `customer_id` to a shard, sends writes to that shard's primary and spreads reads over its replicas. No Citus, no proxy, no failover. No query or transaction spans shards: cross-shard reads would need fan-out and merge in the router, cross-shard writes a saga (06).
 
 ```sh
@@ -21,9 +25,5 @@ docker compose start shard1-primary
 - `scripts/replica.sh` on first start, `pg_basebackup -R` clones the primary and writes `standby.signal` + `primary_conninfo`; then it starts Postgres as a hot standby.
 - `src/topology.ts` primaries on fixed ports, replicas discovered from `docker compose ps`.
 - `src/router.ts` `shardFor`, `write` (primary only), `read` (replicas, round-robin, skip a dead one).
-
-Reach for it when one server can no longer hold the data or absorb the writes, after a bigger machine, partitioning (10) and replicas, and almost every query stays within one key (tenant, customer).
-
-Do not reach for it when a bigger machine or read replicas alone would do: sharding is the most expensive step to undo. Queries or transactions routinely span keys (joins, reports): move those to a warehouse, or pick another key. Every read must see the latest write: then replica reads are wrong for it.
 
 One-shot run with proof: `../run-11-sharding-replicas.sh` (log in `../logs/11-sharding-replicas.log`). Concepts explained in `../README.md`.

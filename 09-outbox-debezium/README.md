@@ -2,6 +2,10 @@
 
 **Pain: polling overhead.** 07's relay adds poll latency and query load, and its outbox table keeps growing until something cleans it up.
 
+**Reach for it when** the same need as 07, once poll latency, query load or table cleanup start to hurt, or when Debezium is already running for 08.
+
+**Do not reach for it when** nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (13's audit events): immediate cleanup relies on the slot, and a lost slot loses those events for good.
+
 Transactional outbox with a CDC relay (the log-tailing version of `07-outbox-polling`). The app writes the business row and an `outbox` row in one Postgres transaction. Debezium tails the WAL, and its `EventRouter` transform turns each outbox insert into a business event on `outbox.event.<aggregatetype>`.
 
 ```sh
@@ -15,9 +19,5 @@ npm run app       # terminal 2
 - `src/app.ts` `emit()` inserts into `outbox` inside the caller's transaction.
 - `src/setup.ts` connector: `table.include.list=public.outbox`, `transforms=outbox` (EventRouter), payload JSON expanded, `type` put in the `eventType` header.
 - `src/consumer.ts` dedupes by the `id` header (delivery is at-least-once).
-
-Reach for it when the same need as 07, once poll latency, query load or table cleanup start to hurt, or when Debezium is already running for 08.
-
-Do not reach for it when nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (13's audit events): immediate cleanup relies on the slot, and a lost slot loses those events for good.
 
 One-shot run with proof: `../run-09-outbox-debezium.sh` (log in `../logs/09-outbox-debezium.log`). Concepts explained in `../README.md`.
