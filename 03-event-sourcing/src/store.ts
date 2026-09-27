@@ -31,11 +31,15 @@ export async function migrate() {
     )`);
 }
 
-/** Read a stream forward from revision 1: the input to rehydration. */
-export async function readStream<E extends { type: string }>(streamId: string): Promise<StoredEvent<E>[]> {
+/**
+ * Read a stream forward from revision 1: the input to rehydration. With `before`, only events recorded strictly
+ * before that instant: the "state as of date" query. `at` is recorded time (transaction start); per stream it rises
+ * with version, because each append starts after the read of the previous version.
+ */
+export async function readStream<E extends { type: string }>(streamId: string, before?: Date): Promise<StoredEvent<E>[]> {
   const { rows } = await pool.query(
-    "SELECT stream_id, version, type, data, at FROM events WHERE stream_id = $1 ORDER BY version",
-    [streamId],
+    "SELECT stream_id, version, type, data, at FROM events WHERE stream_id = $1 AND ($2::timestamptz IS NULL OR at < $2) ORDER BY version",
+    [streamId, before ?? null],
   );
   return rows.map((r) => ({ streamId: r.stream_id, version: r.version, event: { type: r.type, ...r.data }, at: r.at }));
 }

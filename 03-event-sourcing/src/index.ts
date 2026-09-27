@@ -76,9 +76,14 @@ async function main() {
   const history = await readStream<AccountEvent>(id);
   console.table(history.map((h) => ({ v: h.version, ...h.event })));
   console.log("   current state:", rehydrate(history.map((h) => h.event)));
-  step("5. Time travel", "replay a prefix of the stream to get the state at any past version");
-  console.log("   as of v3:", rehydrate(history.slice(0, 3).map((h) => h.event)));
-  console.log("   as of v1:", rehydrate(history.slice(0, 1).map((h) => h.event)));
+  step("5. Time travel", "replay only the events recorded before a date to answer \"what was the state at the end of March?\"");
+  // The demo's events are milliseconds apart, so the cutoff is the instant v4 was recorded: everything strictly before it.
+  // In prod the cutoff is a business boundary with an explicit timezone, e.g. 2026-04-01T00:00 Europe/Paris.
+  // This is recorded time; if the business asks about effective time (backdated entries), the event needs its own
+  // effective date in the payload and the filter runs on that instead (bitemporal).
+  const cutoff = history[3].at;
+  console.log(`   as of ${cutoff.toISOString()}:`, rehydrate((await readStream<AccountEvent>(id, cutoff)).map((h) => h.event)));
+  console.log("   by version is the same fold over a prefix, e.g. as of v1:", rehydrate(history.slice(0, 1).map((h) => h.event)));
   step("6. Projections (read models)", "any new view can be derived later by replaying the same events, e.g. total deposited");
   // Projection / read model (CQRS read side): a query-shaped view folded from events, possibly across many streams.
   const deposited = history.reduce((sum, h) => (h.event.type === "MoneyDeposited" ? sum + h.event.amount : sum), 0);
