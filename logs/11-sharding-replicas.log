@@ -1,0 +1,116 @@
+# 11-sharding-replicas run 2026-09-27T13:16:10Z
+== fresh cluster: 2 shard primaries, 2 replicas each (docker compose down -v && up) ==
+running containers: 6
+setup: orders created on shard0-primary, replicated to shard0-replica-1, shard0-replica-2
+setup: orders created on shard1-primary, replicated to shard1-replica-1, shard1-replica-2
+
+## 1. Topology
+   concept: the partitions of 10 (here two instead of four) each become their own server (a shard); each shard has one primary and N read replicas
+   shard 0: primary shard0-primary, replicas shard0-replica-1, shard0-replica-2
+   shard 1: primary shard1-primary, replicas shard1-replica-1, shard1-replica-2
+
+## 2. Writes go to the shard's primary
+   concept: the router (not Postgres) hashes customer_id to pick the shard; only its primary accepts the write
+   alice keyboard -> shard0-primary (id 1)
+   alice mouse    -> shard0-primary (id 2)
+   bob   screen   -> shard0-primary (id 3)
+   carol desk     -> shard0-primary (id 4)
+   dave  chair    -> shard1-primary (id 1)
+   erin  lamp     -> shard1-primary (id 2)
+
+## 3. Replicas refuse writes
+   concept: a replica replays the primary's WAL and is read-only; there is exactly one writer per shard
+   shard0-replica-1 rejected: cannot execute INSERT in a read-only transaction
+
+## 4. Reads spread over the replicas
+   concept: the router round-robins reads across the shard's replicas; the primary serves no reads
+   read alice -> shard0-replica-1: 2 orders
+   read alice -> shard0-replica-2: 2 orders
+   read alice -> shard0-replica-1: 2 orders
+   read alice -> shard0-replica-2: 2 orders
+
+## 5. Replicas are eventually consistent (AP)
+   concept: replay paused on shard0-replica-1 to simulate lag: it keeps answering, with old data
+   write alice cable -> shard0-primary (committed)
+   shard0-primary     3 orders (source of truth)
+   shard0-replica-1   2 orders
+   shard0-replica-2   3 orders
+   shard0-replica-1: WAL received up to 0/4029BD8, replayed up to 0/4029B18 (paused)
+   read alice -> shard0-replica-1: 2 orders
+   read alice -> shard0-replica-2: 3 orders
+
+## 6. Lag heals
+   concept: resume replay: the replica applies the WAL it already holds and converges
+   shard0-replica-1   3 orders
+   shard0-replica-2   3 orders
+
+== scale reads: docker compose up -d --scale shard0-replica=4 --scale shard1-replica=3 ==
+running containers: 9
+
+## 7. Scale reads
+   concept: more replicas were started with docker compose --scale; the router discovers them, no primary change
+   shard 0 (4 replicas), 8 reads of alice: shard0-replica-1=2, shard0-replica-2=2, shard0-replica-3=2, shard0-replica-4=2
+   shard 1 (3 replicas), 6 reads of dave: shard1-replica-1=2, shard1-replica-2=2, shard1-replica-3=2
+
+== proof: each primary streams its WAL to its own replicas ==
+ application_name |   state   | replay_lsn 
+------------------+-----------+------------
+ 682b0d39f845     | streaming | 0/6000000
+ 9246a078b637     | streaming | 0/6000000
+ b69050495dbd     | streaming | 0/6000000
+ c1732f300a02     | streaming | 0/6000000
+(4 rows)
+
+ application_name |   state   | replay_lsn 
+------------------+-----------+------------
+ b2b9f64a6e8a     | streaming | 0/6000000
+ bcddac10639c     | streaming | 0/6000000
+ f13d39f7a87b     | streaming | 0/6000000
+(3 rows)
+
+== outage: docker compose stop shard1-primary ==
+ Container 11-sharding-replicas-shard1-primary-1 Stopped 
+
+## 8. Shard 1 primary is down: writes are CP
+   concept: no failover: the shard refuses writes instead of letting a replica diverge (no split brain)
+   write dave -> shard1-primary rejected: connect ECONNREFUSED ::1:55442, connect ECONNREFUSED 127.0.0.1:55442
+   write alice -> shard0-primary ok (id 6): the other shard is unaffected
+
+## 9. Shard 1 reads stay available: AP
+   concept: replicas keep serving the last data they replayed; they stay read-only (not promoted)
+   read dave -> shard1-replica-1: 1 orders (in recovery: true)
+   read dave -> shard1-replica-2: 1 orders (in recovery: true)
+   read dave -> shard1-replica-3: 1 orders (in recovery: true)
+
+== recovery: docker compose start shard1-primary, replicas reconnect on their own ==
+ Container 11-sharding-replicas-shard1-primary-1 Healthy 
+ application_name |   state   
+------------------+-----------
+ b2b9f64a6e8a     | streaming
+ bcddac10639c     | streaming
+ f13d39f7a87b     | streaming
+(3 rows)
+
+== proof: each shard holds only its own customers; ids are per shard (no global sequence) ==
+ customer_id | id |   item   
+-------------+----+----------
+ alice       |  1 | keyboard
+ alice       |  2 | mouse
+ bob         |  3 | screen
+ carol       |  4 | desk
+ alice       |  5 | cable
+ alice       |  6 | pen
+(6 rows)
+
+ customer_id | id | item  
+-------------+----+-------
+ dave        |  1 | chair
+ erin        |  2 | lamp
+(2 rows)
+
+== proof: a replica is the same data, in recovery (read-only) ==
+ pg_is_in_recovery | orders 
+-------------------+--------
+ t                 |      6
+(1 row)
+

@@ -1,0 +1,51 @@
+x-primary: &primary
+  image: postgres:16
+  command: ["postgres", "-c", "wal_level=replica", "-c", "max_wal_senders=10", "-c", "wal_keep_size=128MB", "-c", "hba_file=/scripts/pg_hba.conf"]
+  environment:
+    POSTGRES_PASSWORD: postgres
+  volumes:
+    - ./scripts:/scripts:ro
+    - ./scripts/primary-init.sql:/docker-entrypoint-initdb.d/primary-init.sql:ro
+  healthcheck:
+    test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]
+    interval: 1s
+    retries: 60
+
+x-replica: &replica
+  image: postgres:16
+  user: postgres
+  command: ["bash", "/scripts/replica.sh"]
+  volumes:
+    - ./scripts:/scripts:ro
+  ports:
+    - "5432"
+  healthcheck:
+    test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]
+    interval: 1s
+    retries: 60
+  deploy:
+    replicas: 2
+
+services:
+  shard0-primary:
+    <<: *primary
+    ports:
+      - "55441:5432"
+  shard1-primary:
+    <<: *primary
+    ports:
+      - "55442:5432"
+  shard0-replica:
+    <<: *replica
+    environment:
+      PRIMARY_HOST: shard0-primary
+    depends_on:
+      shard0-primary:
+        condition: service_healthy
+  shard1-replica:
+    <<: *replica
+    environment:
+      PRIMARY_HOST: shard1-primary
+    depends_on:
+      shard1-primary:
+        condition: service_healthy
