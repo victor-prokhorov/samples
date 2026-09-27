@@ -1,4 +1,4 @@
-# 08-cdc-debezium run 2026-09-26T16:06:25Z
+# 08-cdc-debezium run 2026-09-27T20:38:31Z
 == fresh Postgres + Kafka + Debezium Connect (docker compose down -v && up) ==
  Container 08-cdc-debezium-kafka-1 Healthy 
 == proof: Postgres runs with logical WAL ==
