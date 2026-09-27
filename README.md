@@ -796,7 +796,6 @@ With `shard1-primary` stopped, its writes fail, shard 0 is unaffected, and shard
 ### Origins and further reading
 
 - Book: *Designing Data-Intensive Applications*, Martin Kleppmann, 2017 (chapter 5 replication, chapter 6 partitioning, in the first edition; a second edition with Chris Riccomini came out in 2026). https://dataintensive.net/
-- Article: "Sharding & IDs at Instagram", Instagram Engineering, 2011. https://instagram-engineering.com/sharding-ids-at-instagram-1cf5a71e5a5c
 - Article: "Herding elephants: lessons learned from sharding Postgres at Notion", Notion, 2021. https://www.notion.com/blog/sharding-postgres-at-notion
 - Article: "How Figma's databases team lived to tell the scale", Figma, 2024 (vertical split first, horizontal sharding later). https://www.figma.com/blog/how-figmas-databases-team-lived-to-tell-the-scale/
 - Talk: "Scaling Instagram Infrastructure", Lisa Guo, QCon 2016/2017. https://www.youtube.com/watch?v=hnpzNAPiC0E
