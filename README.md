@@ -9,7 +9,7 @@ Twelve minimal, real TypeScript examples of how to change a running system witho
 | 03 | [`03-event-sourcing/`](03-event-sourcing/) | events as source of truth, fold, optimistic concurrency, projections | Postgres | `./run-03-event-sourcing.sh` | [`logs/03-event-sourcing.log`](logs/03-event-sourcing.log) |
 | 04 | [`04-parallel-run/`](04-parallel-run/) | control vs candidate, mismatch reporting, cutover | none | `./run-04-parallel-run.sh` | [`logs/04-parallel-run.log`](logs/04-parallel-run.log) |
 | 05 | [`05-strangler-fig/`](05-strangler-fig/) | routing facade, capability-by-capability replacement, instant rollback | none (3 HTTP servers) | `./run-05-strangler-fig.sh` | [`logs/05-strangler-fig.log`](logs/05-strangler-fig.log) |
-| 06 | [`06-saga/`](06-saga/) | no distributed transactions, compensations, saga log, crash recovery, idempotent steps | Postgres (4 databases) | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
+| 06 | [`06-saga/`](06-saga/) | no distributed transactions, compensations, saga log, crash recovery, idempotent steps, durable timer and waker | Postgres (4 databases) | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
 | 07 | [`07-outbox-polling/`](07-outbox-polling/) | dual-write problem, outbox table, polling relay, `SKIP LOCKED`, at-least-once, idempotent consumer | Postgres, Kafka | `./run-07-outbox-polling.sh` | [`logs/07-outbox-polling.log`](logs/07-outbox-polling.log) |
 | 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | WAL, logical decoding, replication slot, LSN, Debezium, Kafka Connect | Postgres, Kafka, Connect | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
 | 09 | [`09-outbox-debezium/`](09-outbox-debezium/) | outbox relayed by CDC, EventRouter, immediate cleanup | Postgres, Kafka, Connect | `./run-09-outbox-debezium.sh` | [`logs/09-outbox-debezium.log`](logs/09-outbox-debezium.log) |
@@ -274,24 +274,33 @@ Places an order across inventory, payments and shipping, each with its own datab
 ### Concepts
 
 - **No transaction spans services**: each service owns its database (here, 4 real Postgres databases), so a `BEGIN ... COMMIT` cannot cover all three steps. Two-phase commit exists but couples every service's availability and is rarely used across services.
-- **Saga**: a sequence of local transactions (`reserveInventory`, `chargePayment`, `createShipment`). Each commits on its own. If a later step fails, earlier ones are undone by **compensating actions** (`release`, `refund`), run in reverse order. Coined by Garcia-Molina and Salem ("Sagas", SIGMOD 1987) for long-lived transactions inside one database; microservices reuse the idea across databases.
+- **Saga**: a sequence of local transactions (`reserveInventory`, `chargePayment`, `createShipment`, with a `fraudHold` timer before shipping). Each commits on its own. If a later step fails, earlier ones are undone by **compensating actions** (`release`, `refund`), run in reverse order. Coined by Garcia-Molina and Salem ("Sagas", SIGMOD 1987) for long-lived transactions inside one database; microservices reuse the idea across databases.
 - **Compensation is semantic, not a rollback**: a refund is a new fact; the charge still happened. Some steps cannot be compensated (an email already sent), so order steps as compensatable ones, then one pivot (the go/no-go step, here `createShipment`, which has no compensation), then retriable ones that must eventually succeed (Richardson's taxonomy).
 - **Orchestration vs choreography**: here a central orchestrator (`src/orchestrator.ts`) tells each service what to do next. In choreography, services react to each other's events instead (usually via 07/09's outbox). Orchestration is easier to follow; choreography has no central component.
 - **Saga log**: the orchestrator persists `state` and `step` after every step in its own database. After a crash, it reloads unfinished sagas and continues forward or keeps compensating. This assumes a single orchestrator; with several, claim a saga first (`SELECT ... FOR UPDATE SKIP LOCKED` or a lease column).
 - **Idempotent steps**: a crash between "step ran" and "log updated" means the step runs again on recovery. Each step and compensation is keyed by saga id (steps: `INSERT ... ON CONFLICT DO NOTHING`; compensations: `DELETE ... RETURNING`, `UPDATE ... WHERE status = 'charged'`), so running it twice has the effect of running it once. `reserve` puts its insert and stock update in one local transaction so the pair is all-or-nothing.
 - **Trade-offs**: no isolation. Other transactions can see intermediate states (stock reserved, payment not yet taken). Countermeasures include semantic locks (a `PENDING` status) and ordering steps so the riskiest come first. Also, a failed or timed-out step may have committed anyway; real orchestrators retry it or also run its (idempotent) compensation.
+- **Toy services**: every `-> HTTP` log line stands for a network call to a separate microservice with its own remote database. Here each service is a function in `src/services.ts`, and each database is a separate Postgres database in one local container.
+- **Durable timer**: a saga that has to wait (a fraud hold, a payment deadline, days in real life) must not keep a process alive for that long. The `fraudHold` step (`holdSec` in the order) writes `state = 'waiting'` and `wake_at` to the saga log, and `runSaga` returns. The wait is now a row, so any process can crash or be redeployed without losing it.
+- **Waker**: `src/waker.ts` polls every 5s, claims due sagas in one statement (`UPDATE ... SET state = 'running' WHERE state = 'waiting' AND wake_at <= now() RETURNING id`, so two wakers cannot claim the same saga) and calls `runSaga`, which continues at the step after the timer. It wakes up to one poll interval late. Deliberately missing: a waker that crashes after claiming leaves the saga in `running` with no owner (a lease with an expiry fixes that), plus retries, heartbeats for long steps, and waiting for an external event (a signal) instead of a time. Temporal's server is essentially this loop with those pieces added: durable timers, task queues with leases, and signals.
 
 ### Proof (`logs/06-saga.log`)
 
 Payment failure compensates one step; shipping failure compensates two, in reverse:
 
 ```
+      -> HTTP POST payments-service/charges/order-B
    [order-B] step 2 chargePayment: FAILED (card declined for 5000.00) -> compensate 1 completed step(s)
+      -> HTTP DELETE inventory-service/reservations/order-B
    [order-B] compensate reserveInventory: ok
    [order-B] aborted
 
-   [order-C] step 3 createShipment: FAILED (address not deliverable: nowhere) -> compensate 2 completed step(s)
+      -> HTTP POST shipping-service/shipments/order-C
+   [order-C] step 4 createShipment: FAILED (address not deliverable: nowhere) -> compensate 3 completed step(s)
+   [order-C] compensate fraudHold: timer, nothing to undo
+      -> HTTP POST payments-service/charges/order-C/refund
    [order-C] compensate chargePayment: ok
+      -> HTTP DELETE inventory-service/reservations/order-C
    [order-C] compensate reserveInventory: ok
    [order-C] aborted
 ```
@@ -310,22 +319,52 @@ A new process resumes from the log. It re-runs `chargePayment`, which is idempot
 
 ```
    [order-D] found running at step 1, resuming
+      -> HTTP POST payments-service/charges/order-D
    [order-D] step 2 chargePayment: ok
-   [order-D] step 3 createShipment: ok
+   [order-D] step 3 fraudHold: no hold, skipped
+      -> HTTP POST shipping-service/shipments/order-D
+   [order-D] step 4 createShipment: ok
    [order-D] completed
 ```
 
-Every database ends consistent: stock `10 - 2 (A) - 1 (D) = 7`, C refunded, D charged exactly once, B never charged, only A and D shipped:
+order-E has a 30s fraud hold. The process that starts it parks it and exits:
 
 ```
- keyboard |         7
+   19:47:30 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 19:48:00; this process stops driving it
+   19:47:30 timer process exits; order-E now exists only as a row
+ order-E | waiting |    3 | 2026-09-27 19:48:00.555308+00
+```
+
+A first waker is killed 10s in and the row is untouched. A second waker process picks order-E up when it is due and finishes it:
+
+```
+   19:47:35 tick: order-E due in 25s
+   19:47:40 waker #1 killed (exit 143)
+ order-E | waiting |    3 | 2026-09-27 19:48:00.555308+00
+
+## waker (pid 78721)
+   19:47:41 tick: order-E due in 20s
+   ...
+   19:47:56 tick: order-E due in 5s
+   19:48:01 [order-E] due, claimed (waiting -> running, 0.5s after wake_at because of the poll interval)
+      -> HTTP POST shipping-service/shipments/order-E
+   [order-E] step 4 createShipment: ok
+   [order-E] completed
+```
+
+Every database ends consistent: stock `10 - 2 (A) - 1 (D) - 1 (E) = 6`, C refunded, D charged exactly once, B never charged, only A, D and E shipped:
+
+```
+ keyboard |         6
 
  order-A |  84.00 | charged
  order-C | 126.00 | refunded
  order-D |  42.00 | charged
+ order-E |  42.00 | charged
 
  order-A | Paris
  order-D | Lyon
+ order-E | Lille
 ```
 
 ---

@@ -142,7 +142,7 @@ Nine of these patterns run end to end here, in TypeScript, numbered by complexit
 | 03 | [`03-event-sourcing/`](03-event-sourcing/) | Event Sourcing, optimistic concurrency, projections | `./run-03-event-sourcing.sh` | [`logs/03-event-sourcing.log`](logs/03-event-sourcing.log) |
 | 04 | [`04-parallel-run/`](04-parallel-run/) | Parallel Run with a Scientist-style experiment | `./run-04-parallel-run.sh` | [`logs/04-parallel-run.log`](logs/04-parallel-run.log) |
 | 05 | [`05-strangler-fig/`](05-strangler-fig/) | Strangler Fig behind a routing proxy | `./run-05-strangler-fig.sh` | [`logs/05-strangler-fig.log`](logs/05-strangler-fig.log) |
-| 06 | [`06-saga/`](06-saga/) | Saga (orchestration) with compensations and a recoverable saga log | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
+| 06 | [`06-saga/`](06-saga/) | Saga (orchestration) with compensations, a recoverable saga log and a durable timer woken by a poller | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
 | 07 | [`07-outbox-polling/`](07-outbox-polling/) | Transactional Outbox with a Polling Publisher, Idempotent Consumer | `./run-07-outbox-polling.sh` | [`logs/07-outbox-polling.log`](logs/07-outbox-polling.log) |
 | 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | Change Data Capture via Postgres WAL and Debezium | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
 | 09 | [`09-outbox-debezium/`](09-outbox-debezium/) | Transactional Outbox relayed by transaction log tailing (Debezium EventRouter) | `./run-09-outbox-debezium.sh` | [`logs/09-outbox-debezium.log`](logs/09-outbox-debezium.log) |

@@ -21,9 +21,24 @@ npm run --silent resume
 echo
 echo "== proof: saga log =="
 psql -d orchestrator -c "SELECT id, state, step, error FROM sagas ORDER BY id"
-echo "== proof: inventory (10 - 2 for A - 1 for D = 7; B and C released) =="
+echo "== timer: start order-E with a 30s fraud hold; the process exits while the saga waits =="
+npm run --silent timer
+psql -d orchestrator -c "SELECT id, state, step, wake_at FROM sagas WHERE id = 'order-E'"
+echo "== waker #1, killed after 10s (the timer is a row, so nothing is lost) =="
+node_modules/.bin/tsx src/waker.ts &
+waker=$!
+sleep 10
+kill "$waker"
+wait "$waker" || { code=$?; echo "   $(date -u +%T) waker #1 killed (exit $code)"; }
+psql -d orchestrator -c "SELECT id, state, step, wake_at FROM sagas WHERE id = 'order-E'"
+echo "== waker #2, a new process: picks order-E up when due, runs until no saga is waiting =="
+npm run --silent waker
+echo
+echo "== proof: saga log after the timer =="
+psql -d orchestrator -c "SELECT id, state, step, wake_at, error FROM sagas ORDER BY id"
+echo "== proof: inventory (10 - 2 for A - 1 for D - 1 for E = 6; B and C released) =="
 psql -d inventory -c "SELECT * FROM stock" -c "SELECT * FROM reservations ORDER BY saga_id"
 echo "== proof: payments (C refunded, D charged exactly once despite running the step twice, B never charged) =="
 psql -d payments -c "SELECT * FROM charges ORDER BY saga_id"
-echo "== proof: shipping (only the completed sagas) =="
+echo "== proof: shipping (only the completed sagas: A, D, E) =="
 psql -d shipping -c "SELECT * FROM shipments ORDER BY saga_id"

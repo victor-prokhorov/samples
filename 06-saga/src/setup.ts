@@ -15,8 +15,9 @@ async function main() {
     CREATE TABLE IF NOT EXISTS sagas (
       id TEXT PRIMARY KEY,
       input JSONB NOT NULL,
-      state TEXT NOT NULL CHECK (state IN ('running', 'compensating', 'completed', 'aborted')),
+      state TEXT NOT NULL CHECK (state IN ('running', 'waiting', 'compensating', 'completed', 'aborted')),
       step INT NOT NULL,
+      wake_at TIMESTAMPTZ,
       error TEXT,
       updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
     )`);

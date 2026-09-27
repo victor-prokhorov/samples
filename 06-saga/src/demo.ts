@@ -6,6 +6,7 @@ function step(title: string, concept: string) {
 }
 
 async function main() {
+  console.log("note: each '-> HTTP' line is a network call to a separate microservice that owns a remote database; in this toy it is a function call in src/services.ts against its own local Postgres database");
   step("1. Happy path", "three local transactions in three databases, one after another; the saga log records progress after each");
   await startSaga("order-A", { sku: "keyboard", qty: 2, amount: "84.00", address: "Paris" });
   step("2. Payment fails", "no distributed rollback exists; the orchestrator undoes completed steps with compensating actions, in reverse");

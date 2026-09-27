@@ -1,46 +1,63 @@
-# 06-saga run 2026-09-27T19:21:15Z
+# 06-saga run 2026-09-27T19:47:28Z
 == fresh Postgres with one database per service (docker compose down -v && up) ==
  Container 06-saga-postgres-1 Healthy 
 setup: 4 databases (inventory, payments, shipping, orchestrator), keyboard stock = 10
 == demo (the process is killed in scenario 4) ==
+note: each '-> HTTP' line is a network call to a separate microservice that owns a remote database; in this toy it is a function call in src/services.ts against its own local Postgres database
 
 ## 1. Happy path
    concept: three local transactions in three databases, one after another; the saga log records progress after each
    [order-A] started {"sku":"keyboard","qty":2,"amount":"84.00","address":"Paris"}
+      -> HTTP POST inventory-service/reservations/order-A
    [order-A] step 1 reserveInventory: ok
+      -> HTTP POST payments-service/charges/order-A
    [order-A] step 2 chargePayment: ok
-   [order-A] step 3 createShipment: ok
+   [order-A] step 3 fraudHold: no hold, skipped
+      -> HTTP POST shipping-service/shipments/order-A
+   [order-A] step 4 createShipment: ok
    [order-A] completed
 
 ## 2. Payment fails
    concept: no distributed rollback exists; the orchestrator undoes completed steps with compensating actions, in reverse
    [order-B] started {"sku":"keyboard","qty":1,"amount":"5000.00","address":"Paris"}
+      -> HTTP POST inventory-service/reservations/order-B
    [order-B] step 1 reserveInventory: ok
+      -> HTTP POST payments-service/charges/order-B
    [order-B] step 2 chargePayment: FAILED (card declined for 5000.00) -> compensate 1 completed step(s)
+      -> HTTP DELETE inventory-service/reservations/order-B
    [order-B] compensate reserveInventory: ok
    [order-B] aborted
 
 ## 3. Last step fails
    concept: shipping refuses: refund the charge, then release the stock
    [order-C] started {"sku":"keyboard","qty":3,"amount":"126.00","address":"nowhere"}
+      -> HTTP POST inventory-service/reservations/order-C
    [order-C] step 1 reserveInventory: ok
+      -> HTTP POST payments-service/charges/order-C
    [order-C] step 2 chargePayment: ok
-   [order-C] step 3 createShipment: FAILED (address not deliverable: nowhere) -> compensate 2 completed step(s)
+   [order-C] step 3 fraudHold: no hold, skipped
+      -> HTTP POST shipping-service/shipments/order-C
+   [order-C] step 4 createShipment: FAILED (address not deliverable: nowhere) -> compensate 3 completed step(s)
+   [order-C] compensate fraudHold: timer, nothing to undo
+      -> HTTP POST payments-service/charges/order-C/refund
    [order-C] compensate chargePayment: ok
+      -> HTTP DELETE inventory-service/reservations/order-C
    [order-C] compensate reserveInventory: ok
    [order-C] aborted
 
 ## 4. Orchestrator crashes mid-saga
    concept: the charge ran but the log was not updated; the process dies here (resume picks it up)
    [order-D] started {"sku":"keyboard","qty":1,"amount":"42.00","address":"Lyon"}
+      -> HTTP POST inventory-service/reservations/order-D
    [order-D] step 1 reserveInventory: ok
+      -> HTTP POST payments-service/charges/order-D
    [order-D] step 2 chargePayment: ok
    [order-D] CRASH after chargePayment ran, before the saga log recorded it
 demo exited with 1
 == proof: saga log right after the crash (order-D stuck at step 1 although its charge exists) ==
    id    |   state   | step |              error               
 ---------+-----------+------+----------------------------------
- order-A | completed |    3 | 
+ order-A | completed |    4 | 
  order-B | aborted   |    0 | card declined for 5000.00
  order-C | aborted   |    0 | address not deliverable: nowhere
  order-D | running   |    1 | 
@@ -56,30 +73,87 @@ demo exited with 1
 ## 5. Recovery
    concept: on restart, the orchestrator reloads unfinished sagas from its log and continues; steps are idempotent (keyed by saga id), so re-running chargePayment does not charge twice
    [order-D] found running at step 1, resuming
+      -> HTTP POST payments-service/charges/order-D
    [order-D] step 2 chargePayment: ok
-   [order-D] step 3 createShipment: ok
+   [order-D] step 3 fraudHold: no hold, skipped
+      -> HTTP POST shipping-service/shipments/order-D
+   [order-D] step 4 createShipment: ok
    [order-D] completed
 
 == proof: saga log ==
    id    |   state   | step |              error               
 ---------+-----------+------+----------------------------------
- order-A | completed |    3 | 
+ order-A | completed |    4 | 
  order-B | aborted   |    0 | card declined for 5000.00
  order-C | aborted   |    0 | address not deliverable: nowhere
- order-D | completed |    3 | 
+ order-D | completed |    4 | 
 (4 rows)
 
-== proof: inventory (10 - 2 for A - 1 for D = 7; B and C released) ==
+== timer: start order-E with a 30s fraud hold; the process exits while the saga waits ==
+
+## 6. Durable timer
+   concept: a saga that has to wait (here a 30s fraud hold, in real life days) does not keep a process alive; it writes wake_at to the saga log and the process is free to exit
+   19:47:30 starting order-E
+   [order-E] started {"sku":"keyboard","qty":1,"amount":"42.00","address":"Lille","holdSec":30}
+      -> HTTP POST inventory-service/reservations/order-E
+   [order-E] step 1 reserveInventory: ok
+      -> HTTP POST payments-service/charges/order-E
+   [order-E] step 2 chargePayment: ok
+   19:47:30 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 19:48:00; this process stops driving it
+   19:47:30 timer process exits; order-E now exists only as a row
+   id    |  state  | step |            wake_at            
+---------+---------+------+-------------------------------
+ order-E | waiting |    3 | 2026-09-27 19:48:00.555308+00
+(1 row)
+
+== waker #1, killed after 10s (the timer is a row, so nothing is lost) ==
+
+## waker (pid 78398)
+   concept: a loop polls the saga log every 5s, claims sagas whose wake_at has passed, and drives them on from the step after the timer
+   19:47:30 tick: order-E due in 30s
+   19:47:35 tick: order-E due in 25s
+   19:47:40 waker #1 killed (exit 143)
+   id    |  state  | step |            wake_at            
+---------+---------+------+-------------------------------
+ order-E | waiting |    3 | 2026-09-27 19:48:00.555308+00
+(1 row)
+
+== waker #2, a new process: picks order-E up when due, runs until no saga is waiting ==
+
+## waker (pid 78721)
+   concept: a loop polls the saga log every 5s, claims sagas whose wake_at has passed, and drives them on from the step after the timer
+   19:47:41 tick: order-E due in 20s
+   19:47:46 tick: order-E due in 15s
+   19:47:51 tick: order-E due in 10s
+   19:47:56 tick: order-E due in 5s
+   19:48:01 [order-E] due, claimed (waiting -> running, 0.5s after wake_at because of the poll interval)
+      -> HTTP POST shipping-service/shipments/order-E
+   [order-E] step 4 createShipment: ok
+   [order-E] completed
+   19:48:01 no saga waiting, waker exits
+
+== proof: saga log after the timer ==
+   id    |   state   | step |            wake_at            |              error               
+---------+-----------+------+-------------------------------+----------------------------------
+ order-A | completed |    4 |                               | 
+ order-B | aborted   |    0 |                               | card declined for 5000.00
+ order-C | aborted   |    0 |                               | address not deliverable: nowhere
+ order-D | completed |    4 |                               | 
+ order-E | completed |    4 | 2026-09-27 19:48:00.555308+00 | 
+(5 rows)
+
+== proof: inventory (10 - 2 for A - 1 for D - 1 for E = 6; B and C released) ==
    sku    | available 
 ----------+-----------
- keyboard |         7
+ keyboard |         6
 (1 row)
 
  saga_id |   sku    | qty 
 ---------+----------+-----
  order-A | keyboard |   2
  order-D | keyboard |   1
-(2 rows)
+ order-E | keyboard |   1
+(3 rows)
 
 == proof: payments (C refunded, D charged exactly once despite running the step twice, B never charged) ==
  saga_id | amount |  status  
@@ -87,12 +161,14 @@ demo exited with 1
  order-A |  84.00 | charged
  order-C | 126.00 | refunded
  order-D |  42.00 | charged
-(3 rows)
+ order-E |  42.00 | charged
+(4 rows)
 
-== proof: shipping (only the completed sagas) ==
+== proof: shipping (only the completed sagas: A, D, E) ==
  saga_id | address 
 ---------+---------
  order-A | Paris
  order-D | Lyon
-(2 rows)
+ order-E | Lille
+(3 rows)
 
