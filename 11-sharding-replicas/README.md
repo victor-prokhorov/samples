@@ -22,4 +22,8 @@ docker compose start shard1-primary
 - `src/topology.ts` primaries on fixed ports, replicas discovered from `docker compose ps`.
 - `src/router.ts` `shardFor`, `write` (primary only), `read` (replicas, round-robin, skip a dead one).
 
+Reach for it when one server can no longer hold the data or absorb the writes, after a bigger machine, partitioning (10) and replicas, and almost every query stays within one key (tenant, customer).
+
+Do not reach for it when a bigger machine or read replicas alone would do: sharding is the most expensive step to undo. Queries or transactions routinely span keys (joins, reports): move those to a warehouse, or pick another key. Every read must see the latest write: then replica reads are wrong for it.
+
 One-shot run with proof: `../run-11-sharding-replicas.sh` (log in `../logs/11-sharding-replicas.log`). Concepts explained in `../README.md`.

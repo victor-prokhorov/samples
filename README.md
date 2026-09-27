@@ -50,6 +50,11 @@ Ports (chosen to avoid clashing with other local services):
 - **Capturing `before`**: an update first runs `SELECT ... FOR UPDATE`. That locks the row, so no concurrent writer can change it between reading `before` and writing `after`.
 - **Trade-off**: the audit is only as complete as the code paths that call it. A manual `psql` UPDATE or another service writing the same table bypasses it. The alternatives are DB triggers (catch every writer, but only know the DB role unless the app passes the user in, e.g. `SET LOCAL app.actor = 'bob'` read with `current_setting('app.actor')`) and CDC (08, reads the WAL). The audit also stores snapshots, not intent: it says the price went 49 -> 39, not *why*.
 
+### When to use
+
+- **Reach for it when**: most business apps: support or compliance asks who changed what, and reads of current state dominate. One service, one database.
+- **Do not reach for it when**: the history is the domain and you need to rebuild state or add read models later (03). Writes that bypass the app must be caught too (triggers or `pgaudit`).
+
 ### Proof (`logs/01-crud-audit.log`)
 
 The audit insert fails (an empty actor violates `CHECK (actor <> '')`), so the price change rolls back with it:
@@ -95,6 +100,11 @@ Renames `users.name` to `display_name` with zero downtime. In every phase, the a
 - **Tighten**: when every writer fills `display_name`, make it `NOT NULL`. Then v4 stops writing `name`. On a big table, `SET NOT NULL` scans under an exclusive lock: first add `CHECK (display_name IS NOT NULL) NOT VALID`, then `VALIDATE CONSTRAINT` (no blocking lock); from Postgres 12, `SET NOT NULL` reuses that check and skips the scan. Run migrations with a short `lock_timeout`.
 - **Contract**: when no running version touches `name`, drop it. Each phase is a separate deploy that can be paused or rolled back one step; once v4 stops writing `name`, rolling back past v3 would show blanks, and the contract step is fully one-way.
 - **Trade-offs**: one logical change becomes three app deploys (v2, v3, v4) and four migrations spread over days. Tools like `pgroll` and `reshape` automate the pattern with views and triggers so both schema versions are served at once.
+
+### When to use
+
+- **Reach for it when**: any schema change (rename, split, type change) on a system where old and new app versions, or other readers of the table, run at the same time.
+- **Do not reach for it when**: you can take downtime, or the app and migration deploy together as one unit (pre-launch, internal tool): the multi-release dance is pure cost. Purely additive changes (a new nullable column) are already safe and need no contract phase.
 
 ### Proof (`logs/02-expand-contract.log`)
 
@@ -144,6 +154,11 @@ Contracting too early would have broken v3, which is why each phase waits for th
 - **Time travel**: state at any past point = fold only the events before it. Business asks by date ("end of March"), so `readStream(id, before)` filters on `at` (recorded time, with an explicit timezone for the boundary). If the question is about effective time (backdated entries), the event needs its own effective date and the filter runs on that (bitemporal). Filtering by version is the same fold over a prefix.
 - **Projections / read models**: new views (a balance table, a "total deposited" report, a search index) are built by replaying the events. They can be thrown away and rebuilt at any time, including views nobody thought of when the events were written. The demo's projection is an in-memory sum; a real read model lives in its own table with a checkpoint (last position applied) and lags slightly behind the writes. Separate write and read models is **CQRS**.
 - **Trade-offs**: queries across aggregates need projections, events are forever (so schema evolution/upcasting matters), and long streams need snapshots to stay fast. `global_position` orders events across streams, but a BIGSERIAL can have gaps and can commit out of order under concurrent writers, so a projection that tails it needs a guard (a single writer, or reading only up to the oldest in-flight transaction).
+
+### When to use
+
+- **Reach for it when**: the history is the domain: ledgers, bookings, workflows. You need to rebuild state, answer "what was it at time T", or add new read models from old events.
+- **Do not reach for it when**: the domain is plain CRUD and nobody asks how a row got here. You only need an audit log (01 is far cheaper). You would apply it to a whole system by default: every event schema is a contract you version forever, and every current-state query needs a projection.
 
 ### Proof (`logs/03-event-sourcing.log`)
 
@@ -204,6 +219,11 @@ Proves a rewrite matches the legacy code on real traffic before it serves anyone
 - **Cutover**: swap roles. The rewrite becomes control (it serves) and legacy becomes the candidate (it is still checked). Once that is quiet, delete legacy.
 - **Limits**: only safe for side-effect-free reads; running a write twice doubles it (for writes, compare against a shadow copy or use 05's routing instead). It costs double compute while it runs. For HTTP-level comparison, the same idea is called traffic shadowing or dark launching.
 
+### When to use
+
+- **Reach for it when**: replacing logic whose exact behavior nobody fully knows (pricing, tax, permissions), when outputs can be compared, before the rewrite serves anyone.
+- **Do not reach for it when**: the code has side effects that must not happen twice (charging, emailing) and the candidate cannot be stubbed. Outputs are nondeterministic (timestamps, random ids) and you will not normalize them. The rewrite changes behavior on purpose: every mismatch is noise.
+
 ### Proof (`logs/04-parallel-run.log`)
 
 The buggy rewrite disagrees on 567 of 1000 orders, yet every user got the legacy answer:
@@ -246,6 +266,11 @@ Replaces a monolith one capability at a time, behind a routing facade that clien
 - **Instant rollback**: pointing a route back is one config call (`PUT /_proxy/routes`), no deploy and no client change. That is what makes each step low-risk.
 - **Decommission signal**: once legacy receives zero traffic (and nothing bypasses the proxy: batch jobs, direct DB readers, internal callers), it can be switched off.
 - **What the demo simplifies**: both services hold hard-coded copies of the same data. In a real migration, data ownership is the hard part. The new service needs the data legacy owns, usually via CDC (08) or events (07, 09) during the transition, and writes must have one owner per capability at any time.
+
+### When to use
+
+- **Reach for it when**: replacing a large live system incrementally, when traffic can be routed by capability (URL, message type) and each piece can move on its own.
+- **Do not reach for it when**: the system is small enough to rewrite in one go. Capabilities share one database so tightly that routing moves code but not data (the coupling stays). There is no commitment to finish: a half-strangled system runs two stacks forever.
 
 ### Proof (`logs/05-strangler-fig.log`)
 
@@ -295,6 +320,11 @@ Places an order across inventory, payments and shipping, each with its own datab
 - **Toy services**: every `-> HTTP` log line stands for a network call to a separate microservice with its own remote database. Here each service is a function in `src/services.ts`, and each database is a separate Postgres database in one local container.
 - **Durable timer**: a saga that has to wait (a fraud hold, a payment deadline, days in real life) must not keep a process alive for that long. The `fraudHold` step (`holdSec` in the order) writes `state = 'waiting'` and `wake_at` to the saga log, and `runSaga` returns. The wait is now a row, so any process can crash or be redeployed without losing it.
 - **Waker**: `src/waker.ts` polls every 5s, claims due sagas in one statement (`UPDATE ... SET state = 'running' WHERE state = 'waiting' AND wake_at <= now() RETURNING id`, so two wakers cannot claim the same saga) and calls `runSaga`, which continues at the step after the timer. It wakes up to one poll interval late. Deliberately missing: a waker that crashes after claiming leaves the saga in `running` with no owner (a lease with an expiry fixes that), plus retries, heartbeats for long steps, and waiting for an external event (a signal) instead of a time. Temporal's server is essentially this loop with those pieces added: durable timers, task queues with leases, and signals.
+
+### When to use
+
+- **Reach for it when**: one business operation spans services that each own their data, including long-running flows that wait (06's timer).
+- **Do not reach for it when**: the data lives in one database: use a transaction. A step cannot be compensated and must be atomic with another: redesign the boundary instead. The flow has many branches, waits and human steps: use a workflow engine (Temporal) rather than a hand-rolled step table. Splitting a service that needs strong consistency, then patching it with sagas, is the classic antipattern.
 
 ### Proof (`logs/06-saga.log`)
 
@@ -398,6 +428,11 @@ The simplest reliable way to publish events. No Debezium: just a table and a loo
 - **Idempotent consumer**: because of the above, consumers must dedupe. `src/consumer.ts` remembers processed `event_id`s and skips repeats. In real code that set is a `processed_events` table, updated in the same transaction as the consumer's own side effects.
 - **Trade-offs vs 09 (CDC relay)**: polling is simple (Postgres + any broker, no Connect, no replication slot), but it adds latency (the poll interval), load on the DB, and a growing table you must clean up (delete or partition published rows). 09 removes all three at the cost of Debezium.
 
+### When to use
+
+- **Reach for it when**: a service must reliably tell others that something happened, in business terms, after changing its own database. Start here; it covers most volumes.
+- **Do not reach for it when**: consumers want every row change from any writer, not business events (08). Losing a notification is acceptable: just publish, best effort. Poll latency, query load or table cleanup already hurt (09).
+
 ### Proof (`logs/07-outbox-polling.log`)
 
 The app commits two events; bob's rolled back with his order. Before the relay runs, both rows are waiting:
@@ -456,8 +491,11 @@ consumer: DUPLICATE OrderPaid event_id=<paid> skipped (idempotent consumer)
 - **Kafka Connect**: runs connectors, stores their config and offsets in Kafka topics (`connect_configs`, `connect_offsets`, `connect_statuses`). It is configured through a REST API, which `src/setup.ts` calls with `PUT /connectors/orders-connector/config`.
 - **Why CDC**: the writer (`src/writer.ts`) is plain SQL and knows nothing about Kafka. Every writer is captured, including manual SQL, and only *committed* changes are emitted. So there is no "DB committed but publish failed" dual-write problem.
 - **Trade-offs**: events are row diffs, not business intent (`status pending -> paid`, not `OrderPaid`), and they are coupled to your table schema. There are more moving parts (Kafka, Connect, a slot to monitor). Delivery is at-least-once, so consumers must be idempotent.
-- **When to reach for it** (the industry-standard uses): keeping derived copies in sync with the source of truth. That means search indexes (Elasticsearch, Meilisearch), cache invalidation, feeding a data warehouse or lake, replicating into another database during a migration (strangler fig, 05), and legacy systems whose code you cannot or will not change. What these have in common: the consumer wants every row change, including ones made outside the app, and does not care why the row changed.
-- **Not the audit log of record**: three gaps. There is no actor: the WAL records the database role, not which user acted, so "who" needs the app's cooperation anyway. It is asynchronous: a dropped slot or a re-snapshot silently loses changes, while 01's audit row commits in the same transaction as the change, so the change cannot exist without it. Schema changes are not in it: an `ALTER TABLE` is not decoded, and Debezium skips `TRUNCATE` by default. CDC is fine as a broad "what changed" history on the side; statement-level database auditing (the `pgaudit` extension) is the tool for catching scripts and migrations with the role that ran them.
+
+### When to use
+
+- **Reach for it when**: keeping derived copies in sync with the source of truth: search indexes (Elasticsearch, Meilisearch), cache invalidation, a data warehouse or lake, a new database during a migration (05), or publishing changes from code you cannot change. The consumer wants every row change, including ones made outside the app, and does not care why the row changed.
+- **Do not reach for it when**: consumers need business intent (`OrderPaid`, not `status pending -> paid`): use an outbox (07, 09), or they couple to your table schema. You want it as the audit log of record, which fails for three reasons. There is no actor: the WAL records the database role, not which user acted. It is asynchronous: a dropped slot or a re-snapshot silently loses changes, while 01's audit row commits with the change. Schema changes are not in it: an `ALTER TABLE` is not decoded, and Debezium skips `TRUNCATE` by default. It is fine as a broad "what changed" history on the side; `pgaudit` is the tool for catching scripts and migrations with the role that ran them.
 
 ### Proof (`logs/08-cdc-debezium.log`)
 
@@ -519,6 +557,11 @@ Same outbox idea as 07, but the relay is Debezium reading the WAL (08) instead o
 - **At-least-once + idempotent consumer**: same as 07. Debezium can re-send after a restart (it resumes from its last flushed offset), so consumers dedupe on the event `id` header (`seen` set in `src/consumer.ts`; no duplicate occurs in this run).
 - **Trade-offs vs 07**: lower latency, no DB polling, no table cleanup, but Kafka Connect, Debezium and a replication slot to run and monitor. Both share the core limit: every write path must remember to emit.
 
+### When to use
+
+- **Reach for it when**: the same need as 07, once poll latency, query load or table cleanup start to hurt, or when Debezium is already running for 08.
+- **Do not reach for it when**: nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (audit events, for example): immediate cleanup relies on the slot, and a lost slot loses those events for good.
+
 ### Proof (`logs/09-outbox-debezium.log`)
 
 The app wrote four outbox rows. One was rolled back (bob), and in step 4 all of alice's rows were deleted: OrderShipped in the same transaction that inserted it, the two earlier ones after they had committed (their inserts are already in the WAL). The app also committed carol's order without an outbox row (the dual-write simulation).
@@ -574,6 +617,11 @@ Splits one table into four on the same Postgres. First of two steps: here the sp
 - **What it does not buy**: CPU, RAM, disk and write throughput are those of one machine. Partitioning makes big tables manageable (smaller indexes, vacuum per partition, cheap retention); it does not scale out.
 - **Uneven with few keys**: 5 customers over 4 partitions left `orders_p3` empty. Hash evens out with many keys, not few, and one very large customer stays one hot partition.
 
+### When to use
+
+- **Reach for it when**: one table got big enough that indexes, vacuum or retention hurt, and the hot queries filter on one key. Old data expires by time (`RANGE` by month, then `DROP` old partitions instead of a huge `DELETE`).
+- **Do not reach for it when**: the table is small: partitioning adds planning cost and rules for nothing. Most queries do not filter on the partition key, so each one scans every partition. You expect more CPU, RAM or write throughput: it is still one machine (11). You need a unique constraint that does not include the key.
+
 ### Proof (`logs/10-partitioning.log`)
 
 The app inserts into `orders`, Postgres routes; the key lookup is pruned to one partition, the non-key one scans all four:
@@ -625,6 +673,11 @@ The four partitions of 10, reduced to two, each moved onto its own server (a sha
 - **Replica names**: `pg_stat_replication.application_name` is the container id (`$HOSTNAME`), because scaled containers share one config; the router names them from compose's container number instead.
 - **Per-shard ids**: each primary has its own `BIGSERIAL`, so `id 1` exists on both shards. That is why the key stays `(customer_id, id)`; globally unique ids need UUIDs or a shard prefix.
 - **Deliberately missing**: queries across shards (fan-out and merge in the router), transactions across shards (sagas, 06, or two-phase commit) and resharding. With `% N`, going from 2 to 3 shards moves about two thirds of the keys. Real systems hash into many fixed buckets and map buckets to shards, so resharding moves whole buckets.
+
+### When to use
+
+- **Reach for it when**: one server can no longer hold the data or absorb the writes, after a bigger machine, partitioning (10) and replicas, and almost every query stays within one key (tenant, customer).
+- **Do not reach for it when**: a bigger machine or read replicas alone would do: sharding is the most expensive step to undo. Queries or transactions routinely span keys (joins, reports): move those to a warehouse, or pick another key. Every read must see the latest write: then replica reads are wrong for it.
 
 ### Proof (`logs/11-sharding-replicas.log`)
 
@@ -698,6 +751,11 @@ Never sell more than we have: 10 keyboards or 10 concert tickets, 20 buyers at o
   - **Not on replicas**: a hot standby (11) refuses SERIALIZABLE, so reads served by replicas are outside SSI. `SERIALIZABLE READ ONLY DEFERRABLE` on the primary gives long reports a snapshot that can never abort.
 - **Materializing the conflict** (8): turn the many-row rule into a one-row lock. `SELECT ... FROM events WHERE id = 'concert' FOR UPDATE` first, then count and insert, all under READ COMMITTED. Buyers queue on the event row: no aborts, no retries, but no parallelism per event. A `sold` counter column (`UPDATE events SET sold = sold + 1 WHERE id = $1 AND sold < capacity`, in the same transaction as the insert) is the same idea: buyers still queue on the row, but hold the lock for less time since there is no `count(*)`. Every writer must go through it, and refunds must decrement it.
 - **Choosing**: the rule is on one row → conditional `UPDATE` or `FOR UPDATE`. The rule is uniqueness or no overlap → a constraint. The rule spans rows and has one natural parent → lock the parent. The rule spans rows with no single parent, or there are many such rules and you do not want to find every one → `SERIALIZABLE` everywhere, plus a retry loop.
+
+### When to use
+
+- **Reach for it when**: an invariant spans several rows or depends on rows that do not exist yet (capacity, overbooking, on-call rules), and cannot be a constraint or a lock on one parent row.
+- **Do not reach for it when**: the rule is about one row: a conditional `UPDATE` or `FOR UPDATE` is enough. The app does not retry on `40001`: SERIALIZABLE then turns races into errors users see. A hot row is contended by many writers: retries pile up, so materialize the conflict or lock the parent row (scenario 8).
 
 ### Proof (`logs/12-serializable.log`)
 

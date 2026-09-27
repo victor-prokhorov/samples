@@ -18,4 +18,8 @@ npm start
 | 4 stop old writes | `display_name SET NOT NULL` | v3 + v4 |
 | 5 contract | drop `name` | v4 |
 
+Reach for it when any schema change (rename, split, type change) on a system where old and new app versions, or other readers of the table, run at the same time.
+
+Do not reach for it when you can take downtime, or the app and migration deploy together as one unit (pre-launch, internal tool): the multi-release dance is pure cost. Purely additive changes (a new nullable column) are already safe and need no contract phase.
+
 One-shot run with proof: `../run-02-expand-contract.sh` (log in `../logs/02-expand-contract.log`). Concepts explained in `../README.md`.

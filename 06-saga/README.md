@@ -18,4 +18,8 @@ npm run waker    # poll every 5s, wake due sagas, exit when none is waiting
 - `src/services.ts` the three services' local transactions and compensations.
 - `src/waker.ts` the poller that claims due sagas and resumes them.
 
+Reach for it when one business operation spans services that each own their data, including long-running flows that wait (06's timer).
+
+Do not reach for it when the data lives in one database: use a transaction. A step cannot be compensated and must be atomic with another: redesign the boundary instead. The flow has many branches, waits and human steps: use a workflow engine (Temporal) rather than a hand-rolled step table. Splitting a service that needs strong consistency, then patching it with sagas, is the classic antipattern.
+
 One-shot run with proof: `../run-06-saga.sh` (log in `../logs/06-saga.log`). Concepts explained in `../README.md`.

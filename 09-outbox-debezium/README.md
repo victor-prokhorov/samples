@@ -16,4 +16,8 @@ npm run app       # terminal 2
 - `src/setup.ts` connector: `table.include.list=public.outbox`, `transforms=outbox` (EventRouter), payload JSON expanded, `type` put in the `eventType` header.
 - `src/consumer.ts` dedupes by the `id` header (delivery is at-least-once).
 
+Reach for it when the same need as 07, once poll latency, query load or table cleanup start to hurt, or when Debezium is already running for 08.
+
+Do not reach for it when nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (audit events, for example): immediate cleanup relies on the slot, and a lost slot loses those events for good.
+
 One-shot run with proof: `../run-09-outbox-debezium.sh` (log in `../logs/09-outbox-debezium.log`). Concepts explained in `../README.md`.

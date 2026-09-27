@@ -17,6 +17,9 @@ npm run write     # terminal 2: insert, update, tx (update + insert), rolled-bac
 - Topic name: `<topic.prefix>.<schema>.<table>` = `app.public.orders`.
 - Connector status: `curl localhost:58083/connectors/orders-connector/status`.
 
-When to reach for it: keeping derived copies in sync (search index, cache, warehouse, a new database during a migration), or publishing changes from code you cannot touch. Not the audit log of record: no actor, asynchronous (a lost slot loses changes), no DDL. Use 01's same-transaction audit rows for that.
+
+Reach for it when keeping derived copies in sync with the source of truth: search indexes (Elasticsearch, Meilisearch), cache invalidation, a data warehouse or lake, a new database during a migration (05), or publishing changes from code you cannot change. The consumer wants every row change, including ones made outside the app, and does not care why the row changed.
+
+Do not reach for it when consumers need business intent (`OrderPaid`, not `status pending -> paid`): use an outbox (07, 09), or they couple to your table schema. You want it as the audit log of record, which fails for three reasons. There is no actor: the WAL records the database role, not which user acted. It is asynchronous: a dropped slot or a re-snapshot silently loses changes, while 01's audit row commits with the change. Schema changes are not in it: an `ALTER TABLE` is not decoded, and Debezium skips `TRUNCATE` by default. It is fine as a broad "what changed" history on the side; `pgaudit` is the tool for catching scripts and migrations with the role that ran them.
 
 One-shot run with proof: `../run-08-cdc-debezium.sh` (log in `../logs/08-cdc-debezium.log`). Concepts explained in `../README.md`.

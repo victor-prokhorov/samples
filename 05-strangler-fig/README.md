@@ -9,4 +9,8 @@ npm i
 npm start
 ```
 
+Reach for it when replacing a large live system incrementally, when traffic can be routed by capability (URL, message type) and each piece can move on its own.
+
+Do not reach for it when the system is small enough to rewrite in one go. Capabilities share one database so tightly that routing moves code but not data (the coupling stays). There is no commitment to finish: a half-strangled system runs two stacks forever.
+
 One-shot run with proof: `../run-05-strangler-fig.sh` (log in `../logs/05-strangler-fig.log`). Concepts explained in `../README.md`.
