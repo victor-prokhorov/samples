@@ -2,7 +2,7 @@
 
 **Pain: deploy breakage.** Old and new app versions run side by side during a rolling deploy, so a plain `RENAME` breaks whichever one expects the other name.
 
-**Reach for it when** any schema change (rename, split, type change) on a system where old and new app versions, or other readers of the table, run at the same time.
+**Reach for it when** you change a schema (rename, split, type change) on a system where old and new app versions, or other readers of the table, run at the same time.
 
 **Do not reach for it when** you can take downtime, or the app and migration deploy together as one unit (pre-launch, internal tool): the multi-release dance is pure cost. Purely additive changes (a new nullable column) are already safe and need no contract phase.
 

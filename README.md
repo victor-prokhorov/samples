@@ -43,7 +43,7 @@ Ports (chosen to avoid clashing with other local services):
 
 **Pain: lost history.** An `UPDATE` or `DELETE` overwrites the old value, so nobody can later say who changed what, when, or what it was before.
 
-**Reach for it when** most business apps: support or compliance asks who changed what, and reads of current state dominate. One service, one database.
+**Reach for it when** support or compliance asks who changed what, and reads of current state dominate: most business apps, with one service and one database.
 
 **Do not reach for it when** the history is the domain and you need to rebuild state or add read models later (03). Writes that bypass the app must be caught too (triggers or `pgaudit`). Several services need one central trail (13).
 
@@ -88,7 +88,7 @@ After the delete, `products` is empty but the history survives. Note id `4` is m
 
 **Pain: deploy breakage.** Old and new app versions run side by side during a rolling deploy, so a plain `RENAME` breaks whichever one expects the other name.
 
-**Reach for it when** any schema change (rename, split, type change) on a system where old and new app versions, or other readers of the table, run at the same time.
+**Reach for it when** you change a schema (rename, split, type change) on a system where old and new app versions, or other readers of the table, run at the same time.
 
 **Do not reach for it when** you can take downtime, or the app and migration deploy together as one unit (pre-launch, internal tool): the multi-release dance is pure cost. Purely additive changes (a new nullable column) are already safe and need no contract phase.
 
@@ -303,7 +303,7 @@ Legacy traffic shrinks as routes move, with a rollback in the middle, and every 
 
 **Pain: partial failure.** Each service owns its database, so no transaction covers the whole order. A failure halfway leaves stock reserved and money taken for an order that will never ship.
 
-**Reach for it when** one business operation spans services that each own their data, including long-running flows that wait (06's timer).
+**Reach for it when** one business operation spans services that each own their data, including long-running flows that wait (the `fraudHold` timer here).
 
 **Do not reach for it when** the data lives in one database: use a transaction. A step cannot be compensated and must be atomic with another: redesign the boundary instead. The flow has many branches, waits and human steps: use a workflow engine (Temporal) rather than a hand-rolled step table. Splitting a service that needs strong consistency, then patching it with sagas, is the classic antipattern.
 
@@ -539,7 +539,7 @@ logical                                     <- SHOW wal_level
 
 **Pain: polling overhead.** 07's relay adds poll latency and query load, and its outbox table keeps growing until something cleans it up.
 
-**Reach for it when** the same need as 07, once poll latency, query load or table cleanup start to hurt, or when Debezium is already running for 08.
+**Reach for it when** you have 07's need and poll latency, query load or table cleanup start to hurt, or Debezium is already running for 08.
 
 **Do not reach for it when** nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (13's audit events): immediate cleanup relies on the slot, and a lost slot loses those events for good.
 

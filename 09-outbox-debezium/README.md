@@ -2,7 +2,7 @@
 
 **Pain: polling overhead.** 07's relay adds poll latency and query load, and its outbox table keeps growing until something cleans it up.
 
-**Reach for it when** the same need as 07, once poll latency, query load or table cleanup start to hurt, or when Debezium is already running for 08.
+**Reach for it when** you have 07's need and poll latency, query load or table cleanup start to hurt, or Debezium is already running for 08.
 
 **Do not reach for it when** nobody is ready to run Kafka Connect and watch a replication slot: 07 is enough for most volumes. The outbox also serves as a durable local record (13's audit events): immediate cleanup relies on the slot, and a lost slot loses those events for good.
 
