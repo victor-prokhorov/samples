@@ -25,9 +25,9 @@ export async function startSaga(id: string, input: Order, crashAfter?: string) {
 }
 
 export async function runSaga(id: string, crashAfter?: string) {
-  const { rows } = await orchestratorDb.query("SELECT input, state, step FROM sagas WHERE id = $1", [id]);
-  const input: Order = rows[0].input;
-  let { state, step } = rows[0] as { state: string; step: number };
+  const { rows } = await orchestratorDb.query<{ input: Order; state: string; step: number }>("SELECT input, state, step FROM sagas WHERE id = $1", [id]);
+  const input = rows[0].input;
+  let { state, step } = rows[0];
   while (state === "running" && step < STEPS.length) {
     const s = STEPS[step];
     if ("sleepSec" in s) {

@@ -1,6 +1,6 @@
 # samples
 
-Eighteen minimal, real TypeScript examples of how to change and run a live system without breaking it: tracking change, evolving schemas, replacing code, coordinating services, publishing events, splitting data across servers, keeping invariants under concurrency, calling services that fail, isolating tenants, erasing personal data and electing a leader. They are numbered by complexity. Read them in order: each one assumes the concepts of the ones before it. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
+Eighteen minimal, real TypeScript examples of how to change and run a live system without breaking it: tracking change, evolving schemas, replacing code, coordinating services, publishing events, splitting data across servers, keeping invariants under concurrency, calling services that fail, isolating tenants, erasing personal data and electing a leader. 01 to 13 are numbered by complexity: read them in order, each one assumes the concepts of the ones before it. 14 to 18 were added afterwards and are not ordered that way; each assumes only the earlier samples its section points to. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
 
 | # | Folder | Pain | New concepts | Infra | Run | Proof |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -18,9 +18,9 @@ Eighteen minimal, real TypeScript examples of how to change and run a live syste
 | 12 | [`12-serializable/`](12-serializable/) | write skew | isolation levels, lost update, write skew, SSI, 40001 retry, materialized conflict | Postgres | `./run-12-serializable.sh` | [`logs/12-serializable.log`](logs/12-serializable.log) |
 | 13 | [`13-audit-outbox/`](13-audit-outbox/) | scattered audit logs | audit events through per-service outboxes, shipper, dedupe by `event_id`, append-only store, the bypass gap | Postgres (3 databases) | `./run-13-audit-outbox.sh` | [`logs/13-audit-outbox.log`](logs/13-audit-outbox.log) |
 | 14 | [`14-service-reliability/`](14-service-reliability/) | cascading failure | timeouts, deadline propagation, bulkhead, retryable vs not, full jitter, retry budget, idempotency keys, circuit breaker | Postgres, 2 HTTP processes | `./run-14-service-reliability.sh` | [`logs/14-service-reliability.log`](logs/14-service-reliability.log) |
-| 15 | [`15-choreographed-saga/`](15-choreographed-saga/) | a coordinator every flow must go through | choreography, per-service outbox + relay, idempotent consumer (`processed_messages`), offset commit vs redelivery, partition by order id, cross-topic reordering, forward-only state machine, correlation and causation ids, cyclic dependencies | Postgres (4 databases), Kafka | `./run-15-choreographed-saga.sh` | [`logs/15-choreographed-saga.log`](logs/15-choreographed-saga.log) |
+| 15 | [`15-choreographed-saga/`](15-choreographed-saga/) | one coordinator owns every reaction | choreography, per-service outbox + relay, idempotent consumer (`processed_messages`), offset commit vs redelivery, partition by order id, cross-topic reordering, forward-only state machine, correlation and causation ids, cyclic dependencies | Postgres (4 databases), Kafka | `./run-15-choreographed-saga.sh` | [`logs/15-choreographed-saga.log`](logs/15-choreographed-saga.log) |
 | 16 | [`16-multi-tenancy/`](16-multi-tenancy/) | one tenant sees another's data | pool / bridge / silo, Row-Level Security, `FORCE`, `SET LOCAL` on pooled connections, tenant-leading keys and indexes, per-tenant migrations, per-tenant `statement_timeout`, moving a tenant to its own database | Postgres (5 databases) | `./run-16-multi-tenancy.sh` | [`logs/16-multi-tenancy.log`](logs/16-multi-tenancy.log) |
-| 17 | [`17-crypto-shredding/`](17-crypto-shredding/) | erasure versus immutable data | per-subject DEK, envelope encryption (KEK), AES-256-GCM, unique IV, AAD, blind index, KEK rotation, key-store backups undo erasure | Postgres (3 databases) | `./run-17-crypto-shredding.sh` | [`logs/17-crypto-shredding.log`](logs/17-crypto-shredding.log) |
+| 17 | [`17-crypto-shredding/`](17-crypto-shredding/) | erasure versus immutable data | per-subject DEK, envelope encryption (KEK), AES-256-GCM, unique IV, AAD, blind index, KEK rotation, key-store backups undo erasure | Postgres (3 databases, plus 2 restored backups) | `./run-17-crypto-shredding.sh` | [`logs/17-crypto-shredding.log`](logs/17-crypto-shredding.log) |
 | 18 | [`18-leader-election/`](18-leader-election/) | a job that fires N times, or a single point of failure | lease row on the database clock, heartbeat, terms, failover after the TTL, self-fencing, fencing tokens, graceful release, `pg_try_advisory_lock` and its pooler trap | Postgres | `./run-18-leader-election.sh` | [`logs/18-leader-election.log`](logs/18-leader-election.log) |
 
 Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw tables as proof. Everything it prints goes to `logs/<name>.log`. Needs Docker and Node 22.
@@ -182,7 +182,7 @@ Contracting too early would have broken v3, which is why each phase waits for th
 - **Optimistic concurrency**: the writer says "I decided based on version N", so its events get versions N+1, N+2... `UNIQUE (stream_id, version)` makes a second writer that also read N fail with `ConcurrencyError`. That writer reloads, decides again against the fresh state, and appends (`handleWithRetry`, bounded, retries only `ConcurrencyError`). Re-deciding matters: of two concurrent withdrawals of 60 from 71, the loser's retry sees 11 and is rejected instead of overdrawing. No locks are held while deciding.
 - **Time travel**: state at any past point = fold only the events before it. Business asks by date ("end of March"), so `readStream(id, before)` filters on `at` (recorded time, with an explicit timezone for the boundary). If the question is about effective time (backdated entries), the event needs its own effective date and the filter runs on that (bitemporal). Filtering by version is the same fold over a prefix.
 - **Projections / read models**: new views (a balance table, a "total deposited" report, a search index) are built by replaying the events. They can be thrown away and rebuilt at any time, including views nobody thought of when the events were written. The demo's projection is an in-memory sum; a real read model lives in its own table with a checkpoint (last position applied) and lags slightly behind the writes. Separate write and read models is **CQRS**.
-- **Trade-offs**: queries across aggregates need projections, events are forever (so schema evolution/upcasting matters), and long streams need snapshots to stay fast. `global_position` orders events across streams, but a BIGSERIAL can have gaps and can commit out of order under concurrent writers, so a projection that tails it needs a guard (a single writer, or reading only up to the oldest in-flight transaction).
+- **Trade-offs**: queries across aggregates need projections, events are forever (so schema evolution/upcasting matters, and personal data in them can only be erased by crypto-shredding, 17), and long streams need snapshots to stay fast. `global_position` orders events across streams, but a BIGSERIAL can have gaps and can commit out of order under concurrent writers, so a projection that tails it needs a guard (a single writer, or reading only up to the oldest in-flight transaction).
 
 ### Proof (`logs/03-event-sourcing.log`)
 
@@ -207,7 +207,7 @@ State at any point in time, plus a projection derived after the fact:
 
 ```
    current state: { owner: 'alice', balance: 11, version: 5 }
-   as of 2026-09-27T16:27:08.889Z: { owner: 'alice', balance: 70, version: 3 }
+   as of 2026-09-27T16:28:50.483Z: { owner: 'alice', balance: 70, version: 3 }
    by version is the same fold over a prefix, e.g. as of v1: { owner: 'alice', balance: 0, version: 1 }
    total deposited = 101
 ```
@@ -241,7 +241,7 @@ The raw table has exactly 5 facts: nothing from the rejected withdrawals and not
 
 **Reach for it when** you replace logic whose exact behavior nobody fully knows (pricing, tax, permissions, a query against a new data store) and its outputs can be compared on real production inputs before the new code serves anyone.
 
-**Do not reach for it when** the code has side effects that must not happen twice (charging, emailing) and the candidate cannot be stubbed. Outputs are nondeterministic (timestamps, random ids) and you will not normalize them. The rewrite changes behavior on purpose: every mismatch is noise.
+**Do not reach for it when** the code has side effects that must not happen twice (charging, emailing) and the candidate cannot be stubbed: run it against a shadow copy, or route a slice of real traffic to it instead (05). Outputs are nondeterministic (timestamps, random ids) and you will not normalize them. The rewrite changes behavior on purpose: every mismatch is noise.
 
 Proves a rewrite matches the legacy code on real traffic before it serves anyone.
 
@@ -354,7 +354,7 @@ Legacy traffic shrinks as routes move, with a rollback in the middle, and every 
 
 **Reach for it when** one business operation spans services that each own their data, including long-running flows that wait (the `fraudHold` timer here).
 
-**Do not reach for it when** the data lives in one database: use a transaction. The operation needs isolation, so nobody may see or act on the half-done state: a saga has none (ACD, not ACID), so draw the service boundary around that data instead. The flow has many branches, long waits or human steps: use a workflow engine (Temporal) rather than a hand-rolled step table.
+**Do not reach for it when** the data lives in one database: use a transaction. The operation needs isolation, so nobody may see or act on the half-done state: a saga has none (ACD, not ACID), so draw the service boundary around that data instead. The flow has many branches, long waits or human steps: use a workflow engine (Temporal) rather than a hand-rolled step table. Other teams' services should react to the same facts rather than be commanded: choreograph it (15).
 
 Places an order across inventory, payments and shipping, each with its own database, without a distributed transaction.
 
@@ -364,7 +364,7 @@ Places an order across inventory, payments and shipping, each with its own datab
 - **Saga**: a sequence of local transactions (`reserveInventory`, `chargePayment`, `createShipment`, with a `fraudHold` timer before shipping). Each commits on its own. If a later step fails, earlier ones are undone by **compensating actions** (`release`, `refund`), run in reverse order. Coined by Garcia-Molina and Salem ("Sagas", SIGMOD 1987) for long-lived transactions inside one database; microservices reuse the idea across databases.
 - **Compensation is semantic, not a rollback**: a refund is a new fact; the charge still happened. Some steps cannot be compensated (an email already sent), so order steps as compensatable ones, then one pivot (the go/no-go step, here `createShipment`, which has no compensation), then retriable ones that must eventually succeed (Richardson's taxonomy).
 - **Orchestration vs choreography**: here a central orchestrator (`src/orchestrator.ts`) tells each service what to do next. In choreography, services react to each other's events instead, each through its own outbox; 15 runs this same order flow that way. Orchestration is easier to follow and change; choreography has no central component.
-- **Saga log**: the orchestrator persists `state` and `step` after every step in its own database. After a crash, it reloads unfinished sagas and continues forward or keeps compensating. This assumes a single orchestrator; with several, claim a saga first (`SELECT ... FOR UPDATE SKIP LOCKED` or a lease column).
+- **Saga log**: the orchestrator persists `state` and `step` after every step in its own database. After a crash, it reloads unfinished sagas and continues forward or keeps compensating. This assumes a single orchestrator; with several, claim a saga first (`SELECT ... FOR UPDATE SKIP LOCKED` or a lease column), or run one active orchestrator under a leader lease (18).
 - **Idempotent steps**: a crash between "step ran" and "log updated" means the step runs again on recovery. Each step and compensation is keyed by saga id (steps: `INSERT ... ON CONFLICT DO NOTHING`; compensations: `DELETE ... RETURNING`, `UPDATE ... WHERE status = 'charged'`), so running it twice has the effect of running it once. `reserve` puts its insert and stock update in one local transaction so the pair is all-or-nothing.
 - **Trade-offs**: no isolation. Other transactions can see intermediate states (stock reserved, payment not yet taken). Countermeasures include semantic locks (a `PENDING` status) and ordering steps so the riskiest come first. Also, a failed or timed-out step may have committed anyway; real orchestrators retry it or also run its (idempotent) compensation.
 - **Toy services**: every `-> HTTP` log line stands for a network call to a separate microservice with its own remote database. Here each service is a function in `src/services.ts`, and each database is a separate Postgres database in one local container.
@@ -482,7 +482,7 @@ The simplest reliable way to publish events. No Debezium: just a table and a loo
 - **Outbox table**: instead of publishing, the service inserts the event as a row in `outbox` *in the same transaction* as the business change (`emit()` in `src/app.ts`). One atomic write: both happen or neither does. The app never talks to Kafka.
 - **Outbox row shape**: `id` (BIGSERIAL; the relay publishes in id order, and ids follow insert order, not commit order), `event_id` (uuid, the identity consumers dedupe on), `aggregate_id` (becomes the Kafka key, so one order's events stay ordered on one partition), `type`, `payload` (JSONB), `created_at`, `published_at` (null = not yet sent). A partial index on `published_at IS NULL` keeps the poll query cheap as the table grows.
 - **Polling publisher (the relay)**: a separate process (`src/relay.ts`) loops: open a transaction, claim up to 10 unpublished rows, send them to Kafka, set `published_at`, commit. It stops when nothing is left (a real relay sleeps and polls again). Holding the transaction open during the send is the simplest correct form; production relays keep batches small or claim rows with a lease column instead.
-- **`FOR UPDATE SKIP LOCKED`**: claiming rows locks them, and other relay instances skip locked rows instead of waiting. You can run several relays for throughput or availability without sending the same row twice concurrently. The price: ordering. Two relays can claim one order's events in different batches and send them in either order, so keep a single active relay (others on standby) when per-aggregate order matters.
+- **`FOR UPDATE SKIP LOCKED`**: claiming rows locks them, and other relay instances skip locked rows instead of waiting. You can run several relays for throughput or availability without sending the same row twice concurrently. The price: ordering. Two relays can claim one order's events in different batches and send them in either order, so keep a single active relay (others on standby, elected as in 18) when per-aggregate order matters.
 - **At-least-once delivery**: the send to Kafka and the `published_at` update cannot be atomic either. If the relay crashes after sending and before committing, the rows stay unpublished and are sent again on restart. Duplicates are possible; loss is not. The relay's order is deliberate: send first, mark second.
 - **Idempotent consumer**: because of the above, consumers must dedupe. `src/consumer.ts` remembers processed `event_id`s and skips repeats. In real code that set is a `processed_events` table, updated in the same transaction as the consumer's own side effects.
 - **Trade-offs vs 09 (CDC relay)**: polling is simple (Postgres + any broker, no Connect, no replication slot), but it adds latency (the poll interval), load on the DB, and a growing table you must clean up (delete or partition published rows). 09 removes all three at the cost of Debezium.
@@ -740,7 +740,7 @@ No global uniqueness, but atomic transactions across partitions (alice's insert 
 
 **Reach for it when** one server can no longer hold the data or absorb the writes, after a bigger machine, partitioning (10) and replicas, and almost every query stays within one key (tenant, customer).
 
-**Do not reach for it when** a bigger machine, partitioning (10) or read replicas would do: sharding is the most expensive step to undo. Transactions or joins routinely span shard keys: pick another key, and send cross-shard reports to a warehouse. The key is skewed, so one tenant or one hot value outgrows its shard. Every read must see the latest write: serve it from the primary, not a replica.
+**Do not reach for it when** a bigger machine, partitioning (10) or read replicas would do: sharding is the most expensive step to undo. Transactions or joins routinely span shard keys: pick another key, and send cross-shard reports to a warehouse. The key is skewed, so one tenant or one hot value outgrows its shard (move that tenant to its own database instead, 16). Every read must see the latest write: serve it from the primary, not a replica.
 
 The four partitions of 10, reduced to two, each moved onto its own server (a shard), and each shard given read replicas. Everything is vanilla Postgres plus a small router in the app. Scope: no query spans two shards.
 
@@ -904,7 +904,7 @@ Each level raises its own `40001`: REPEATABLE READ for two writers of one row, S
 ### Concepts
 
 - **Audit event in the same transaction**: `audit()` in `src/services.ts` inserts into the service's `audit_outbox` using the business transaction's client. The app supplies what the database cannot know: the actor (`bob (support)`, `system:billing`), the reason (`goodwill discount after late delivery`) and the before/after snapshots. A rolled-back change (mallory's) leaves no audit event, and a committed app change cannot be missing its event.
-- **The outbox is a temporary local copy**: rows wait with `shipped_at IS NULL` (partial index, as in 07). Once shipped they can be deleted on a retention schedule. The central store is the permanent record.
+- **The outbox is a temporary local copy**: rows wait with `shipped_at IS NULL` (partial index, as in 07). Once shipped they can be deleted on a retention schedule. The central store is the permanent record, so personal data in its before/after snapshots can only be erased by crypto-shredding (17).
 - **Shipper**: `src/shipper.ts` loops per service: claim up to 100 unshipped rows (`FOR UPDATE SKIP LOCKED`), insert them into `audit_events`, mark them shipped, commit, until a claim comes back empty. Send first, mark second: a crash in between means a re-send, never a loss. In production a broker (Kafka) usually sits between the shippers and the store; the guarantees are the same.
 - **Dedupe by `event_id`**: `event_id` is the central table's primary key and the insert is `ON CONFLICT (event_id) DO NOTHING`. The re-sent events after the crash are skipped, so the trail has exactly one row per event.
 - **Append-only, enforced**: a trigger rejects `UPDATE`, `DELETE` and `TRUNCATE` on `audit_events`. The table owner or a superuser can still disable or bypass it (`ALTER TABLE ... DISABLE TRIGGER`, `session_replication_role = replica`, `DROP TABLE`), so in production the shipper connects with a non-owner role granted `INSERT` only, and the store has its own credentials that no service holds. Hash-chaining rows makes tampering detectable too.
@@ -958,6 +958,8 @@ ERROR:  audit_events is append-only: TRUNCATE rejected
 - Article: "Pattern: Transactional outbox", Chris Richardson, microservices.io (the transport half; this sample composes the two, it is not a separately named pattern). https://microservices.io/patterns/data/transactional-outbox.html
 - Article: "Building Audit Logs with Change Data Capture and Stream Processing", Gunnar Morling, Debezium blog, 2019 (the CDC route, with the actor added through a transaction metadata table). https://debezium.io/blog/2019/10/01/audit-logs-with-change-data-capture-and-stream-processing/
 - Tool: pgAudit (statement and session logging to the Postgres log, not before/after rows). https://github.com/pgaudit/pgaudit
+
+---
 
 ## 14. Reliability between services (`14-service-reliability/`)
 
@@ -1097,7 +1099,7 @@ Without a breaker, all 40 calls reach the degraded payments. With one, 9 do. It 
 
 ## 15. Saga, choreographed (`15-choreographed-saga/`)
 
-**Pain: a coordinator every flow must go through.** 06's orchestrator knows every step of every service; each new flow or step is a change to that one component, and the team that owns it becomes the queue. Removing it naively (services calling each other, or publishing to Kafka straight from code) brings back partial failure and dual writes.
+**Pain: one coordinator owns every reaction.** 06's orchestrator calls every service's API and holds the whole flow, so anything else that should happen after a step (an email, loyalty points, an analytics feed) is a change to that one component, and the team that owns it becomes the queue. Removing it naively (services calling each other, or publishing to Kafka straight from code) brings back partial failure and dual writes.
 
 **Reach for it when** a few services, owned by different teams, react to each other's business events in a short, stable flow (three or four steps, one or two failure paths), and the events are useful beyond this one flow.
 
@@ -1368,7 +1370,7 @@ Each customer (data subject) gets a random data key (DEK). Personal fields in th
 - **AAD**: each field is sealed with additional authenticated data `subjectId:field`, and each wrapped DEK with `dek:subjectId`. The AAD is not stored in the ciphertext; the reader must supply it, and a mismatch fails authentication. Alice's email pasted into her name field fails, and so does a single flipped bit. Bob's ciphertext in alice's row also fails, mainly because of the per-subject DEK. The subject part of the AAD is defence in depth, and it becomes essential once keys are shared (per tenant, per table).
 - **Blind index for lookups**: ciphertext cannot be indexed or compared, so lookup by email goes through `HMAC(blind-index key, trim(lowercase(email)))`. That key is separate from the DEKs, and the index lives in `subject_lookup` in the key store. It cascades on erasure, so after erasure `lookup alice@example.com -> no subject`. Do not put a global-key HMAC in the immutable store: anyone holding that key and the email could still find the erased person's rows. Blind indexes only support exact match, and they leak equality: two rows with the same hash have the same email.
 - **KEK rotation**: `npm run rotate` adds KEK 2, unwraps each DEK with its old KEK, rewraps it under the new one, and updates only `subject_keys`. The events' PII fingerprint (md5 over every ciphertext) is identical before and after: not one event was re-encrypted. Once every DEK is rewrapped, the old KEK can be destroyed, which also makes key-store backups wrapped under it useless.
-- **The key store's backups undo erasure**: restoring the pre-erasure `keys` dump brings alice back in full (the cautionary step of the run). The key store needs its own backup policy: short retention within the erasure deadline, or an erasure log replayed after every restore. The same holds for its WAL archives and replicas. A deleted Postgres row also stays in the heap until `VACUUM` reclaims it.
+- **The key store's backups undo erasure**: restoring the pre-erasure `keys` dump brings alice back in full (the cautionary step of the run). The key store needs its own backup policy: short retention within the erasure deadline, or an erasure log replayed after every restore. The same holds for its WAL archives and replicas. The flip side: the key store is now the one database whose loss makes every subject's data unreadable, and every read of PII depends on it, so it needs replicas and backups that are durable yet short-lived. A deleted Postgres row also stays in the heap until `VACUUM` reclaims it.
 - **Derived plaintext copies**: anything that decrypted the data and kept it (projections, caches, search indexes, analytics exports, application logs) is outside the shredding. This run's own log still shows "Alice Martin", printed before the erasure. Such copies must hold only ciphertext or ids, or be rebuilt from the events after an erasure.
 - **What it does not cover**: data already exported or sent to third parties, and metadata left in clear. Alice's amounts, order ids and timestamps are still in the log, and together they can identify a person. Encrypted personal data may also still count as personal data legally (see Verraes below), so check with counsel.
 
@@ -1459,11 +1461,11 @@ read: lookup alice@example.com -> ac3c12a0-5fa5-4098-a1c5-97a8123a4375
 
 ## 18. Leader election (`18-leader-election/`)
 
-**Pain: a job that fires N times, or a single point of failure.** Run three replicas of a scheduler, a relay or a waker (06's waker, 07's relay) and each one fires: three emails, three charges, three relays racing. Run one and it is a single point of failure.
+**Pain: a job that fires N times, or a single point of failure.** Run three replicas of a cron-like scheduler and each one fires: three emails, three charges, three reports. Run one and it is a single point of failure. Work that must stay in order, like 07's relay, cannot simply be shared out either.
 
-**Reach for it when** exactly one instance among several should do a piece of work at a time (a cron-like scheduler, a singleton relay or waker, a partition owner), and you already run Postgres or a coordination service.
+**Reach for it when** exactly one instance among several should do a piece of work at a time (a cron-like scheduler, a relay that must keep per-aggregate order, a partition owner), and you already run Postgres or a coordination service.
 
-**Do not reach for it when** the work can be split instead: let every replica claim its own rows (07's relay with `FOR UPDATE SKIP LOCKED`, 06's waker with a conditional `UPDATE`), which scales and needs no leader. Two instances briefly overlapping would corrupt something that cannot check a fencing token: fix the storage side first, since no lease alone guarantees one leader. Consensus itself (replicated state, not just who leads) is the need: use etcd, ZooKeeper or Consul, never a hand-rolled protocol.
+**Do not reach for it when** the work can be split instead: let every replica claim its own rows (07's relay with `FOR UPDATE SKIP LOCKED` when order does not matter, 06's waker with a conditional `UPDATE`), which scales and needs no leader. Two instances briefly overlapping would corrupt something that cannot check a fencing token: fix the storage side first, since no lease alone guarantees one leader. Consensus itself (replicated state, not just who leads) is the need: use etcd, ZooKeeper or Consul, never a hand-rolled protocol. Each run can claim itself: insert a `(job, scheduled_slot)` row under a unique key and let the replicas that lose the insert skip, so overlap is harmless and no leader is needed. A few seconds of outage are acceptable: one replica under a supervisor that restarts it costs about what a lease failover (the TTL) costs, with nothing to elect.
 
 Three real OS processes compete for one row in a `leases` table. The holder runs the job; the run script kills it, pauses it and stops it, and a follower takes over each time. Every acquisition bumps a term that the protected table checks as a fencing token. Last, the session-based alternative: `pg_try_advisory_lock`.
 
@@ -1485,20 +1487,20 @@ Without election, all three replicas run the job every second:
 
 ```
   second  | runs |   by
- 06:25:16 |    3 | a, b, c
- 06:25:17 |    3 | a, b, c
- 06:25:18 |    3 | a, b, c
- 06:25:19 |    3 | a, b, c
+ 06:26:19 |    3 | a, b, c
+ 06:26:20 |    3 | a, b, c
+ 06:26:21 |    3 | a, b, c
+ 06:26:22 |    3 | a, b, c
 ```
 
 With the lease, one leader; the row's times come from the database clock:
 
 ```
-   06:25:20 [b] acquired the lease, term 1
-   06:25:20 [a] follower, b leads (term 1)
-   06:25:20 [c] follower, b leads (term 1)
-   06:25:20 [b] job ran, term 1
- scheduler | b      |    1 | 06:25:23.0 | 06:25:26.0 |          2.5
+   06:26:23 [c] acquired the lease, term 1
+   06:26:23 [a] follower, c leads (term 1)
+   06:26:23 [c] job ran, term 1
+   06:26:23 [b] follower, c leads (term 1)
+ scheduler | c      |    1 | 06:26:26.5 | 06:26:29.5 |          2.5
 ```
 
 `kill -9` the leader: nobody runs the job until its lease expires, then a follower takes term 2:
@@ -1530,18 +1532,24 @@ The leader freezes after its check passed. On resume it writes with term 3 while
    06:26:47 [b] renew refused: a holds term 4; stepping down
 ```
 
-The same window in both tables. `ticks` shows two leaders writing (row 27); in `fenced_ticks` the rejected insert only burned id 15:
+The same window in both tables, `ticks` first, then `fenced_ticks`. `ticks` shows two leaders writing (row 27); in `fenced_ticks` the rejected insert only burned id 15 (abridged):
 
 ```
- ticks                                  fenced_ticks
- 24 | b | 3 | 06:26:39.6                12 | b | 3 | 06:26:39.6
- 25 | a | 4 | 06:26:44.5                13 | a | 4 | 06:26:44.5
- 26 | a | 4 | 06:26:45.5                14 | a | 4 | 06:26:45.5
- 27 | b | 3 | 06:26:46.3
- 28 | a | 4 | 06:26:46.5                16 | a | 4 | 06:26:46.5
+ id | holder | term |     at
+ 24 | b      |    3 | 06:26:39.6
+ 25 | a      |    4 | 06:26:44.5
+ 26 | a      |    4 | 06:26:45.5
+ 27 | b      |    3 | 06:26:46.3
+ 28 | a      |    4 | 06:26:46.5
+
+ id | holder | term |     at
+ 12 | b      |    3 | 06:26:39.6
+ 13 | a      |    4 | 06:26:44.5
+ 14 | a      |    4 | 06:26:45.5
+ 16 | a      |    4 | 06:26:46.5
 ```
 
-Every leader change, with the time since the previous job run: 3.0s after the kill, 4.0s and 4.9s across the pauses, 0.9s for the graceful release:
+Every change of writer in `ticks`, with the time since the previous job run: 3.0s after the kill, 4.0s and 4.9s across the pauses, 0.9s for the graceful release (rows 27 and 28 are b's stale write in between):
 
 ```
  id | holder | term |     at     | gap_s
@@ -1598,8 +1606,6 @@ Behind a pool, the unlock lands on the wrong connection:
 
 ---
 
----
-
 ## Which one when
 
 - **CRUD + audit (01)**: most apps. You need "who changed what" for compliance or support, and reads of current state dominate.
@@ -1619,6 +1625,6 @@ Behind a pool, the unlock lands on the wrong connection:
 - **Choreographed saga (15)**: a short, stable cross-service flow between services owned by different teams, whose events are useful beyond this flow. Once the flow grows steps, branches or timers, or you need to see one saga's state in one place, go back to 06.
 - **Multi-tenancy (16)**: many customers share one product. Pool with RLS by default (app connects as a non-owner, `FORCE`, `SET LOCAL`, `tenant_id` first in every key and index), a schema per tenant only when tenants need their own tables, and a database per tenant for the few that need their own restore, deletion, region or capacity.
 - **Crypto-shredding (17)**: personal data sits in stores you cannot rewrite (an event log, an audit store, Kafka, backups), and erasing one person must make every copy unreadable. It works only if the key store's own backups are short-lived, and your counsel should confirm that key deletion counts as erasure.
-- **Leader election (18)**: exactly one replica should run a job at a time (a scheduler, a singleton relay or waker) and the work cannot be split by claiming rows; fence every write with the term.
+- **Leader election (18)**: exactly one replica should run a job at a time (a scheduler, an order-preserving relay) and the work cannot be split by claiming rows; fence every write with the term.
 
 These combine: a strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga (15) publishes its events through per-service outboxes; every retried write between services carries 14's idempotency key; an event-sourced service (03) can publish its events through an outbox/CDC relay and keep its personal data crypto-shredded (17); a singleton relay or waker (07, 06) either claims rows or runs under a leader lease (18).

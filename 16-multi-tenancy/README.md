@@ -6,7 +6,7 @@
 
 **Do not reach for it when** there is one customer, or tenants never share infrastructure (one deployment per customer is a silo without the router). You need isolation against a compromised database superuser or a noisy host: only separate servers or accounts give that. You want RLS as the only guard with the app connecting as the table owner or a superuser: it filters nothing for them.
 
-Three models on one Postgres (AWS SaaS Lens vocabulary: pool, bridge, silo), each pitfall shown failing and then fixed. `src/demo.ts` starts the pool with a naive first schema and repairs it step by step; `src/bridge.ts` runs schema-per-tenant with a migration loop; `src/silo.ts` routes tenants to their own databases and moves the biggest pooled tenant into one.
+Three models on one Postgres (named as in the AWS SaaS whitepapers: pool, bridge, silo), each pitfall shown failing and then fixed. `src/demo.ts` starts the pool with a naive first schema and repairs it step by step; `src/bridge.ts` runs schema-per-tenant with a migration loop; `src/silo.ts` routes tenants to their own databases and moves the biggest pooled tenant into one.
 
 ```sh
 docker compose up -d --wait
