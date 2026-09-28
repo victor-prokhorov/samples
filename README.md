@@ -1,6 +1,6 @@
 # samples
 
-Thirteen minimal, real TypeScript examples of how to change a running system without breaking it: tracking change, evolving schemas, replacing code, coordinating services, publishing events, splitting data across servers and keeping invariants under concurrency. They are numbered by complexity. Read them in order: each one assumes the concepts of the ones before it. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
+Eighteen minimal, real TypeScript examples of how to change and run a live system without breaking it: tracking change, evolving schemas, replacing code, coordinating services, publishing events, splitting data across servers, keeping invariants under concurrency, calling services that fail, isolating tenants, erasing personal data and electing a leader. They are numbered by complexity. Read them in order: each one assumes the concepts of the ones before it. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
 
 | # | Folder | Pain | New concepts | Infra | Run | Proof |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -17,6 +17,11 @@ Thirteen minimal, real TypeScript examples of how to change a running system wit
 | 11 | [`11-sharding-replicas/`](11-sharding-replicas/) | one-machine ceiling | shard key, app-side router, streaming replication, read replicas, replica lag, CP writes / AP reads | Postgres (2 primaries + scalable replicas) | `./run-11-sharding-replicas.sh` | [`logs/11-sharding-replicas.log`](logs/11-sharding-replicas.log) |
 | 12 | [`12-serializable/`](12-serializable/) | write skew | isolation levels, lost update, write skew, SSI, 40001 retry, materialized conflict | Postgres | `./run-12-serializable.sh` | [`logs/12-serializable.log`](logs/12-serializable.log) |
 | 13 | [`13-audit-outbox/`](13-audit-outbox/) | scattered audit logs | audit events through per-service outboxes, shipper, dedupe by `event_id`, append-only store, the bypass gap | Postgres (3 databases) | `./run-13-audit-outbox.sh` | [`logs/13-audit-outbox.log`](logs/13-audit-outbox.log) |
+| 14 | [`14-service-reliability/`](14-service-reliability/) | cascading failure | timeouts, deadline propagation, bulkhead, retryable vs not, full jitter, retry budget, idempotency keys, circuit breaker | Postgres, 2 HTTP processes | `./run-14-service-reliability.sh` | [`logs/14-service-reliability.log`](logs/14-service-reliability.log) |
+| 15 | [`15-choreographed-saga/`](15-choreographed-saga/) | a coordinator every flow must go through | choreography, per-service outbox + relay, idempotent consumer (`processed_messages`), offset commit vs redelivery, partition by order id, cross-topic reordering, forward-only state machine, correlation and causation ids, cyclic dependencies | Postgres (4 databases), Kafka | `./run-15-choreographed-saga.sh` | [`logs/15-choreographed-saga.log`](logs/15-choreographed-saga.log) |
+| 16 | [`16-multi-tenancy/`](16-multi-tenancy/) | one tenant sees another's data | pool / bridge / silo, Row-Level Security, `FORCE`, `SET LOCAL` on pooled connections, tenant-leading keys and indexes, per-tenant migrations, per-tenant `statement_timeout`, moving a tenant to its own database | Postgres (5 databases) | `./run-16-multi-tenancy.sh` | [`logs/16-multi-tenancy.log`](logs/16-multi-tenancy.log) |
+| 17 | [`17-crypto-shredding/`](17-crypto-shredding/) | erasure versus immutable data | per-subject DEK, envelope encryption (KEK), AES-256-GCM, unique IV, AAD, blind index, KEK rotation, key-store backups undo erasure | Postgres (3 databases) | `./run-17-crypto-shredding.sh` | [`logs/17-crypto-shredding.log`](logs/17-crypto-shredding.log) |
+| 18 | [`18-leader-election/`](18-leader-election/) | a job that fires N times, or a single point of failure | lease row on the database clock, heartbeat, terms, failover after the TTL, self-fencing, fencing tokens, graceful release, `pg_try_advisory_lock` and its pooler trap | Postgres | `./run-18-leader-election.sh` | [`logs/18-leader-election.log`](logs/18-leader-election.log) |
 
 Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw tables as proof. Everything it prints goes to `logs/<name>.log`. Needs Docker and Node 22.
 
@@ -36,6 +41,11 @@ Ports (chosen to avoid clashing with other local services):
 | 11 | 55441 shard 0 primary, 55442 shard 1 primary, replicas on random ports | | | |
 | 12 | 55443 | | | |
 | 13 | 55444 | | | |
+| 14 | 55445 | | | 53010 payments, 53011 catalog |
+| 15 | 55446 | 59095 | | |
+| 16 | 55447 | | | |
+| 17 | 55448 | | | |
+| 18 | 55449 | | | |
 
 ---
 
@@ -353,7 +363,7 @@ Places an order across inventory, payments and shipping, each with its own datab
 - **No transaction spans services**: each service owns its database (here, 4 real Postgres databases), so a `BEGIN ... COMMIT` cannot cover all three steps. Two-phase commit exists but couples every service's availability and is rarely used across services.
 - **Saga**: a sequence of local transactions (`reserveInventory`, `chargePayment`, `createShipment`, with a `fraudHold` timer before shipping). Each commits on its own. If a later step fails, earlier ones are undone by **compensating actions** (`release`, `refund`), run in reverse order. Coined by Garcia-Molina and Salem ("Sagas", SIGMOD 1987) for long-lived transactions inside one database; microservices reuse the idea across databases.
 - **Compensation is semantic, not a rollback**: a refund is a new fact; the charge still happened. Some steps cannot be compensated (an email already sent), so order steps as compensatable ones, then one pivot (the go/no-go step, here `createShipment`, which has no compensation), then retriable ones that must eventually succeed (Richardson's taxonomy).
-- **Orchestration vs choreography**: here a central orchestrator (`src/orchestrator.ts`) tells each service what to do next. In choreography, services react to each other's events instead (usually via 07/09's outbox). Orchestration is easier to follow; choreography has no central component.
+- **Orchestration vs choreography**: here a central orchestrator (`src/orchestrator.ts`) tells each service what to do next. In choreography, services react to each other's events instead, each through its own outbox; 15 runs this same order flow that way. Orchestration is easier to follow and change; choreography has no central component.
 - **Saga log**: the orchestrator persists `state` and `step` after every step in its own database. After a crash, it reloads unfinished sagas and continues forward or keeps compensating. This assumes a single orchestrator; with several, claim a saga first (`SELECT ... FOR UPDATE SKIP LOCKED` or a lease column).
 - **Idempotent steps**: a crash between "step ran" and "log updated" means the step runs again on recovery. Each step and compensation is keyed by saga id (steps: `INSERT ... ON CONFLICT DO NOTHING`; compensations: `DELETE ... RETURNING`, `UPDATE ... WHERE status = 'charged'`), so running it twice has the effect of running it once. `reserve` puts its insert and stock update in one local transaction so the pair is all-or-nothing.
 - **Trade-offs**: no isolation. Other transactions can see intermediate states (stock reserved, payment not yet taken). Countermeasures include semantic locks (a `PENDING` status) and ordering steps so the riskiest come first. Also, a failed or timed-out step may have committed anyway; real orchestrators retry it or also run its (idempotent) compensation.
@@ -949,6 +959,645 @@ ERROR:  audit_events is append-only: TRUNCATE rejected
 - Article: "Building Audit Logs with Change Data Capture and Stream Processing", Gunnar Morling, Debezium blog, 2019 (the CDC route, with the actor added through a transaction metadata table). https://debezium.io/blog/2019/10/01/audit-logs-with-change-data-capture-and-stream-processing/
 - Tool: pgAudit (statement and session logging to the Postgres log, not before/after rows). https://github.com/pgaudit/pgaudit
 
+## 14. Reliability between services (`14-service-reliability/`)
+
+**Pain: one flaky dependency takes the caller down.** A call with no deadline waits as long as a hung dependency does, and every waiting call holds a socket the healthy dependencies need. Naive retries turn a blip into an outage, and retrying a POST that timed out after the server committed charges the customer twice.
+
+**Reach for it when** a service calls another over the network on a request path: every such call needs a timeout, a retry policy that knows which failures are transient, and, for writes, an idempotency key. Add a breaker and a bulkhead when one dependency's outage must not slow down or starve everything else.
+
+**Do not reach for it when** the work does not need an answer now: put it on a queue or an outbox (07) and let a consumer retry at its own pace. The operation spans services that each commit their own data: retries make each step safe, a saga (06) handles the whole. A service mesh or client library already gives you timeouts, retries and breakers: configure it rather than hand-rolling a second layer, and make sure only one layer retries.
+
+A caller process against `payments`, a separate HTTP process with its own Postgres database that the demo degrades, overloads, kills and restarts. Every mechanism is written by hand in `src/resilience.ts`.
+
+### Concepts
+
+- **Timeout on every call**: without one, the caller waits as long as the dependency does (1.5s here, forever if it hangs), holding a socket and the user's request the whole time. `call()` passes `AbortSignal.timeout()` to `http.request`, so the deadline also covers time spent queued for a socket.
+- **Deadline propagation**: a timeout frees the caller but not the dependency, which keeps working for nobody (10 queries ran their full 1500ms, 10 answers written to a closed connection). The caller sends its remaining budget in `x-deadline-ms`, a relative duration like gRPC's `grpc-timeout`, so no clock sync is needed. Payments applies it as `SET LOCAL statement_timeout`, and Postgres cancels the query at the deadline: 2045ms of database time instead of 15050ms. A service that calls further down passes on what is left of its own budget.
+- **Bulkhead**: sockets (or threads, or pool connections) shared across dependencies are the path a failure spreads along. With one pool of 10 sockets, 10 slow payment calls make the healthy catalog wait 1457ms. `Bulkhead` caps payments at 4 calls in flight and rejects the rest at once, and catalog has its own pool, so it answers in 2ms. Rejecting beyond the limit is the point: a queue would just move the wait.
+- **Retry only what can succeed next time**: `isRetryable` accepts timeouts, connection errors (reset, refused), 429, 502, 503, 504, and 409 when the same idempotency key is still in flight. A 400 or 422 fails the same way forever and is not retried. `withRetries` also stops at max attempts, and before a backoff that would overshoot the caller's overall deadline. Each attempt's timeout is the smaller of the per-attempt limit and what is left of that deadline. A `Retry-After` header is a floor on the next delay.
+- **Backoff with full jitter**: without jitter, callers that failed together retry together (100, 200, 400, 800ms), so every wave hits the dependency's capacity at the same instant and most of it is shed again: 25 of 100 callers succeeded. Full jitter (`random(0, min(cap, base * 2^attempt))`, Marc Brooker) spreads the same retries over the gaps: 100 of 100 succeeded, with fewer requests. Immediate retries are the worst case: 465 requests in 32ms and only 10 successes.
+- **Retry budget**: max attempts still multiplies load by up to 5 during a real outage (500 requests for 100 callers, none of which could succeed). A budget caps retries as a share of traffic across the whole caller: each request earns 0.1 token, a retry costs 1, at most 10 are banked (Finagle's `RetryBudget`, gRPC's retry throttling). The same outage then costs 110 requests. It only protects if every caller runs one, and only one layer of the stack should retry.
+- **Idempotency key**: a timeout says nothing about whether the server committed. Payments commits alice's charge, answers late, the caller retries, and alice pays twice. The caller creates one `Idempotency-Key` per logical operation and reuses it on every retry. Payments claims the key (`INSERT ... ON CONFLICT (key) DO NOTHING`, the key is the primary key), then inserts the charge and stores the response in one transaction. A retry gets the stored response back (`idempotent-replayed: true`) and no new charge. A concurrent duplicate that arrives while the first is in flight gets `409` with `Retry-After: 1`, retries, and gets the replay. The same key with a different body (by request hash) gets `422`, which is not retried. Status codes follow the IETF Idempotency-Key draft and Stripe.
+- **What the idempotency sketch leaves out**: if payments crashes between claiming the key and committing, the key stays in flight forever. Brandur Leach's design adds a `locked_at` lease that a later request may take over. Keys should be scoped to the authenticated account, not global, and expired after a retention window (Stripe keeps them 24 hours).
+- **Circuit breaker**: while the dependency is degraded, every call still pays the full 200ms timeout, and the dependency still receives all 40 requests. After 5 consecutive failures `CircuitBreaker` opens, and calls fail in 0ms without reaching payments (9 of 40 did). After a 1000ms cooldown it goes half-open and lets exactly one probe through: a failed probe reopens it, a successful one closes it. The run shows the probe failing on a timeout, then on `ECONNREFUSED` while the process is dead, and then succeeding after the restart. Only dependency failures (timeouts, connection errors, 5xx) count. A 4xx is the caller's fault and does not trip it. The cost shows too: after the restart, requests keep failing fast until the next probe (14 of 30 in the healed window). Nygard's *Release It!* named the pattern; Hystrix, resilience4j and Polly are the usual libraries.
+- **What the demo simplifies**: the caller and its "users" are one process, and faults are switched by an admin endpoint instead of arising by themselves. A production breaker usually trips on a failure rate over a sliding window rather than a consecutive count, and bulkheads, breakers and budgets are kept per dependency (often per endpoint) and exported as metrics.
+
+### Proof (`logs/14-service-reliability.log`)
+
+A timeout frees the caller. Only the propagated deadline also stops the dependency's work:
+
+```
+   no timeout                     caller: waited 1526-1529ms, 10 ok
+                                  payments: 10 queries ran to completion, 0 cancelled at the deadline, 15204ms of DB time in total, 0 answers written to a closed connection
+   200ms timeout                  caller: waited 201-203ms, 10 timeout (no reply within 200ms)
+                                  payments: 10 queries ran to completion, 0 cancelled at the deadline, 15050ms of DB time in total, 10 answers written to a closed connection
+   200ms timeout + x-deadline-ms  caller: waited 201-202ms, 10 timeout (no reply within 200ms)
+                                  payments: 0 queries ran to completion, 10 cancelled at the deadline, 2045ms of DB time in total, 10 answers written to a closed connection
+```
+
+A shared pool lets slow payments starve healthy catalog. The bulkhead rejects instead:
+
+```
+   one shared pool (10 sockets)  payments: 10 ok; catalog waited 1457-1458ms (queued behind payments)
+   bulkhead (payments limit 4)   payments: 4 ok, 6 bulkhead-full (4 calls already in flight), rejections took 0ms; catalog waited 2ms
+```
+
+Transient failures are retried, a 400 is not (abridged):
+
+```
+   payments will answer: connection reset, then ok
+      attempt 1: network (socket hang up) -> retry in 18ms
+      => ok after 21ms; payments received 2 request(s)
+   payments will answer: 400 bad request
+      attempt 1: HTTP 400 invalid amount -> not retryable, give up
+      => failed: HTTP 400 invalid amount after 0ms; payments received 1 request(s)
+```
+
+100 callers at once against 5 requests per 25ms. Lockstep retries arrive as spikes and most are shed again. Full jitter spreads them and everyone gets through. During a full outage, the budget cuts the load from 500 requests to 110:
+
+```
+   immediate retries
+      arrivals per 100ms: 465
+      465 requests reached payments for 100 callers; 10 succeeded, 90 gave up; slowest caller done after 32ms
+   exponential backoff, no jitter (100, 200, 400, 800ms: every caller retries at the same instants)
+      arrivals per 100ms: 100  95   0  90   0   0   0  85   0   0   0   0   0   0   0  80
+      450 requests reached payments for 100 callers; 25 succeeded, 75 gave up; slowest caller done after 1523ms
+   exponential backoff, full jitter (random between 0 and 100, 200, 400, 800ms)
+      arrivals per 100ms: 211  42  41  15  10   7   3   3   0   2   1   1
+      336 requests reached payments for 100 callers; 100 succeeded, 0 gave up; slowest caller done after 1136ms
+   payments is fully down (503 for everything): retries cannot help, they only multiply the load
+   full jitter, no budget
+      arrivals per 100ms: 220  73  48  27  30  30  17   7  10  17  10   8   3
+      500 requests reached payments for 100 callers; 0 succeeded, 100 gave up; slowest caller done after 1288ms
+   full jitter + retry budget (each request earns 0.1 retry token, a retry costs 1, at most 10 banked)
+      arrivals per 100ms: 109   1
+      110 requests reached payments for 100 callers; 0 succeeded, 100 gave up; slowest caller done after 99ms
+```
+
+The same fault, a commit followed by a late answer, with and without a key. Then a concurrent duplicate and a reused key:
+
+```
+   alice, no key. payments commits the charge, then answers after 1000ms
+      attempt 1: timeout (no reply within 300ms) -> retry in 67ms
+      => 201 {"id":2,"customer":"alice","amount":"42.00"}
+   bob, key charge-bob-1. same fault
+      attempt 1: timeout (no reply within 300ms) -> retry in 85ms
+      => 201 {"id":3,"amount":"42.00","customer":"bob"} (idempotent-replayed: stored response, no new charge)
+   carol, key charge-carol-1 sent twice at once (a double click). payments holds the first transaction open for 1000ms
+      attempt 1: HTTP 409 a request with this key is in flight -> retry in 1000ms
+      => 201 {"id":4,"customer":"carol","amount":"42.00"}
+      => 201 {"id":4,"amount":"42.00","customer":"carol"} (idempotent-replayed: stored response, no new charge)
+   bob again, same key charge-bob-1 but amount 99.00
+      attempt 1: HTTP 422 idempotency key reused with a different request -> not retryable, give up
+```
+
+```
+ customer | charges | total
+ alice    |       2 | 84.00
+ bob      |       1 | 42.00
+ carol    |       1 | 42.00
+
+      key       | response_status |                   response_body
+ charge-bob-1   |             201 | {"id": 3, "amount": "42.00", "customer": "bob"}
+ charge-carol-1 |             201 | {"id": 4, "amount": "42.00", "customer": "carol"}
+```
+
+Without a breaker, all 40 calls reach the degraded payments. With one, 9 do. It probes through the crash and closes after the restart:
+
+```
+   without a breaker, 2s: 40 timeout (no reply within 200ms); each took 200-202ms; payments received 40 requests
+      t+ 408ms breaker closed -> open (5 consecutive failures)
+      t+1427ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+1629ms breaker half-open -> open (probe failed: timeout (no reply within 200ms))
+   with a breaker, 2s degraded: 9 timeout (no reply within 200ms), 31 breaker-open; payments received 9 requests; fast failures took 0ms
+   [payments pid 55069] killed
+      t+2647ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+2648ms breaker half-open -> open (probe failed: network (ECONNREFUSED))
+   ...
+   [payments pid 55334] listening on :53010, catalog on :53011
+   t+3976ms payments restarted, healthy
+      t+4685ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+4687ms breaker half-open -> closed (probe succeeded)
+   with a breaker, 1.5s healed: 14 breaker-open, 16 ok
+```
+
+### Origins and further reading
+
+- Article: "Exponential Backoff And Jitter", Marc Brooker, AWS Architecture Blog, 2015 (full jitter). https://aws.amazon.com/blogs/architecture/exponential-backoff-and-jitter/
+- Article: "Timeouts, retries, and backoff with jitter", Marc Brooker, Amazon Builders' Library. https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/
+- Article: "Making retries safe with idempotent APIs", Malcolm Featonby, Amazon Builders' Library. https://aws.amazon.com/builders-library/making-retries-safe-with-idempotent-APIs/
+- Article: "Implementing Stripe-like Idempotency Keys in Postgres", Brandur Leach, 2017 (409 for in-flight keys, lock leases, recovery). https://brandur.org/idempotency-keys
+- Spec: "The Idempotency-Key HTTP Header Field", IETF httpapi draft (409 for a concurrent request, 422 for a reused key with a different payload). https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
+- Book: *Release It!* (2nd ed.), Michael Nygard, 2018 (circuit breaker, bulkhead, timeouts as stability patterns). https://pragprog.com/titles/mnee2/release-it-second-edition/
+- Article: "Circuit Breaker", Martin Fowler, 2014. https://martinfowler.com/bliki/CircuitBreaker.html
+- Docs: "Deadlines", gRPC (deadline propagation to downstream calls). https://grpc.io/docs/guides/deadlines/
+- Docs: Finagle clients, retries and `RetryBudget`. https://twitter.github.io/finagle/guide/Clients.html#retries
+
+---
+
+## 15. Saga, choreographed (`15-choreographed-saga/`)
+
+**Pain: a coordinator every flow must go through.** 06's orchestrator knows every step of every service; each new flow or step is a change to that one component, and the team that owns it becomes the queue. Removing it naively (services calling each other, or publishing to Kafka straight from code) brings back partial failure and dual writes.
+
+**Reach for it when** a few services, owned by different teams, react to each other's business events in a short, stable flow (three or four steps, one or two failure paths), and the events are useful beyond this one flow.
+
+**Do not reach for it when** the flow has many steps, branches, timers or human steps, or changes often: every change touches several services, and no one place shows the flow; use 06 or a workflow engine. You need to answer "where is order X right now?" in one query, or to reason about the failure paths in one file: choreography spreads both across services. The services form cycles (here three pairs listen to each other): an orchestrator removes them.
+
+06's order flow (reserve stock, charge, ship; release and refund on failure), same inputs and same final stock, with no orchestrator. Four services, each with its own database, outbox, relay and Kafka topic, react to each other's events.
+
+### Concepts
+
+- **Choreography**: no service tells another what to do. `orders` publishes `OrderPlaced`; `inventory` reacts and publishes `InventoryReserved`; `payments` reacts and publishes `PaymentCharged` or `PaymentFailed`; `shipping` reacts and publishes `ShipmentCreated` or `ShipmentFailed`. The flow is not written down anywhere: it is the sum of the `on:` maps in `src/services.ts`. The client's only call is `POST /orders`, which returns as soon as the order is `pending`.
+- **Compensation by events**: `PaymentFailed` makes `inventory` release and `orders` reject. `ShipmentFailed` makes `payments` refund, whose `PaymentRefunded` makes `inventory` release. That is the reverse order, as in 06, but each hop is a service reacting to an event, not a loop in one process.
+- **Outbox per service, one transaction per reaction**: `handle()` in `src/bus.ts` opens one local transaction. It inserts the incoming `event_id` into `processed_messages`, runs the effect (reservation, charge, shipment) and inserts the outgoing event into that service's `outbox`. A relay per service (07's polling relay) sends the outbox to the service's topic. There is no dual write: effect, "I handled this" and "tell the others" commit together or not at all.
+- **Offset commit vs redelivery**: Kafka learns that a consumer handled a message only when the consumer commits its offset, after the handler returns. The run kills `inventory` right after its transaction commits and before the offset commit. On restart Kafka redelivers `OrderPlaced`; its `event_id` is already in `processed_messages`, so the handler is skipped and nothing is reserved twice. The `InventoryReserved` row that the crashed transaction had committed is published by the relay, and the saga goes on. The ~5.7s gap in order-D's timeline is the restart plus the consumer group rebalance (session timeout 6s).
+- **Ordering is per partition, not per saga**: events are keyed by order id, so one order's events stay in order within one topic (order-A lands on partition 2 of every topic, since all four have 3 partitions). Across topics there is no order at all. When `orders` stops reading `inventory-events` for a while (a slow partition, a lagging consumer), it sees `PaymentCharged` and `ShipmentCreated` for order-E before `InventoryReserved`.
+- **The order service's own state machine**: `orders` tracks `pending -> reserved -> paid -> completed`, or `rejected`, from the events it hears. It only moves forward (a rank per status). An event that skips ahead jumps the status, and a late event that would move it back is recorded as processed and ignored. Duplicates never reach the state machine: `processed_messages` drops them first. The status is the order service's view, not the saga's state: order-C is `rejected` while the refund and the release are still in flight in two other services.
+- **No single place knows the saga**: 06 answers "where is order-C?" with one row. Here the answer is spread over four outboxes and four `processed_messages` tables. Every event carries a correlation id (the order id: Kafka key and `outbox.order_id`) and a causation id (the event it reacted to). `src/timeline.ts` joins them into one timeline. In production that is distributed tracing or a consumer of every topic, and someone has to build and run it. `InventoryReleased` is processed by nobody, so no service ever learns that the compensation finished.
+- **Cyclic dependencies**: the wiring printed at startup finds three pairs that listen to each other: `orders <-> inventory`, `inventory <-> payments`, `payments <-> shipping`. Each side must know the other's event names and payloads, so a schema change on one side is a coordinated change on both. Events also carry the whole order (event-carried state), so `shipping` receives the amount it never uses.
+- **Changing the flow is harder**: in 06, adding a fraud check between reserve and charge is one line in `STEPS`. Here `payments` must stop reacting to `InventoryReserved` and react to `FraudCleared`; `inventory` must also release on `FraudRejected`; the `orders` state machine gains a status. That is three services redeployed in a safe order, while events published under the old flow are still in the topics.
+- **When orchestration (06) is better**: long or branching flows, timers (06's durable `fraudHold` has no natural home here), human steps, flows that change often, and any need to see or query one saga's state. A common split is to orchestrate inside one team's bounded context and use events between contexts.
+- **Toy services**: the four services run in one process with separate pools, relays and consumer groups. Each database is a separate Postgres database in one container. The demo waits for "settled" (outboxes drained, `processed_messages` counts stable) between scenarios so the log reads in order. Handlers are not retried on errors, and an out-of-stock path is left out.
+
+### Proof (`logs/15-choreographed-saga.log`)
+
+The wiring, read from the handlers. No step table, and three cycles:
+
+```
+   orders    publishes order-events (OrderPlaced), listens to inventory-events, payment-events, shipping-events
+   inventory publishes inventory-events (InventoryReserved, InventoryReleased), listens to order-events, payment-events
+   payments  publishes payment-events (PaymentCharged, PaymentFailed, PaymentRefunded), listens to inventory-events, shipping-events
+   shipping  publishes shipping-events (ShipmentCreated, ShipmentFailed), listens to payment-events
+   cycles, each side depends on the other's events: orders <-> inventory, inventory <-> payments, payments <-> shipping
+```
+
+The happy path, all by reaction. Every order-A event is on partition 2 of its topic:
+
+```
+   [orders] order-A pending, outbox <- OrderPlaced; the HTTP call returns here, the rest happens by events
+   [inventory] <- OrderPlaced order-A (order-events p2 @0): reserved 2 keyboard, outbox <- InventoryReserved
+   [orders] <- InventoryReserved order-A (inventory-events p2 @0): order pending -> reserved
+   [payments] <- InventoryReserved order-A (inventory-events p2 @0): charged 84.00, outbox <- PaymentCharged
+   [orders] <- PaymentCharged order-A (payment-events p2 @0): order reserved -> paid
+   [shipping] <- PaymentCharged order-A (payment-events p2 @0): shipment to Paris, outbox <- ShipmentCreated
+   [orders] <- ShipmentCreated order-A (shipping-events p2 @0): order paid -> completed
+```
+
+Shipping fails for order-C; refund, then release, each triggered by an event:
+
+```
+   [shipping] <- PaymentCharged order-C (payment-events p0 @1): address not deliverable: nowhere, outbox <- ShipmentFailed
+   [orders] <- PaymentCharged order-C (payment-events p0 @1): order reserved -> paid
+   [payments] <- ShipmentFailed order-C (shipping-events p0 @0): refunded 126.00, outbox <- PaymentRefunded
+   [orders] <- ShipmentFailed order-C (shipping-events p0 @0): order paid -> rejected
+   [inventory] <- PaymentRefunded order-C (payment-events p0 @2): released 3 keyboard, outbox <- InventoryReleased
+```
+
+`inventory` is killed after its transaction commits, before its offset commit. The reservation, the unpublished `InventoryReserved` and the processed `OrderPlaced` all exist, yet Kafka has no committed offset for that partition:
+
+```
+   [inventory] <- OrderPlaced order-D (order-events p1 @0): reserved 1 keyboard, outbox <- InventoryReserved
+   [inventory] CRASH after the transaction committed, before Kafka got the offset of OrderPlaced order-D
+
+ order-D  | keyboard |   1
+ InventoryReserved | order-D  |
+ OrderPlaced | order-D
+
+TOPIC             PARTITION CURRENT-OFFSET LOG-END-OFFSET LAG
+order-events      1         -              1              -
+```
+
+A new process gets `OrderPlaced` again and skips it; the saga continues from the committed outbox row:
+
+```
+   [inventory] <- OrderPlaced order-D (order-events p1 @0): DUPLICATE event_id=f0104b91 already in processed_messages, skipped
+   [orders] <- InventoryReserved order-D (inventory-events p1 @0): order pending -> reserved
+   [payments] <- InventoryReserved order-D (inventory-events p1 @0): charged 42.00, outbox <- PaymentCharged
+   ...
+   [orders] <- ShipmentCreated order-D (shipping-events p1 @0): order paid -> completed
+```
+
+With `orders` paused on `inventory-events`, events for order-E arrive out of order; the state machine jumps forward and ignores the late one:
+
+```
+   [orders] <- PaymentCharged order-E (payment-events p0 @3): order pending -> paid (jumped: an earlier event has not arrived yet)
+   [orders] <- ShipmentCreated order-E (shipping-events p0 @1): order paid -> completed
+   [orders] resumed on inventory-events
+   [orders] <- InventoryReserved order-E (inventory-events p0 @4): order is already completed, a late InventoryReserved cannot move it back to reserved, ignored
+```
+
+order-C's saga, rebuilt from four databases. The orders table says `rejected`, and nobody consumes the event that ends the compensation:
+
+```
+   order-C (the orders table only says: rejected)
+   +    0ms orders    OrderPlaced       after the HTTP call                processed by inventory
+   +   53ms inventory InventoryReserved after orders OrderPlaced           processed by orders, payments
+   +  157ms payments  PaymentCharged    after inventory InventoryReserved  processed by orders, shipping
+   +  254ms shipping  ShipmentFailed    after payments PaymentCharged      processed by orders, payments
+   +  353ms payments  PaymentRefunded   after shipping ShipmentFailed      processed by inventory
+   +  359ms inventory InventoryReleased after payments PaymentRefunded     processed by nobody
+```
+
+Same end state as 06: stock `10 - 2 (A) - 1 (D) - 1 (E) = 6`, C refunded, B never charged, only A, D and E shipped, D processed once:
+
+```
+ keyboard |         6
+
+ order-A  |  84.00 | charged
+ order-C  | 126.00 | refunded
+ order-D  |  42.00 | charged
+ order-E  |  42.00 | charged
+
+ order-A  | Paris
+ order-D  | Lyon
+ order-E  | Lille
+
+ OrderPlaced | order-D
+(1 row)
+```
+
+### Origins and further reading
+
+- Article: "Pattern: Saga", Chris Richardson, microservices.io (choreography-based and orchestration-based sagas). https://microservices.io/patterns/data/saga.html
+- Article: "Saga design pattern", Azure Architecture Center, Microsoft (choreography vs orchestration trade-offs, including the risk of cyclic dependencies). https://learn.microsoft.com/en-us/azure/architecture/patterns/saga
+- Article: "Pattern: Idempotent Consumer", Chris Richardson, microservices.io (the processed-message table in the handler's transaction). https://microservices.io/patterns/communication-style/idempotent-consumer.html
+- Article: "What do you mean by 'Event-Driven'?", Martin Fowler, 2017 (a flow over event notifications is not explicit in any program text). https://martinfowler.com/articles/201701-event-driven.html
+- Talk: "Complex Event Flows in Distributed Systems", Bernd Ruecker, QCon London 2019. https://www.infoq.com/presentations/event-flow-systems/
+- Article: "How to tame event-driven microservices", Bernd Ruecker, 2019 (adding a step to an event chain still means changing and redeploying other services). https://www.infoworld.com/article/2260429/how-to-tame-event-driven-microservices.html
+- Article: "Choreography vs Orchestration in the land of serverless", Yan Cui, 2020 (orchestrate within a bounded context, choreograph between them). https://theburningmonk.com/2020/08/choreography-vs-orchestration-in-the-land-of-serverless/
+
+---
+
+## 16. Multi-tenancy: pool, bridge, silo (`16-multi-tenancy/`)
+
+**Pain: one tenant sees another's data.** A SaaS database holds many customers. One forgotten `WHERE tenant_id`, one pooled connection that kept the previous request's tenant, or one foreign key that points across tenants, and a customer reads or writes someone else's rows. One big tenant can also slow everyone down.
+
+**Reach for it when** many customers share one product and one codebase, and you have to choose, per tenant, how strongly their data is separated: pool (shared tables, `tenant_id`, Row-Level Security) for many small tenants, bridge (a schema per tenant) for tens to a few hundred, silo (a database per tenant) for the few that need their own restore, deletion, region or capacity.
+
+**Do not reach for it when** there is one customer, or tenants never share infrastructure (one deployment per customer is a silo without the router). You need isolation against a compromised database superuser or a noisy host: only separate servers or accounts give that. You want RLS as the only guard with the app connecting as the table owner or a superuser: it filters nothing for them.
+
+Three isolation models on one Postgres, named as in the AWS SaaS whitepapers: pool, bridge, silo. The pool starts from a naive first schema and each pitfall is shown failing, then fixed. The bridge runs schema-per-tenant with a migration loop. The silo routes tenants to their own databases, and the biggest pooled tenant moves into one. Three roles: `postgres` (superuser), `migrator` (owns every table) and `app` (not owner, not superuser, no `BYPASSRLS`), which is what the application uses.
+
+### Concepts
+
+- **Pool**: one set of tables, a `tenant_id` on every row. Cheapest and simplest to run (one schema, one migration, one backup), but isolation is a `WHERE tenant_id = $1` every query must remember. Step 1's query forgot it and returned all three tenants' rows.
+- **Row-Level Security**: `ENABLE ROW LEVEL SECURITY` plus a policy `USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), ''))`. Postgres adds that filter to every query on the table, so the forgotten `WHERE` is scoped. The app sets `app.tenant_id` at the start of each transaction (`asTenant()` in `src/db.ts`).
+- **Who RLS does not apply to**: superusers and `BYPASSRLS` roles always bypass it, and so does the table owner unless the table is `FORCE ROW LEVEL SECURITY`. Before `FORCE`, the owner saw all 20003 rows; after it, zero. The superuser still saw everything. So the app must connect as a role that is none of the three (`app` here).
+- **Missing tenant = zero rows, silently**: `current_setting(name, true)` returns NULL for an unknown setting. `tenant_id = NULL` is never true, so the policy fails closed without an error. The strict form `current_setting(name)` errors on a fresh connection. On a connection that has ever set the value, it returns `''` rather than an error, hence the `NULLIF`. If a missing tenant must be loud, check it in the app (or in a policy function that raises); do not count on the setting being absent.
+- **`SET` vs `SET LOCAL` on pooled connections**: a session-level `SET app.tenant_id` stays on the connection after the request. With a pool of one connection, the next request that forgot to set a tenant got acme's rows. `SET LOCAL` (or `set_config(name, value, true)`) ends with the transaction. `SET LOCAL` cannot take a bind parameter (`syntax error at or near "$1"`), so use `set_config` rather than concatenating the tenant id into SQL. Under PgBouncer transaction pooling a session `SET` also lands on whichever server connection the next statement gets.
+- **`WITH CHECK`**: `USING` decides which rows are visible, `WITH CHECK` which rows may be written. acme could not insert a row for globex or move its own invoice to globex (`new row violates row-level security policy`). An update aimed at globex's invoice matched 0 rows, which is not an error.
+- **Indexes lead with `tenant_id`**: RLS is a filter, not a partition. Without an index starting with `tenant_id`, acme's "latest 5 invoices" scanned the table and threw away bigco's 20000 rows (`Rows Removed by Filter: 20001`). With `(tenant_id, id)` it is one index range. The policy's `current_setting` is stable, so it can be an index condition.
+- **Unique constraints include `tenant_id`**: `UNIQUE (number)` is global, so globex could not have its own invoice 1. The rejection is also a covert channel: it tells globex that another tenant has invoice 1 (under RLS Postgres hides the key value, not the fact). `UNIQUE (tenant_id, number)` fixes both.
+- **Foreign keys include `tenant_id`**: referential integrity checks bypass RLS by design. So with a plain `FOREIGN KEY (customer_id)`, acme's invoice could point at globex's customer. The fix is `UNIQUE (tenant_id, id)` on the parent and `FOREIGN KEY (tenant_id, customer_id) REFERENCES customers (tenant_id, id)`.
+- **Migrating under forced RLS**: the owner added that foreign key under forced RLS with no tenant set. The validation query saw zero rows, and the constraint was marked valid with a violating row still in the table. Run migrations as a role that bypasses RLS, or with `SET row_security = off`, which turns "policy would filter" into an error. As `postgres`, the same statement was rejected and named the bad row.
+- **Noisy neighbor**: one database means one CPU budget. Each tenant's `statement_timeout` comes from the `tenants` directory and is set per transaction (`set_config('statement_timeout', ..., true)`). bigco's self-join report was cancelled at 200 ms; acme's ran. A timeout caps one query, not the load. The other levers are per-tenant connection caps and rate limits in the app, or moving the tenant out (step 20).
+- **Bridge, schema per tenant**: one database, one schema per tenant with the same table names. Each request sets `search_path` and `role` LOCAL. The tables are physically separate, so they can be dumped or dropped per tenant and even vary per tenant.
+- **`search_path` is not a security boundary**: a schema-qualified name ignores it. One shared role with `search_path = t_hooli` read `t_initrode.invoices`. Only privileges stop that, so each tenant gets its own role, and `app` has no privileges of its own. The pooled-connection leak applies here too: a session-level `SET ROLE` / `SET search_path` made the next request run as hooli. With LOCAL settings, a request that forgot its context failed loudly (`relation "invoices" does not exist`) where RLS returns zero rows.
+- **Migrations run N times**: every schema change loops over every schema, one transaction per schema, each recording its version. Tenant data differs, so one schema can fail (initrode had a duplicate invoice number). That leaves the fleet half migrated (hooli at 2, initrode and vandelay at 1), and the app must work with both shapes until the loop finishes. The loop must be resumable: the second run skipped hooli.
+- **Catalog bloat**: every schema copies every table, index and sequence into the system catalogs. With 1003 tenants `pg_class` went from 437 to 8437 rows and the catalogs from 7.6 MB to 25 MB. The `bridge` database ended at 80 MB with almost no data. One migration over 1000 schemas took a few seconds; at tens of thousands, the catalog cache per connection, `pg_dump` and every migration slow down.
+- **Silo, database per tenant**: the strongest isolation Postgres offers short of separate servers. A connection is bound to one database (`cross-database references are not implemented`). Restore, deletion, extensions and `pg_dump` are per tenant: the run restores `silo_initech` alone, and deletes umbrella with one `DROP DATABASE` instead of `DELETE ... WHERE tenant_id` on every table plus vacuum and backups that still hold the rows. For stronger isolation still, revoke `CONNECT` from `PUBLIC` and give each silo its own login role.
+- **What a silo costs**: an empty silo is about 7.6 MB of catalogs, and connections are per database. With 5 busy requests per tenant, each silo held 5 connections of `max_connections = 100`, so about 20 silo tenants fill the server, while pooled tenants share one pool. Silos also need a router: `src/router.ts` reads the `tenants` directory on every call.
+- **Moving a tenant from the pool to a silo**: set `moving` in the directory (writes refused, reads still served), create the database with the pool's final schema, copy the rows by `tenant_id` keeping their ids, verify count and sum, flip the directory, delete the tenant from the pool. The trap: the copy kept the ids but not the sequences. The first three writes after the flip got the free ids 1 to 3, and the fourth hit `invoices_pkey`. `setval` to `max(id)` fixes it, run with the tenant set, because under forced RLS `max(id)` is NULL otherwise. Deliberately simplified: a write that read `moving = false` just before the flag flipped can still commit during the copy. Take the directory row `FOR SHARE` in each pool write transaction so the mover waits for writes already in flight. Real routers also cache the directory, so a flip must wait out the cache.
+
+### Proof (`logs/16-multi-tenancy.log`)
+
+The forgotten `WHERE` leaks, RLS scopes the same query, and the owner and the superuser bypass it until `FORCE`, which only binds the owner:
+
+```
+   acme's invoice list, WHERE tenant_id forgotten: acme 2, bigco 20000, globex 1
+   acme, same query:   acme 2
+   no tenant set: 0 rows
+   same connection after one request with SET LOCAL: current_setting('app.tenant_id') = "" (hence NULLIF(..., ''))
+
+   migrator (owner), no tenant set:  acme 2, bigco 20000, globex 1
+   postgres (superuser):             acme 2, bigco 20000, globex 1
+   ALTER TABLE ... FORCE ROW LEVEL SECURITY
+   migrator (owner), no tenant set:  0 rows
+   postgres (superuser):             acme 2, bigco 20000, globex 1
+```
+
+A session-level `SET` on a pooled connection hands acme's tenant to the next request; `SET LOCAL` does not:
+
+```
+   request 1 (acme): SET app.tenant_id = 'acme' (session level), connection back to the pool
+   request 2 (globex job, forgot to set the tenant): acme 2
+   after RESET, request 1 (acme): set_config('app.tenant_id', 'acme', true) = SET LOCAL, ends with the transaction
+   request 2 (globex job, forgot to set the tenant): 0 rows
+   SET LOCAL with a bind parameter: rejected: syntax error at or near "$1"
+```
+
+Keys and indexes that do not lead with `tenant_id`, and a foreign key "validated" by a role that could see nothing (abridged):
+
+```
+             ->  Seq Scan on invoices (actual rows=2 loops=1)
+                   Rows Removed by Filter: 20001
+   CREATE INDEX ON invoices (tenant_id, id)
+       ->  Index Scan Backward using invoices_tenant_id_id_idx on invoices (actual rows=2 loops=1)
+
+   globex creates invoice 1: rejected: duplicate key value violates unique constraint "invoices_number_key"
+
+   acme creates invoice 3 for customer 2 (globex's Grace): accepted
+   migrator (owner, forced RLS) adds FOREIGN KEY (tenant_id, customer_id): accepted, convalidated = true, rows violating it: 1
+   same, with SET row_security = off: rejected: query would be affected by row-level security policy for table "invoices"
+   same, as postgres (bypasses RLS): rejected: insert or update on table "invoices" violates foreign key constraint "invoices_customer_fkey" (Key (tenant_id, customer_id)=(acme, 2) is not present in table "customers".)
+```
+
+Per-tenant timeout from the directory:
+
+```
+   acme   report (statement_timeout 5000ms): done, count = 1
+   bigco  report (statement_timeout 200ms): rejected: canceling statement due to statement timeout
+```
+
+Bridge: `search_path` alone is no boundary, the pooled leak, a half-migrated fleet, and the catalogs at 1003 schemas:
+
+```
+   one shared role, search_path t_hooli, SELECT FROM t_initrode.invoices: 2 rows of initrode's
+   role tenant_hooli, same query: rejected: permission denied for schema t_initrode
+   request 2 (initrode, forgot the context): runs as tenant_hooli, sees 2 invoices (hooli's)
+
+     t_hooli: migrated to 2
+     t_initrode: failed: could not create unique index "invoices_number_key" (Key (number)=(1) is duplicated.); loop stopped
+   versions now: t_hooli 2, t_initrode 1, t_vandelay 1; the app must handle both shapes until every schema is done
+
+   3 tenants                        3 tenant schemas, pg_class 437 rows, pg_attribute 3228 rows, system catalogs 7776 kB
+   1003 tenants, after migration 2  1003 tenant schemas, pg_class 8437 rows, pg_attribute 43228 rows, system catalogs 25 MB
+```
+
+Silo: no path between databases, the cost in connections, and bigco's move with the sequence trap:
+
+```
+   initech's connection reads silo_umbrella.public.invoices: rejected: cross-database references are not implemented: "silo_umbrella.public.invoices"
+   app connections with 5 busy requests per tenant: pool 5, silo_initech 5, silo_umbrella 5; max_connections 100
+
+   directory: bigco moving = true; bigco write: rejected: bigco is being moved: writes paused, reads still served by pool
+   verify: pool invoices 20000, total 49990000; silo_bigco invoices 20000, total 49990000
+   bigco write, invoice 21003: ok, id 3
+   bigco write, invoice 21004: rejected: duplicate key value violates unique constraint "invoices_pkey"
+   bigco write: ok, invoice id 20004 in silo_bigco
+   bigco    -> silo_bigco: invoices 20004, total 49990400
+```
+
+### Origins and further reading
+
+- Docs: "Row Security Policies", PostgreSQL documentation (owner and superuser bypass, `FORCE`, and referential integrity checks bypassing row security, with the covert-channel warning). https://www.postgresql.org/docs/current/ddl-rowsecurity.html
+- Docs: `row_security`, "Client Connection Defaults", PostgreSQL documentation. https://www.postgresql.org/docs/current/runtime-config-client.html
+- Whitepaper: "SaaS Tenant Isolation Strategies: Isolating Resources in a Multi-Tenant Environment", AWS (silo, pool, and bridge as a mix of the two). https://docs.aws.amazon.com/whitepapers/latest/saas-tenant-isolation-strategies/saas-tenant-isolation-strategies.html
+- Whitepaper: "SaaS Storage Strategies", AWS, archived (silo, bridge and pool for data; bridge as separate tables or schemas per tenant in one database). https://docs.aws.amazon.com/whitepapers/latest/multi-tenant-saas-storage-strategies/saas-partitioning-models.html
+- Guide: "Architectural approaches for storage and data in multitenant solutions", Azure Architecture Center (noisy neighbors, per-tenant schema versions, restore and offboarding). https://learn.microsoft.com/en-us/azure/architecture/guide/multitenant/approaches/storage-data
+- Guide: "Multi-tenant Applications", Citus documentation (tenant id in every primary and foreign key). https://docs.citusdata.com/en/stable/use_cases/multi_tenant.html
+
+---
+
+## 17. Crypto-shredding (`17-crypto-shredding/`)
+
+**Pain: erasure versus immutable data.** GDPR's right to erasure says a customer's personal data must go, but it sits in places you must not or cannot rewrite: an append-only event log (03), an append-only audit store (13), Kafka topics, and every backup taken since.
+
+**Reach for it when** personal data lands in stores that are append-only, replicated or backed up for years, and erasing a person must reach every copy without rewriting any of them.
+
+**Do not reach for it when** the data lives in one mutable table you can `DELETE` from and your backups expire within the erasure deadline: a plain delete is simpler. You need to search, sort or aggregate on the personal fields in the database: ciphertext supports none of that beyond exact-match blind indexes. The identifying part is the metadata (amounts, timestamps, locations): encryption of the named fields does not make the rest anonymous. Your counsel does not accept key deletion as erasure (EU guidance treats encrypted personal data as still personal data): keep the PII in a deletable side store the events point to (forgettable payloads) instead.
+
+Each customer (data subject) gets a random data key (DEK). Personal fields in the append-only `events` table are AES-256-GCM ciphertext under that DEK; event type, order and amount stay in clear. DEKs live in a separate `keys` database, wrapped by a key-encryption key (KEK) from a `kms` database standing in for a KMS. Erasing alice deletes one key row, and every copy of her events, including an old backup, becomes unreadable.
+
+### Concepts
+
+- **Envelope encryption**: data is encrypted with a DEK, and the DEK is stored only encrypted ("wrapped") by a KEK. In production the KEK stays inside a KMS or HSM and you call it to wrap and unwrap; here `kms_keys` hands the KEK to the process, which a real KMS never does. The key store (`subject_keys`) holds `wrapped_dek` and `kek_id`, never a plaintext key.
+- **One DEK per subject**: this is what makes erasure selective. Deleting alice's row in `subject_keys` makes her ciphertext undecryptable everywhere: the live table, replicas, Kafka topics, the backup restored into `events_restored`. Bob's key is untouched, so his reads are unchanged. Her rows stay, so history, counts and amounts (49.50 over 3 events) still add up.
+- **Why not just delete the rows**: the events table is append-only, enforced by a trigger as in 13, and backups cannot be edited anyway. The run's `DELETE` is rejected.
+- **AES-256-GCM with a unique IV**: `seal()` in `src/crypto.ts` draws a random 12-byte IV per call and stores `iv | tag | ciphertext`. Encrypting the same email twice gives two different ciphertexts, so equal values cannot be spotted. Reusing an IV under one GCM key breaks both confidentiality and authentication. Random 96-bit IVs are safe up to about 2^32 encryptions per key, and one key per subject stays far below that.
+- **AAD**: each field is sealed with additional authenticated data `subjectId:field`, and each wrapped DEK with `dek:subjectId`. The AAD is not stored in the ciphertext; the reader must supply it, and a mismatch fails authentication. Alice's email pasted into her name field fails, and so does a single flipped bit. Bob's ciphertext in alice's row also fails, mainly because of the per-subject DEK. The subject part of the AAD is defence in depth, and it becomes essential once keys are shared (per tenant, per table).
+- **Blind index for lookups**: ciphertext cannot be indexed or compared, so lookup by email goes through `HMAC(blind-index key, trim(lowercase(email)))`. That key is separate from the DEKs, and the index lives in `subject_lookup` in the key store. It cascades on erasure, so after erasure `lookup alice@example.com -> no subject`. Do not put a global-key HMAC in the immutable store: anyone holding that key and the email could still find the erased person's rows. Blind indexes only support exact match, and they leak equality: two rows with the same hash have the same email.
+- **KEK rotation**: `npm run rotate` adds KEK 2, unwraps each DEK with its old KEK, rewraps it under the new one, and updates only `subject_keys`. The events' PII fingerprint (md5 over every ciphertext) is identical before and after: not one event was re-encrypted. Once every DEK is rewrapped, the old KEK can be destroyed, which also makes key-store backups wrapped under it useless.
+- **The key store's backups undo erasure**: restoring the pre-erasure `keys` dump brings alice back in full (the cautionary step of the run). The key store needs its own backup policy: short retention within the erasure deadline, or an erasure log replayed after every restore. The same holds for its WAL archives and replicas. A deleted Postgres row also stays in the heap until `VACUUM` reclaims it.
+- **Derived plaintext copies**: anything that decrypted the data and kept it (projections, caches, search indexes, analytics exports, application logs) is outside the shredding. This run's own log still shows "Alice Martin", printed before the erasure. Such copies must hold only ciphertext or ids, or be rebuilt from the events after an erasure.
+- **What it does not cover**: data already exported or sent to third parties, and metadata left in clear. Alice's amounts, order ids and timestamps are still in the log, and together they can identify a person. Encrypted personal data may also still count as personal data legally (see Verraes below), so check with counsel.
+
+### Proof (`logs/17-crypto-shredding.log`)
+
+The events table holds ciphertext for PII and clear values for the rest; the key store holds wrapped DEKs and HMACs (abridged):
+
+```
+ id | subject  |        type        |                data                 |                           pii
+  1 | ac3c12a0 | CustomerRegistered | {}                                  | {"name": "TrZkzifAMuS8a8VDWpwLNLchdz3Gbi0WpjnXU1t7rPRgDW
+  3 | ac3c12a0 | OrderPlaced        | {"order": "A-1", "amount": "42.50"} | {"ship_to": "r9Yd10wUCkHOHSxo017vhsouoDS5QHsOFYrAaQgAKuo
+
+ subject  |       wrapped_dek        | kek_id
+ ac3c12a0 | YoLHwmhQYNGd/Rzt0WTHMQTj |      1
+ 389b4036 | dZ7xvu8547Tg0I4ydIeT70Qr |      1
+```
+
+A fresh IV every time, and AAD rejects moved or edited ciphertext:
+
+```
+   seal("alice@example.com") #1 = X5vOeziT8vOcj+7rJDD4WwLVVbnvIEV1...
+   seal("alice@example.com") #2 = 2PWzM9YB+0ALWwanZuJB7sVr4f31ei+Q...
+   alice's email, read as alice's email: ok, "alice@example.com"
+   alice's email ciphertext, pasted into her name field: rejected, Unsupported state or unable to authenticate data
+   bob's email ciphertext, pasted into alice's email (wrong DEK and wrong AAD): rejected, Unsupported state or unable to authenticate data
+   alice's email with one bit flipped: rejected, Unsupported state or unable to authenticate data
+```
+
+KEK rotation rewraps the DEKs; the events are byte for byte the same:
+
+```
+ events |         pii_fingerprint
+      5 | e03c50d380239956d689c5561ab3a3ee
+rotate: new KEK 2 in the kms, 2 DEKs unwrapped and rewrapped under it; not one event re-encrypted
+ subject  |       wrapped_dek        | kek_id
+ ac3c12a0 | dhwoDgMox5CnrMr4tiWgRtT4 |      2
+ 389b4036 | z/UPAS0KzQ50yCW6hqVtlwCU |      2
+ events |         pii_fingerprint
+      5 | e03c50d380239956d689c5561ab3a3ee
+```
+
+The nightly events backup holds no plaintext PII, but the amounts are in it:
+
+```
+lines matching Alice|alice@|Lilas: 0
+lines matching 42.50: 1
+```
+
+Alice is erased. Her rows cannot be deleted, they are still there, and her PII is gone; bob is untouched:
+
+```
+erase: alice@example.com -> subject ac3c12a0-5fa5-4098-a1c5-97a8123a4375, DEK deleted from the key store (its blind-index row cascades)
+ERROR:  events is append-only: DELETE rejected
+read: lookup alice@example.com -> no subject
+   #1 ac3c12a0 CustomerRegistered                          | name=<erased> email=<erased>
+   #2 389b4036 CustomerRegistered                          | name=Bob Keller email=bob@example.com
+   #3 ac3c12a0 OrderPlaced        order=A-1 amount=42.50   | ship_to=<erased>
+   #4 389b4036 OrderPlaced        order=B-1 amount=19.90   | ship_to=3 Hauptstrasse, Bern
+   #5 ac3c12a0 OrderPlaced        order=A-2 amount=7.00    | ship_to=<erased>
+ subject  | events | total_amount
+ 389b4036 |      2 |        19.90
+ ac3c12a0 |      3 |        49.50
+```
+
+The pre-erasure backup, restored into `events_restored`, is just as unreadable for alice. Restoring the key store's backup too brings her back:
+
+```
+read: events from database events_restored, keys from database keys
+   #1 ac3c12a0 CustomerRegistered                          | name=<erased> email=<erased>
+...
+read: events from database events_restored, keys from database keys_restored
+read: lookup alice@example.com -> ac3c12a0-5fa5-4098-a1c5-97a8123a4375
+   #1 ac3c12a0 CustomerRegistered                          | name=Alice Martin email=alice@example.com
+   #3 ac3c12a0 OrderPlaced        order=A-1 amount=42.50   | ship_to=12 rue des Lilas, Lyon
+```
+
+### Origins and further reading
+
+- Regulation: GDPR Article 17, "Right to erasure ('right to be forgotten')". https://gdpr-info.eu/art-17-gdpr/
+- Article: "Eventsourcing Patterns: Crypto-Shredding", Mathias Verraes, 2019 (includes the legal caveat that encrypted personal data is still personal data). https://verraes.net/2019/05/eventsourcing-patterns-throw-away-the-key/
+- Article: "Eventsourcing Patterns: Forgettable Payloads", Mathias Verraes, 2019 (the alternative: PII in a deletable side store). https://verraes.net/2019/05/eventsourcing-patterns-forgettable-payloads/
+- Article: "How to deal with privacy and GDPR in Event-Driven systems", Oskar Dudycz, 2023 (crypto-shredding next to retention, compaction and forgettable payloads). https://event-driven.io/en/gdpr_in_event_driven_architecture/
+- Docs: "AWS KMS cryptography essentials", section "Envelope encryption", AWS. https://docs.aws.amazon.com/kms/latest/developerguide/kms-cryptography.html#enveloping
+- Article: "Building Searchable Encrypted Databases with PHP and SQL", Scott Arciszewski, Paragon Initiative, 2017 (blind indexes, with a key distinct from the encryption key). https://paragonie.com/blog/2017/05/building-searchable-encrypted-databases-with-php-and-sql
+- Standard: NIST SP 800-38D, "Recommendation for Block Cipher Modes of Operation: Galois/Counter Mode (GCM) and GMAC", Morris Dworkin, 2007 (IV uniqueness, AAD). https://csrc.nist.gov/pubs/sp/800/38/d/final
+
+---
+
+## 18. Leader election (`18-leader-election/`)
+
+**Pain: a job that fires N times, or a single point of failure.** Run three replicas of a scheduler, a relay or a waker (06's waker, 07's relay) and each one fires: three emails, three charges, three relays racing. Run one and it is a single point of failure.
+
+**Reach for it when** exactly one instance among several should do a piece of work at a time (a cron-like scheduler, a singleton relay or waker, a partition owner), and you already run Postgres or a coordination service.
+
+**Do not reach for it when** the work can be split instead: let every replica claim its own rows (07's relay with `FOR UPDATE SKIP LOCKED`, 06's waker with a conditional `UPDATE`), which scales and needs no leader. Two instances briefly overlapping would corrupt something that cannot check a fencing token: fix the storage side first, since no lease alone guarantees one leader. Consensus itself (replicated state, not just who leads) is the need: use etcd, ZooKeeper or Consul, never a hand-rolled protocol.
+
+Three real OS processes compete for one row in a `leases` table. The holder runs the job; the run script kills it, pauses it and stops it, and a follower takes over each time. Every acquisition bumps a term that the protected table checks as a fencing token. Last, the session-based alternative: `pg_try_advisory_lock`.
+
+### Concepts
+
+- **The lease row**: `leases (name, holder, term, renewed_at, expires_at)`. Every second each replica runs one statement (`src/replica.ts`): `INSERT ... ON CONFLICT (name) DO UPDATE ... WHERE l.holder = EXCLUDED.holder OR l.expires_at <= now()`. It extends my own lease, takes an expired one, or returns no row, which means I am a follower. The conflicting row is locked and the `WHERE` is re-checked against its latest version, so two followers racing for an expired lease cannot both win. `expires_at = now() + TTL` uses the database clock, so replica clocks never get compared with each other. TTL 3s, renew every 1s.
+- **Failover costs the TTL**: a `kill -9`ed leader cannot hand anything over. Followers wait for `expires_at` to pass, so the job stops for up to TTL + one renew interval (3.0s in the run, because the followers poll in step with the leader). That is the trade-off to tune. A short TTL means fast failover but more false failovers: a GC pause, a slow disk or a busy database longer than the TTL deposes a healthy leader. A long TTL means fewer false failovers but a longer outage when the leader really dies. Renew several times per TTL (client-go's defaults: 15s lease, 10s renew deadline, 2s retry), so one lost heartbeat is not a failover.
+- **Terms**: every acquisition, even by the previous holder after its lease expired, runs `term = term + 1`; a renewal keeps it. The term is a monotonic leadership number, like Raft's term or Chubby's sequencer.
+- **Self-fencing**: a leader that cannot confirm a renew must stop before the lease could have expired, without waiting to be told. Before each job run, the replica compares a monotonic clock (`performance.now()`) against the moment it *sent* its last successful renew. Measuring from the send time is conservative, because the server stamped `expires_at` later. Past the TTL, it skips the job. This relies on bounded clock drift: rates, not absolute times. The leader's second must not run much longer than the database's, so real systems stop a margin before the TTL (client-go: `RenewDeadline` < `LeaseDuration`).
+- **Fencing tokens** (Kleppmann): self-fencing cannot close the gap between "my check passed" and "my write arrived". A GC pause, a swap-in or a delayed packet in that gap delivers a write from a leader that is no longer one. The fix belongs in the storage. It remembers the highest term it has seen (`fence.max_term`) and rejects anything older: `check_fencing_token`, a `BEFORE INSERT` trigger that locks the fence row, raises `stale fencing token` if `NEW.term < max_term`, and otherwise stores the new maximum. `ticks` has no such check and takes the stale write; `fenced_ticks` rejects it. Every resource the leader touches (a table, an object store, an API) must check the token, or it is not protected.
+- **Graceful release**: on `SIGTERM` the leader sets `expires_at = now()` (only if it still holds that term) before exiting. A planned deploy then costs one renew interval, not a TTL. Kubernetes controllers do the same (`ReleaseOnCancel`).
+- **Session lock, `pg_try_advisory_lock`**: no table, no TTL, no heartbeat. The lock lives exactly as long as the database session that took it. A killed process loses it at once, because the kernel closes its socket. A paused process keeps it indefinitely, because its session is alive, so there is no failover at all. A client that vanished without closing its connection (host crash, cable pulled, a NAT that dropped the flow) is a half-open connection. The server keeps its session, and the lock, until TCP keepalive gives up. By default that is the OS setting: 7200s idle + 9 probes x 75s on Linux, over two hours. Set `tcp_keepalives_idle` / `_interval` / `_count`, `tcp_user_timeout` or `idle_session_timeout` to shorten it. The lock also does not fence. When the session dies, a new holder can take the lock while the old process still believes it leads, and writes it sends over other connections carry no term. Writes over the locking connection itself fail once that session is gone. Pair the lock with a counter bumped on acquisition if the protected resource must reject stale writes.
+- **Pooler trap**: a transaction-mode pooler (PgBouncer `pool_mode = transaction`) gives each transaction whichever server connection is free. A session lock taken in one transaction stays on that server connection, the unlock lands on another (`you don't own a lock of type ExclusiveLock`), and the lock stays held by an idle pooled connection that no code owns. PgBouncer lists session-level advisory locks as unsupported in transaction mode. `pg_try_advisory_xact_lock` does work there, but it ends with the transaction, so it guards one job run, not a leadership term. Take the session lock on a dedicated direct connection, or use the lease row.
+- **Why not roll your own consensus**: this sample borrows a linearizable store (one Postgres primary) and builds a lease on it. Electing a leader among peers without such a store needs a consensus protocol (Paxos, Raft, Zab). Those are notoriously hard to get right: quorum, persistence, membership changes, and the failure cases Jepsen keeps finding. If Postgres is the dependency anyway, a lease row in it is fine. The database is then the single point of failure, and a failover to a lagging replica can reset terms unless replication is synchronous. With a dedicated coordination service, use its recipes. etcd has a lease with keepalive plus `concurrency.Election`, and the revision serves as a fencing token. ZooKeeper has ephemeral sequential znodes, and the zxid or znode version serves as a token. Consul has sessions and `lock`. On Kubernetes, use a `coordination.k8s.io/v1` Lease object with client-go's `leaderelection`, whose docs state it tolerates clock skew but not skew rate, and does not guarantee a single acting leader (no fencing).
+
+### Proof (`logs/18-leader-election.log`)
+
+Without election, all three replicas run the job every second:
+
+```
+  second  | runs |   by
+ 06:25:16 |    3 | a, b, c
+ 06:25:17 |    3 | a, b, c
+ 06:25:18 |    3 | a, b, c
+ 06:25:19 |    3 | a, b, c
+```
+
+With the lease, one leader; the row's times come from the database clock:
+
+```
+   06:25:20 [b] acquired the lease, term 1
+   06:25:20 [a] follower, b leads (term 1)
+   06:25:20 [c] follower, b leads (term 1)
+   06:25:20 [b] job ran, term 1
+ scheduler | b      |    1 | 06:25:23.0 | 06:25:26.0 |          2.5
+```
+
+`kill -9` the leader: nobody runs the job until its lease expires, then a follower takes term 2:
+
+```
+   06:26:27 kill -9 c (pid 58995)
+   06:26:29 [a] acquired the lease, term 2; c's lease had expired 0.0s ago
+   06:26:29 [b] follower, a leads (term 2)
+```
+
+The leader freezes right after a renew. On resume its own check stops it before any write, and its next renew is refused:
+
+```
+   06:26:32 [a] renewed term 2, before the job's lease check: SIGSTOP now (a GC pause stand-in)
+   06:26:35 [b] acquired the lease, term 3; a's lease had expired 0.0s ago
+   06:26:37 kill -CONT a, after b took over
+   06:26:37 [a] SIGCONT: resumed
+   06:26:37 [a] self-fenced: last renew was sent 4.9s ago, past the 3s TTL, so the lease may be someone else's; job skipped
+   06:26:38 [a] renew refused: b holds term 3; stepping down
+```
+
+The leader freezes after its check passed. On resume it writes with term 3 while term 4 leads: the unfenced table takes it, the fenced one rejects it:
+
+```
+   06:26:40 [b] lease check passed for term 3, before the write: SIGSTOP now (a GC pause stand-in)
+   06:26:44 [a] acquired the lease, term 4; b's lease had expired 0.9s ago
+   06:26:46 [b] SIGCONT: resumed
+   06:26:46 [b] job ran, term 3: ticks accepted it, fenced_ticks REJECTED it (stale fencing token: term 3 < term 4 already seen)
+   06:26:47 [b] renew refused: a holds term 4; stepping down
+```
+
+The same window in both tables. `ticks` shows two leaders writing (row 27); in `fenced_ticks` the rejected insert only burned id 15:
+
+```
+ ticks                                  fenced_ticks
+ 24 | b | 3 | 06:26:39.6                12 | b | 3 | 06:26:39.6
+ 25 | a | 4 | 06:26:44.5                13 | a | 4 | 06:26:44.5
+ 26 | a | 4 | 06:26:45.5                14 | a | 4 | 06:26:45.5
+ 27 | b | 3 | 06:26:46.3
+ 28 | a | 4 | 06:26:46.5                16 | a | 4 | 06:26:46.5
+```
+
+Every leader change, with the time since the previous job run: 3.0s after the kill, 4.0s and 4.9s across the pauses, 0.9s for the graceful release:
+
+```
+ id | holder | term |     at     | gap_s
+ 13 | c      |    1 | 06:26:23.5 |
+ 17 | a      |    2 | 06:26:29.5 |   3.0
+ 20 | b      |    3 | 06:26:35.5 |   4.0
+ 25 | a      |    4 | 06:26:44.5 |   4.9
+ 27 | b      |    3 | 06:26:46.3 |   0.9
+ 28 | a      |    4 | 06:26:46.5 |   0.2
+ 31 | b      |    5 | 06:26:49.4 |   0.9
+
+   06:26:49 [a] SIGTERM: released the lease (term 4) so a follower need not wait for the TTL; exiting
+   06:26:49 [b] acquired the lease, term 5; a's lease had expired 0.3s ago
+```
+
+The session lock: a paused holder keeps it, a killed one loses it at once; the defaults leave a vanished client's session to the OS keepalive:
+
+```
+   06:26:53 [taker] pg_try_advisory_lock(18) still false after 0.0s: another session holds it
+   06:26:53 kill -STOP the holder (pid 60691)
+   06:26:57 [taker] pg_try_advisory_lock(18) still false after 4.1s: another session holds it
+   06:26:57 kill -CONT, then kill -9 the holder
+   06:26:57 [taker] pg_try_advisory_lock(18) = true on backend 415 after 0.0s
+
+ idle_session_timeout    | 0       | ms
+ tcp_keepalives_count    | 0       |
+ tcp_keepalives_idle     | 0       | s
+ tcp_keepalives_interval | 0       | s
+ tcp_user_timeout        | 0       | ms
+tcp_keepalive_time:7200
+tcp_keepalive_intvl:75
+tcp_keepalive_probes:9
+```
+
+Behind a pool, the unlock lands on the wrong connection:
+
+```
+   06:26:57 [pooler] transaction 1 runs on backend 430: pg_try_advisory_lock(18) = true
+   06:26:57 [pooler] server says: you don't own a lock of type ExclusiveLock
+   06:26:57 [pooler] transaction 2 runs on backend 431: pg_advisory_unlock(18) = false
+   06:26:57 [pooler] the lock is still held by backend 430, an idle pooled connection; it stays held until that connection closes
+   06:26:57 [pooler] pg_try_advisory_xact_lock(18) = true inside a transaction on backend 431; backend 430 meanwhile gets false
+```
+
+### Origins and further reading
+
+- Paper: "Leases: An Efficient Fault-Tolerant Mechanism for Distributed File Cache Consistency", Cary G. Gray and David R. Cheriton, SOSP 1989 (where leases come from, including the clock-drift assumption). https://dl.acm.org/doi/10.1145/74851.74870
+- Paper: "The Chubby lock service for loosely-coupled distributed systems", Mike Burrows, OSDI 2006 (coarse-grained locks, sequencers, lock-delay). https://research.google/pubs/the-chubby-lock-service-for-loosely-coupled-distributed-systems/
+- Article: "How to do distributed locking", Martin Kleppmann, 2016 (fencing tokens, why a lock with a timeout alone is unsafe). https://martin.kleppmann.com/2016/02/08/how-to-do-distributed-locking.html
+- Docs: "Leases", Kubernetes (Lease objects for leader election of control-plane components and your own controllers). https://kubernetes.io/docs/concepts/architecture/leases/
+- Docs: client-go `leaderelection` package (LeaseDuration, RenewDeadline, RetryPeriod; tolerant to clock skew, not skew rate; no fencing guarantee). https://pkg.go.dev/k8s.io/client-go/tools/leaderelection
+- Docs: "Advisory Locks", PostgreSQL 16 (session-level vs transaction-level). https://www.postgresql.org/docs/16/explicit-locking.html
+- Docs: PgBouncer features (session-level advisory locks are not supported in transaction pooling). https://www.pgbouncer.org/features.html
+
+---
+
 ---
 
 ## Which one when
@@ -966,5 +1615,10 @@ ERROR:  audit_events is append-only: TRUNCATE rejected
 - **Sharding + read replicas (11)**: one server can no longer hold the data or absorb the writes (shards), or the reads (replicas), and almost every query stays within one key. Stale reads must be acceptable wherever you read from replicas.
 - **SERIALIZABLE (12)**: an invariant spans several rows or depends on rows that do not exist yet (capacity, overbooking, on-call rules), and cannot be written as a constraint or reduced to a lock on one parent row. One-row rules only need a conditional `UPDATE` or `FOR UPDATE`.
 - **Audit trail through the outbox (13)**: several services need one audit trail of record with actors and reasons, that cannot miss a change made through the app or be edited.
+- **Service reliability (14)**: any synchronous call to another service. Timeouts and a retry policy that knows which failures are transient are the default, not an add-on. Add idempotency keys the moment a retried call has side effects (charges, orders, emails), and a breaker and bulkhead when one dependency's outage must not take the caller or its other dependencies down with it.
+- **Choreographed saga (15)**: a short, stable cross-service flow between services owned by different teams, whose events are useful beyond this flow. Once the flow grows steps, branches or timers, or you need to see one saga's state in one place, go back to 06.
+- **Multi-tenancy (16)**: many customers share one product. Pool with RLS by default (app connects as a non-owner, `FORCE`, `SET LOCAL`, `tenant_id` first in every key and index), a schema per tenant only when tenants need their own tables, and a database per tenant for the few that need their own restore, deletion, region or capacity.
+- **Crypto-shredding (17)**: personal data sits in stores you cannot rewrite (an event log, an audit store, Kafka, backups), and erasing one person must make every copy unreadable. It works only if the key store's own backups are short-lived, and your counsel should confirm that key deletion counts as erasure.
+- **Leader election (18)**: exactly one replica should run a job at a time (a scheduler, a singleton relay or waker) and the work cannot be split by claiming rows; fence every write with the term.
 
-These combine: a strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga publishes its events through an outbox; an event-sourced service can publish its events through an outbox/CDC relay.
+These combine: a strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga (15) publishes its events through per-service outboxes; every retried write between services carries 14's idempotency key; an event-sourced service (03) can publish its events through an outbox/CDC relay and keep its personal data crypto-shredded (17); a singleton relay or waker (07, 06) either claims rows or runs under a leader lease (18).
