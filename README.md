@@ -1,6 +1,6 @@
 # samples
 
-Eighteen minimal, real TypeScript examples of how to change and run a live system without breaking it: tracking change, evolving schemas, replacing code, coordinating services, publishing events, splitting data across servers, keeping invariants under concurrency, calling services that fail, isolating tenants, erasing personal data and electing a leader. 01 to 13 are numbered by complexity: read them in order, each one assumes the concepts of the ones before it. 14 to 18 were added afterwards and are not ordered that way; each assumes only the earlier samples its section points to. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
+Nineteen minimal, real TypeScript examples of how to change and run a live system without breaking it: tracking change, evolving schemas, replacing code, coordinating services, publishing events, splitting data across servers, keeping invariants under concurrency, calling services that fail, isolating tenants, erasing personal data, electing a leader and serving files over HTTP with ETags. 01 to 13 are numbered by complexity: read them in order, each one assumes the concepts of the ones before it. 14 to 19 were added afterwards and are not ordered that way; each assumes only the earlier samples its section points to. For the wider landscape (who coined what, and which books to read) see [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md).
 
 | # | Folder | Pain | New concepts | Infra | Run | Proof |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -22,6 +22,7 @@ Eighteen minimal, real TypeScript examples of how to change and run a live syste
 | 16 | [`16-multi-tenancy/`](16-multi-tenancy/) | one tenant sees another's data | pool / bridge / silo, Row-Level Security, `FORCE`, `SET LOCAL` on pooled connections, tenant-leading keys and indexes, per-tenant migrations, per-tenant `statement_timeout`, moving a tenant to its own database | Postgres (5 databases) | `./run-16-multi-tenancy.sh` | [`logs/16-multi-tenancy.log`](logs/16-multi-tenancy.log) |
 | 17 | [`17-crypto-shredding/`](17-crypto-shredding/) | erasure versus immutable data | per-subject DEK, envelope encryption (KEK), AES-256-GCM, unique IV, AAD, blind index, KEK rotation, key-store backups undo erasure | Postgres (3 databases, plus 2 restored backups) | `./run-17-crypto-shredding.sh` | [`logs/17-crypto-shredding.log`](logs/17-crypto-shredding.log) |
 | 18 | [`18-leader-election/`](18-leader-election/) | a job that fires N times, or a single point of failure | lease row on the database clock, heartbeat, terms, failover after the TTL, self-fencing, fencing tokens, graceful release, `pg_try_advisory_lock` and its pooler trap | Postgres | `./run-18-leader-election.sh` | [`logs/18-leader-election.log`](logs/18-leader-election.log) |
+| 19 | [`19-file-upload/`](19-file-upload/) | lost updates, duplicate creates, torn downloads | two-step upload, bearer scope, idempotency key, ETag as version, `If-Match` and 428/412, `If-None-Match` 304, `Range` / `If-Range` 206/416, change feed on `pg_snapshot_xmin`, `Link` cursor | Postgres, Express | `./run-19-file-upload.sh` | [`logs/19-file-upload.log`](logs/19-file-upload.log) |
 
 Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw tables as proof. Everything it prints goes to `logs/<name>.log`. Needs Docker and Node 22.
 
@@ -46,6 +47,7 @@ Ports (chosen to avoid clashing with other local services):
 | 16 | 55447 | | | |
 | 17 | 55448 | | | |
 | 18 | 55449 | | | |
+| 19 | 55450 | | | 53020 files API |
 
 ---
 
@@ -1606,6 +1608,112 @@ Behind a pool, the unlock lands on the wrong connection:
 
 ---
 
+## 19. File upload API with ETags (`19-file-upload/`)
+
+**Pain: a file API that loses writes, duplicates creates and serves torn downloads.** A client retries a create that timed out and gets two files. Two clients read version 1 and both write, and the second silently erases the first. A download resumed after the file changed splices the start of the old bytes onto the end of the new ones. A client syncing "what changed since" on `updated_at` never sees a change whose transaction committed late.
+
+**Reach for it when** clients create, overwrite and download files (or any resource) over HTTP, retry on timeouts, cache what they read, resume large downloads, or keep a local copy in sync with a change feed.
+
+**Do not reach for it when** the files are large or numerous: keep the bytes in object storage (S3, GCS), make `upload_file_url` a presigned URL the client uploads to directly, and keep only the metadata, version and state machine here; multipart or tus uploads handle resuming uploads. Only one writer ever touches a file: `If-Match` still costs nothing, but the lost update cannot happen. A client needs every change as an event, in order and pushed: publish them through an outbox (07) instead of polling a feed.
+
+An Express 5 API with metadata and content in Postgres, and a client that starts it as a separate process and runs 7 scenarios against it: `POST /v1/files` (metadata, `Idempotency-Key`), `PUT /v1/files/{fileId}/content` (`If-Match`), `GET /v1/files/{fileId}`, `GET /v1/files/{fileId}/content` (`If-None-Match`, `Range`, `If-Range`) and `GET /v1/files?changed_since=&limit=&cursor=`. Every call carries `Authorization: Bearer`.
+
+### Concepts
+
+- **Two-step upload**: `POST /v1/files` creates the metadata in `pending` and answers `upload_file_url`; `PUT` on that URL sends the bytes and moves the file to `complete`. Here the URL points back at the API. In production it is a presigned object-storage URL, and the storage's upload notification (or a `HEAD` on the object) completes the file. A declared `size` is checked on the first upload (422 otherwise); a `sha256` is computed and stored.
+- **Bearer token scoped to an owner**: every query filters on the owner the token maps to. Another owner's file is 404, not 403, so ids do not reveal which files exist. A missing or unknown token is 401 with `WWW-Authenticate: Bearer`.
+- **Idempotency-Key on POST**: the same pattern as 14, scoped per owner (`PRIMARY KEY (owner, key)`). The key row, with the full response, and the file row commit in one transaction, so a key is never claimed without its file. A retry replays the stored `201`, `ETag` and body with `Idempotent-Replayed: true`. A concurrent duplicate blocks on the primary key until the first commits, then replays: no 409 is needed when the claim and the work share a database. The same key with a different body is 422, a missing or non-UUID key is 400.
+- **ETag = version**: the ETag is the file's `version` in quotes, bumped by every write. A strong ETag must change whenever the bytes change, so `PUT` answers the *new* one (`"1"` then `"2"`): answering `"1"` again would let a stale client overwrite. Express's own automatic weak ETags are turned off.
+- **If-Match, optimistic concurrency**: `PUT` without `If-Match` is 428 Precondition Required (RFC 6585), so no client can write blind. A stale tag is 412 with the current `ETag`, so the client re-reads, merges, and retries. The check is not just the `SELECT`: the `UPDATE` itself says `WHERE version = $read`, so two writers holding the same tag cannot both pass (in the run, writer B lost the race and got 412). `If-Match` uses the strong comparison, so `W/"2"` never matches.
+- **If-None-Match, revalidation**: a client that kept the ETag gets 304 with no body while it is still current. This comparison is weak, so `W/"3"` matches `"3"`. `Cache-Control: private, no-cache` lets a client cache but makes it revalidate each time. On the content endpoint `If-None-Match` is evaluated before `Range` (RFC 9110 13.2.2).
+- **Range and If-Range**: `Range: bytes=0-9`, `bytes=10-` and `bytes=-6` get 206 with `Content-Range`; a range past the end gets 416 with `Content-Range: bytes */36`; a multi-range or malformed header is ignored and the whole content sent, which RFC 9110 allows. `If-Range` makes resuming safe: the client sends the ETag of the part it already has, and if the file changed since, the server sends the whole new file (200) instead of the rest of a different one. Without it, the run shows the spliced result.
+- **Change feed on `changed_xid`, not `updated_at`**: `updated_at = now()` is the time the writing transaction started, but other readers only see the row when it commits. A transaction that starts first and commits last produces a row stamped earlier than rows a client has already paged past, and a cursor on `updated_at` never looks back: the run shows an `updated_at` client losing a rename. The feed stores `changed_xid = pg_current_xact_id()` (64-bit, no wraparound) on every write and serves only rows whose transaction is older than every transaction still running (`changed_xid < pg_snapshot_xmin(pg_current_snapshot())`). Rows behind the cursor are then final, so keyset paging on `(changed_xid, id)` misses nothing: a late commit is held back, then served in order. A row updated again moves forward, so the feed is at-least-once: the client upserts by `fileId`.
+- **The cursor is a sync token**: it is opaque (base64url of `changed_xid, id`), the next page is in `Link: <...>; rel="next"` (RFC 8288) so the body stays the plain `[File]` array, and an empty last page still returns the cursor. The client keeps it and polls with it later. `changed_since` only picks the starting point of a first sync.
+- **What the sketch leaves out**: the xmin horizon is cluster-wide, so any long transaction (or an idle-in-transaction session) stalls the feed until it ends; set `idle_in_transaction_session_timeout`. Deletes need a tombstone row (`status = 'deleted'`) or the feed never reports them. Content lives in `bytea` and is buffered in memory, capped at 10 MB; stream it to object storage instead. The two tokens are hard-coded; a real service validates a JWT or looks the token up. Idempotency keys should expire after a retention window.
+
+### Proof (`logs/19-file-upload.log`)
+
+A retry and a concurrent duplicate both return the first file:
+
+```
+   Idempotency-Key 3595be39...
+   POST /v1/files                                                 -> 201 [etag: "1"] {"fileId":"1d414b39","status":"pending","upload_file_url":"http://localhost:53020/v1/files/1d414b39/content"}
+   POST /v1/files (retry, same key and body)                      -> 201 [etag: "1", idempotent-replayed: true] {"fileId":"1d414b39","status":"pending","upload_file_url":"http://localhost:53020/v1/files/1d414b39/content"}
+   POST /v1/files (same key, different body)                      -> 422 {"status":422,"detail":"this Idempotency-Key was already used with a different body"}
+   POST /v1/files (no Idempotency-Key)                            -> 400 {"status":400,"detail":"Idempotency-Key header must be a UUID"}
+   POST /v1/files (concurrent duplicate 1 of 2)                   -> 201 [etag: "1"] {"fileId":"8b5848b6","status":"pending","upload_file_url":"http://localhost:53020/v1/files/8b5848b6/content"}
+   POST /v1/files (concurrent duplicate 2 of 2)                   -> 201 [etag: "1", idempotent-replayed: true] {"fileId":"8b5848b6","status":"pending","upload_file_url":"http://localhost:53020/v1/files/8b5848b6/content"}
+   => 1 fileId for 2 concurrent requests; files rows named report/race/other: 2 (the duplicate waited on the key's primary key, then replayed)
+```
+
+`If-Match` rejects the stale writer, the weak tag and the concurrent loser:
+
+```
+   PUT content (no If-Match)                                      -> 428 {"status":428,"detail":"If-Match is required: send the ETag you last saw"}
+   PUT content If-Match "1", Content-Type: text/plain             -> 415 {"status":415,"detail":"Content-Type must be application/octet-stream"}
+   PUT content If-Match "1", 3 bytes (declared 25)                -> 422 {"status":422,"detail":"content is 3 bytes, the file declares 25"}
+   PUT content If-Match "1", 25 bytes                             -> 200 [etag: "2"] {"status":"complete"}
+   GET /v1/files/1d414b39                                         -> 200 [etag: "2"] {"fileId":"1d414b39","name":"report.txt","content_type":"text/plain","size":25,"sha256":"659c31985f292f5213809064e25e81ed6944b467193d53357eaac01788c46f6d","status":"complete","version":2,"created_at":"2026-09-29T11:05:45.096Z","updated_at":"2026-09-29T11:05:45.212Z"}
+   PUT content If-Match "1" (stale: someone already wrote "2")    -> 412 [etag: "2"] {"status":412,"detail":"If-Match \"1\" does not match the current ETag \"2\""}
+   PUT content If-Match W/"2" (weak never matches If-Match)       -> 412 [etag: "2"] {"status":412,"detail":"If-Match W/\"2\" does not match the current ETag \"2\""}
+   PUT content If-Match "2" (concurrent writer A)                 -> 200 [etag: "3"] {"status":"complete"}
+   PUT content If-Match "2" (concurrent writer B)                 -> 412 [etag: "3"] {"status":412,"detail":"If-Match \"2\" lost the race to a concurrent write"}
+   => exactly one writer won: version 3, content "writer A's version\n"
+```
+
+`If-None-Match` revalidates without a body:
+
+```
+   GET /v1/files/1d414b39 If-None-Match "3"                       -> 304 [etag: "3"]
+   GET /content If-None-Match "3"                                 -> 304 [etag: "3"]
+   GET /content If-None-Match W/"3"                               -> 304 [etag: "3"]
+   GET /content If-None-Match "1" (an old version)                -> 200 [etag: "3"] "writer A's version\n"
+```
+
+`If-Range` sends the whole new file instead of splicing two versions:
+
+```
+   GET /content before any PUT                                    -> 409 {"status":409,"detail":"the file has no content yet: PUT it to upload_file_url first"}
+   GET /content Range: bytes=0-9 (connection drops after this)    -> 206 [etag: "2", content-range: bytes 0-9/36] "0123456789"
+   GET /content Range: bytes=10- If-Range: "2"                    -> 206 [etag: "2", content-range: bytes 10-35/36] "abcdefghijklmnopqrstuvwxyz"
+   GET /content Range: bytes=-6 (last 6 bytes)                    -> 206 [etag: "2", content-range: bytes 30-35/36] "uvwxyz"
+   GET /content Range: bytes=100-                                 -> 416 [etag: "2", content-range: bytes */36] {"status":416,"detail":"range bytes=100- is outside the 36 bytes"}
+   PUT content If-Match "2" (the file changes)                    -> 200 [etag: "3"] {"status":"complete"}
+   GET /content Range: bytes=10- If-Range: "2" (stale)            -> 200 [etag: "3"] "ZYXWVUTSRQPONMLKJIHGFEDCBA9876543210"
+   => with If-Range the client gets the new file whole; resuming with Range alone would have spliced "0123456789PONMLKJIHGFEDCBA9876543210"
+```
+
+Paging the feed, then a late commit: the `updated_at` client loses the rename, the feed holds `b.txt` back and serves both:
+
+```
+   page 1: 200 ["a.txt","b.txt"] Link: rel=next
+   page 2: 200 ["c.txt","d.txt"] Link: rel=next
+   page 3: 200 ["e.txt"] Link: rel=next
+   page 4: 200 [] Link: rel=next
+   both clients are caught up: the updated_at client at max(updated_at), the feed client at its last cursor
+   slow transaction: renames a.txt (updated_at = its start time), not committed yet
+   meanwhile PUT b.txt content -> 200, committed
+   poll: updated_at client sees ["b.txt"] and moves its cursor past b.txt
+   poll: feed client sees        [] (b.txt is held back while an older transaction is still running)
+   slow transaction commits
+   poll: updated_at client sees [] <- the rename is lost: it is stamped before b.txt
+   poll: feed client sees        ["a-renamed.txt","b.txt"]
+   poll: feed client again       [] (nothing new; same sync token)
+```
+
+### Origins and further reading
+
+- RFC: 9110 "HTTP Semantics", sections 8.8.3 (ETag), 13 (conditional requests: If-Match, If-None-Match, If-Range, evaluation order) and 14 (range requests, 206, 416). https://www.rfc-editor.org/rfc/rfc9110
+- RFC: 6585 "Additional HTTP Status Codes" (428 Precondition Required, to prevent lost updates). https://www.rfc-editor.org/rfc/rfc6585
+- RFC: 8288 "Web Linking" (the `Link` header, `rel="next"`). https://www.rfc-editor.org/rfc/rfc8288
+- Draft: "The Idempotency-Key HTTP Header Field", IETF httpapi. https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/
+- Article: "Detecting the Lost Update Problem Using Unreserved Checkout", W3C note, 1999 (the If-Match pattern). https://www.w3.org/1999/04/Editing/
+- Docs: "Transaction ID and Snapshot Information Functions", PostgreSQL 16 (`pg_current_xact_id`, `pg_current_snapshot`, `pg_snapshot_xmin`). https://www.postgresql.org/docs/16/functions-info.html#FUNCTIONS-PG-SNAPSHOT
+- Docs: Amazon S3 presigned URLs for uploads. https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html
+- Protocol: tus, resumable uploads over HTTP. https://tus.io/protocols/resumable-upload
+
+---
+
 ## Which one when
 
 - **CRUD + audit (01)**: most apps. You need "who changed what" for compliance or support, and reads of current state dominate.
@@ -1626,5 +1734,6 @@ Behind a pool, the unlock lands on the wrong connection:
 - **Multi-tenancy (16)**: many customers share one product. Pool with RLS by default (app connects as a non-owner, `FORCE`, `SET LOCAL`, `tenant_id` first in every key and index), a schema per tenant only when tenants need their own tables, and a database per tenant for the few that need their own restore, deletion, region or capacity.
 - **Crypto-shredding (17)**: personal data sits in stores you cannot rewrite (an event log, an audit store, Kafka, backups), and erasing one person must make every copy unreadable. It works only if the key store's own backups are short-lived, and your counsel should confirm that key deletion counts as erasure.
 - **Leader election (18)**: exactly one replica should run a job at a time (a scheduler, an order-preserving relay) and the work cannot be split by claiming rows; fence every write with the term.
+- **File upload API (19)**: any HTTP resource that clients overwrite, cache, download in parts or sync: `If-Match` on every write, `If-None-Match` and `If-Range` on reads, an idempotency key on every create, and a change feed paged on a commit-safe cursor rather than a timestamp.
 
 These combine: a strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga (15) publishes its events through per-service outboxes; every retried write between services carries 14's idempotency key; an event-sourced service (03) can publish its events through an outbox/CDC relay and keep its personal data crypto-shredded (17); a singleton relay or waker (07, 06) either claims rows or runs under a leader lease (18).
