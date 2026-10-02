@@ -1,0 +1,188 @@
+# 12-choreographed-saga run 2026-09-28T06:21:44Z
+== fresh Postgres with one database per service + Kafka (docker compose down -v && up) ==
+ Container 12-choreographed-saga-kafka-1 Healthy 
+setup: 4 databases (orders, inventory, payments, shipping), each with its own outbox and processed_messages; topics order-events, inventory-events, payment-events, shipping-events (3 partitions each); keyboard stock = 10
+== demo (the inventory consumer is killed in scenario 5) ==
+note: each [service] is a separate microservice with its own database, outbox, relay and Kafka consumer group; in this toy the four run in one process against four Postgres databases in one container
+
+## 1. Who listens to whom
+   concept: no orchestrator and no step table: the flow is the sum of each service's subscriptions, read from src/services.ts
+   orders    publishes order-events (OrderPlaced), listens to inventory-events, payment-events, shipping-events
+   inventory publishes inventory-events (InventoryReserved, InventoryReleased), listens to order-events, payment-events
+   payments  publishes payment-events (PaymentCharged, PaymentFailed, PaymentRefunded), listens to inventory-events, shipping-events
+   shipping  publishes shipping-events (ShipmentCreated, ShipmentFailed), listens to payment-events
+   cycles, each side depends on the other's events: orders <-> inventory, inventory <-> payments, payments <-> shipping
+
+## 2. Happy path
+   concept: each service reacts to the previous event and publishes its own; the effect, the processed event and the outgoing event commit in one local transaction
+      -> HTTP POST orders-service/orders/order-A {"sku":"keyboard","qty":2,"amount":"84.00","address":"Paris"}
+   [orders] order-A pending, outbox <- OrderPlaced; the HTTP call returns here, the rest happens by events
+   [inventory] <- OrderPlaced order-A (order-events p2 @0): reserved 2 keyboard, outbox <- InventoryReserved
+   [orders] <- InventoryReserved order-A (inventory-events p2 @0): order pending -> reserved
+   [payments] <- InventoryReserved order-A (inventory-events p2 @0): charged 84.00, outbox <- PaymentCharged
+   [orders] <- PaymentCharged order-A (payment-events p2 @0): order reserved -> paid
+   [shipping] <- PaymentCharged order-A (payment-events p2 @0): shipment to Paris, outbox <- ShipmentCreated
+   [orders] <- ShipmentCreated order-A (shipping-events p2 @0): order paid -> completed
+
+## 3. Payment fails
+   concept: payments publishes PaymentFailed; inventory reacts by releasing, orders by rejecting; nobody tells them to
+      -> HTTP POST orders-service/orders/order-B {"sku":"keyboard","qty":1,"amount":"5000.00","address":"Paris"}
+   [orders] order-B pending, outbox <- OrderPlaced; the HTTP call returns here, the rest happens by events
+   [inventory] <- OrderPlaced order-B (order-events p0 @0): reserved 1 keyboard, outbox <- InventoryReserved
+   [payments] <- InventoryReserved order-B (inventory-events p0 @0): card declined for 5000.00, outbox <- PaymentFailed
+   [orders] <- InventoryReserved order-B (inventory-events p0 @0): order pending -> reserved
+   [orders] <- PaymentFailed order-B (payment-events p0 @0): order reserved -> rejected
+   [inventory] <- PaymentFailed order-B (payment-events p0 @0): released 1 keyboard, outbox <- InventoryReleased
+
+## 4. Last step fails
+   concept: ShipmentFailed makes payments refund, PaymentRefunded makes inventory release: the compensation runs in reverse, one event at a time
+      -> HTTP POST orders-service/orders/order-C {"sku":"keyboard","qty":3,"amount":"126.00","address":"nowhere"}
+   [orders] order-C pending, outbox <- OrderPlaced; the HTTP call returns here, the rest happens by events
+   [inventory] <- OrderPlaced order-C (order-events p0 @1): reserved 3 keyboard, outbox <- InventoryReserved
+   [orders] <- InventoryReserved order-C (inventory-events p0 @2): order pending -> reserved
+   [payments] <- InventoryReserved order-C (inventory-events p0 @2): charged 126.00, outbox <- PaymentCharged
+   [shipping] <- PaymentCharged order-C (payment-events p0 @1): address not deliverable: nowhere, outbox <- ShipmentFailed
+   [orders] <- PaymentCharged order-C (payment-events p0 @1): order reserved -> paid
+   [payments] <- ShipmentFailed order-C (shipping-events p0 @0): refunded 126.00, outbox <- PaymentRefunded
+   [orders] <- ShipmentFailed order-C (shipping-events p0 @0): order paid -> rejected
+   [inventory] <- PaymentRefunded order-C (payment-events p0 @2): released 3 keyboard, outbox <- InventoryReleased
+
+## 5. A consumer crashes before committing its Kafka offset
+   concept: inventory commits its reservation and InventoryReserved, then dies before Kafka records that it consumed OrderPlaced (the resume process picks it up)
+      -> HTTP POST orders-service/orders/order-D {"sku":"keyboard","qty":1,"amount":"42.00","address":"Lyon"}
+   [orders] order-D pending, outbox <- OrderPlaced; the HTTP call returns here, the rest happens by events
+   [inventory] <- OrderPlaced order-D (order-events p1 @0): reserved 1 keyboard, outbox <- InventoryReserved
+   [inventory] CRASH after the transaction committed, before Kafka got the offset of OrderPlaced order-D
+demo exited with 1
+
+== proof: no dual write. inventory's reservation, its InventoryReserved outbox row and the processed OrderPlaced committed together ==
+ order_id |   sku    | qty 
+----------+----------+-----
+ order-D  | keyboard |   1
+(1 row)
+
+       type        | order_id | published_at 
+-------------------+----------+--------------
+ InventoryReserved | order-D  | 
+(1 row)
+
+    type     | order_id 
+-------------+----------
+ OrderPlaced | order-D
+(1 row)
+
+== proof: yet the inventory consumer group has no committed offset on partition 1, where OrderPlaced for order-D sits at offset 0, so a restart reads it again ==
+TOPIC             PARTITION CURRENT-OFFSET LOG-END-OFFSET LAG
+order-events      0         2              2              0
+order-events      1         -              1              -
+order-events      2         1              1              0
+== proof: orders table right after the crash (order-D stuck in pending) ==
+   id    |  status   
+---------+-----------
+ order-A | completed
+ order-B | rejected
+ order-C | rejected
+ order-D | pending
+(4 rows)
+
+== resume: restart every service in a new process ==
+
+## 6. Restart: redelivery is a no-op
+   concept: Kafka redelivers OrderPlaced for order-D from the last committed offset; its event_id is already in inventory's processed_messages, so nothing is reserved twice. The relay then publishes the InventoryReserved that the crashed transaction had already committed, and the saga goes on
+   [inventory] <- OrderPlaced order-D (order-events p1 @0): DUPLICATE event_id=f0104b91 already in processed_messages, skipped
+   [orders] <- InventoryReserved order-D (inventory-events p1 @0): order pending -> reserved
+   [payments] <- InventoryReserved order-D (inventory-events p1 @0): charged 42.00, outbox <- PaymentCharged
+   [shipping] <- PaymentCharged order-D (payment-events p1 @0): shipment to Lyon, outbox <- ShipmentCreated
+   [orders] <- PaymentCharged order-D (payment-events p1 @0): order reserved -> paid
+   [orders] <- ShipmentCreated order-D (shipping-events p1 @0): order paid -> completed
+
+## 7. One topic lags: events arrive out of order
+   concept: Kafka orders events per partition of one topic, not across topics; orders stops reading inventory-events for a while, so it sees PaymentCharged before InventoryReserved. Its state machine only moves forward, so the late event cannot undo anything
+   [orders] paused on inventory-events (a slow partition, a lagging consumer)
+      -> HTTP POST orders-service/orders/order-E {"sku":"keyboard","qty":1,"amount":"42.00","address":"Lille"}
+   [orders] order-E pending, outbox <- OrderPlaced; the HTTP call returns here, the rest happens by events
+   [inventory] <- OrderPlaced order-E (order-events p0 @2): reserved 1 keyboard, outbox <- InventoryReserved
+   [payments] <- InventoryReserved order-E (inventory-events p0 @4): charged 42.00, outbox <- PaymentCharged
+   [shipping] <- PaymentCharged order-E (payment-events p0 @3): shipment to Lille, outbox <- ShipmentCreated
+   [orders] <- PaymentCharged order-E (payment-events p0 @3): order pending -> paid (jumped: an earlier event has not arrived yet)
+   [orders] <- ShipmentCreated order-E (shipping-events p0 @1): order paid -> completed
+   [orders] resumed on inventory-events
+   [orders] <- InventoryReserved order-E (inventory-events p0 @4): order is already completed, a late InventoryReserved cannot move it back to reserved, ignored
+
+== proof: every consumer group is caught up ==
+group orders    total lag 0 across 9 partitions
+group inventory total lag 0 across 6 partitions
+group payments  total lag 0 across 6 partitions
+group shipping  total lag 0 across 3 partitions
+
+## 8. Where is the saga state? Rebuild it by correlation id
+   concept: no service holds the whole saga; the order id is the correlation id (Kafka key and outbox order_id), and each event names the event that caused it (causation_id). Joining four outboxes and four processed_messages tables rebuilds what 06's saga log holds in one row
+   order-C (the orders table only says: rejected)
+   +    0ms orders    OrderPlaced       after the HTTP call                processed by inventory
+   +   53ms inventory InventoryReserved after orders OrderPlaced           processed by orders, payments
+   +  157ms payments  PaymentCharged    after inventory InventoryReserved  processed by orders, shipping
+   +  254ms shipping  ShipmentFailed    after payments PaymentCharged      processed by orders, payments
+   +  353ms payments  PaymentRefunded   after shipping ShipmentFailed      processed by inventory
+   +  359ms inventory InventoryReleased after payments PaymentRefunded     processed by nobody
+   order-D (the orders table only says: completed)
+   +    0ms orders    OrderPlaced       after the HTTP call                processed by inventory
+   +   89ms inventory InventoryReserved after orders OrderPlaced           processed by orders, payments
+   + 5737ms payments  PaymentCharged    after inventory InventoryReserved  processed by orders, shipping
+   + 5840ms shipping  ShipmentCreated   after payments PaymentCharged      processed by orders
+   order-E (the orders table only says: completed)
+   +    0ms orders    OrderPlaced       after the HTTP call                processed by inventory
+   +   87ms inventory InventoryReserved after orders OrderPlaced           processed by orders, payments
+   +   92ms payments  PaymentCharged    after inventory InventoryReserved  processed by orders, shipping
+   +  187ms shipping  ShipmentCreated   after payments PaymentCharged      processed by orders
+
+== proof: orders (D completed after the restart, E completed despite the late event) ==
+   id    |  status   
+---------+-----------
+ order-A | completed
+ order-B | rejected
+ order-C | rejected
+ order-D | completed
+ order-E | completed
+(5 rows)
+
+== proof: inventory (10 - 2 for A - 1 for D - 1 for E = 6; B and C released; D reserved once despite the redelivery) ==
+   sku    | available 
+----------+-----------
+ keyboard |         6
+(1 row)
+
+ order_id |   sku    | qty 
+----------+----------+-----
+ order-A  | keyboard |   2
+ order-D  | keyboard |   1
+ order-E  | keyboard |   1
+(3 rows)
+
+== proof: payments (C refunded, B never charged) ==
+ order_id | amount |  status  
+----------+--------+----------
+ order-A  |  84.00 | charged
+ order-C  | 126.00 | refunded
+ order-D  |  42.00 | charged
+ order-E  |  42.00 | charged
+(4 rows)
+
+== proof: shipping (only A, D, E) ==
+ order_id | address 
+----------+---------
+ order-A  | Paris
+ order-D  | Lyon
+ order-E  | Lille
+(3 rows)
+
+== proof: inventory processed OrderPlaced for order-D once, although Kafka delivered it twice ==
+    type     | order_id 
+-------------+----------
+ OrderPlaced | order-D
+(1 row)
+
+== proof: every outbox drained ==
+orders: 0 unpublished of 5
+inventory: 0 unpublished of 7
+payments: 0 unpublished of 6
+shipping: 0 unpublished of 4

@@ -137,7 +137,7 @@ Online, keep these open: martinfowler.com (bliki plus the Legacy Displacement se
 
 ## Runnable samples in this repo
 
-Fifteen of these patterns run end to end here (10-12 are data-scaling samples outside this map), in TypeScript, each with a run script and a proof log (01 to 13 are numbered by complexity; 14 to 18 were added afterwards). Concepts for each are explained in [README.md](README.md).
+Fifteen of these patterns run end to end here (07 is an HTTP API sample and 13, 14 and 16 are data-scaling samples, all outside this map), in TypeScript, each with a run script and a proof log, numbered by complexity as in the README. Concepts for each are explained in [README.md](README.md).
 
 | # | Folder | Pattern from this map | Run | Proof |
 | --- | --- | --- | --- | --- |
@@ -146,15 +146,15 @@ Fifteen of these patterns run end to end here (10-12 are data-scaling samples ou
 | 03 | [`03-event-sourcing/`](03-event-sourcing/) | Event Sourcing, optimistic concurrency, projections | `./run-03-event-sourcing.sh` | [`logs/03-event-sourcing.log`](logs/03-event-sourcing.log) |
 | 04 | [`04-parallel-run/`](04-parallel-run/) | Parallel Run with a Scientist-style experiment | `./run-04-parallel-run.sh` | [`logs/04-parallel-run.log`](logs/04-parallel-run.log) |
 | 05 | [`05-strangler-fig/`](05-strangler-fig/) | Strangler Fig behind a routing proxy | `./run-05-strangler-fig.sh` | [`logs/05-strangler-fig.log`](logs/05-strangler-fig.log) |
-| 06 | [`06-saga/`](06-saga/) | Saga (orchestration) with compensations, a recoverable saga log and a durable timer woken by a poller | `./run-06-saga.sh` | [`logs/06-saga.log`](logs/06-saga.log) |
-| 07 | [`07-outbox-polling/`](07-outbox-polling/) | Transactional Outbox with a Polling Publisher, Idempotent Consumer | `./run-07-outbox-polling.sh` | [`logs/07-outbox-polling.log`](logs/07-outbox-polling.log) |
-| 08 | [`08-cdc-debezium/`](08-cdc-debezium/) | Change Data Capture via Postgres WAL and Debezium | `./run-08-cdc-debezium.sh` | [`logs/08-cdc-debezium.log`](logs/08-cdc-debezium.log) |
-| 09 | [`09-outbox-debezium/`](09-outbox-debezium/) | Transactional Outbox relayed by transaction log tailing (Debezium EventRouter) | `./run-09-outbox-debezium.sh` | [`logs/09-outbox-debezium.log`](logs/09-outbox-debezium.log) |
-| 13 | [`13-audit-outbox/`](13-audit-outbox/) | Audit Log shipped through per-service Transactional Outboxes to a central append-only store | `./run-13-audit-outbox.sh` | [`logs/13-audit-outbox.log`](logs/13-audit-outbox.log) |
-| 14 | [`14-service-reliability/`](14-service-reliability/) | Idempotent Receiver over HTTP (idempotency keys), with timeouts, retries with full jitter, a retry budget, circuit breaker and bulkhead | `./run-14-service-reliability.sh` | [`logs/14-service-reliability.log`](logs/14-service-reliability.log) |
-| 15 | [`15-choreographed-saga/`](15-choreographed-saga/) | Saga (choreography) over per-service Transactional Outboxes, Idempotent Consumers, correlation and causation ids | `./run-15-choreographed-saga.sh` | [`logs/15-choreographed-saga.log`](logs/15-choreographed-saga.log) |
-| 16 | [`16-multi-tenancy/`](16-multi-tenancy/) | Multi-tenant data isolation (pool with Row-Level Security, bridge, silo) and moving one tenant from the pool to its own database | `./run-16-multi-tenancy.sh` | [`logs/16-multi-tenancy.log`](logs/16-multi-tenancy.log) |
-| 17 | [`17-crypto-shredding/`](17-crypto-shredding/) | Crypto-Shredding: per-subject data keys under envelope encryption, erasure by deleting the key | `./run-17-crypto-shredding.sh` | [`logs/17-crypto-shredding.log`](logs/17-crypto-shredding.log) |
-| 18 | [`18-leader-election/`](18-leader-election/) | Leader Election with a lease (heartbeat, TTL, terms) and fencing tokens, plus a session advisory lock | `./run-18-leader-election.sh` | [`logs/18-leader-election.log`](logs/18-leader-election.log) |
+| 06 | [`06-service-reliability/`](06-service-reliability/) | Idempotent Receiver over HTTP (idempotency keys), with timeouts, retries with full jitter, a retry budget, circuit breaker and bulkhead | `./run-06-service-reliability.sh` | [`logs/06-service-reliability.log`](logs/06-service-reliability.log) |
+| 08 | [`08-saga/`](08-saga/) | Saga (orchestration) with compensations, a recoverable saga log and a durable timer woken by a poller | `./run-08-saga.sh` | [`logs/08-saga.log`](logs/08-saga.log) |
+| 09 | [`09-outbox-polling/`](09-outbox-polling/) | Transactional Outbox with a Polling Publisher, Idempotent Consumer | `./run-09-outbox-polling.sh` | [`logs/09-outbox-polling.log`](logs/09-outbox-polling.log) |
+| 10 | [`10-cdc-debezium/`](10-cdc-debezium/) | Change Data Capture via Postgres WAL and Debezium | `./run-10-cdc-debezium.sh` | [`logs/10-cdc-debezium.log`](logs/10-cdc-debezium.log) |
+| 11 | [`11-outbox-debezium/`](11-outbox-debezium/) | Transactional Outbox relayed by transaction log tailing (Debezium EventRouter) | `./run-11-outbox-debezium.sh` | [`logs/11-outbox-debezium.log`](logs/11-outbox-debezium.log) |
+| 12 | [`12-choreographed-saga/`](12-choreographed-saga/) | Saga (choreography) over per-service Transactional Outboxes, Idempotent Consumers, correlation and causation ids | `./run-12-choreographed-saga.sh` | [`logs/12-choreographed-saga.log`](logs/12-choreographed-saga.log) |
+| 15 | [`15-multi-tenancy/`](15-multi-tenancy/) | Multi-tenant data isolation (pool with Row-Level Security, bridge, silo) and moving one tenant from the pool to its own database | `./run-15-multi-tenancy.sh` | [`logs/15-multi-tenancy.log`](logs/15-multi-tenancy.log) |
+| 17 | [`17-audit-outbox/`](17-audit-outbox/) | Audit Log shipped through per-service Transactional Outboxes to a central append-only store | `./run-17-audit-outbox.sh` | [`logs/17-audit-outbox.log`](logs/17-audit-outbox.log) |
+| 18 | [`18-crypto-shredding/`](18-crypto-shredding/) | Crypto-Shredding: per-subject data keys under envelope encryption, erasure by deleting the key | `./run-18-crypto-shredding.sh` | [`logs/18-crypto-shredding.log`](logs/18-crypto-shredding.log) |
+| 19 | [`19-leader-election/`](19-leader-election/) | Leader Election with a lease (heartbeat, TTL, terms) and fencing tokens, plus a session advisory lock | `./run-19-leader-election.sh` | [`logs/19-leader-election.log`](logs/19-leader-election.log) |
 
 Natural next ones, not built yet: branch by abstraction, feature-toggle cutover, and an anti-corruption layer in front of the legacy model.

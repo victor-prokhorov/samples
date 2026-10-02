@@ -1,0 +1,177 @@
+# 19-leader-election run 2026-09-28T06:26:18Z
+== fresh Postgres (docker compose down -v && up) ==
+ Container 19-leader-election-postgres-1 Healthy 
+setup: leases (one row per job), ticks (the job's output, unfenced), fenced_ticks (same, guarded by a fencing-token trigger)
+
+## 1. No election
+   concept: three replicas of a cron-like job (every second, insert a row into ticks): each one runs it, so the job fires three times per second
+   06:26:19 [b] started (pid 58905), no election
+   06:26:19 [a] started (pid 58904), no election
+   06:26:19 [c] started (pid 58906), no election
+   06:26:19 [c] job ran
+   06:26:19 [b] job ran
+   06:26:19 [a] job ran
+   06:26:20 [b] job ran
+   06:26:20 [a] job ran
+   06:26:20 [c] job ran
+   06:26:21 [c] job ran
+   06:26:21 [a] job ran
+   06:26:21 [b] job ran
+   06:26:22 [b] job ran
+   06:26:22 [c] job ran
+   06:26:22 [a] job ran
+   06:26:23 [a] SIGTERM: exiting
+   06:26:23 [b] SIGTERM: exiting
+   06:26:23 [c] SIGTERM: exiting
+== proof: without election the job ran three times every second ==
+  second  | runs |   by    
+----------+------+---------
+ 06:26:19 |    3 | a, b, c
+ 06:26:20 |    3 | a, b, c
+ 06:26:21 |    3 | a, b, c
+ 06:26:22 |    3 | a, b, c
+(4 rows)
+
+
+## 2. Lease in Postgres
+   concept: each replica runs one statement every second: take the scheduler row if it is expired, or extend it if it is already mine; expires_at comes from the database's now(), never a local clock; only the holder runs the job
+   06:26:23 [c] started (pid 58995), lease TTL 3s, renew every 1s
+   06:26:23 [a] started (pid 58993), lease TTL 3s, renew every 1s
+   06:26:23 [b] started (pid 58994), lease TTL 3s, renew every 1s
+   06:26:23 [c] acquired the lease, term 1
+   06:26:23 [a] follower, c leads (term 1)
+   06:26:23 [c] job ran, term 1
+   06:26:23 [b] follower, c leads (term 1)
+   06:26:24 [c] job ran, term 1
+   06:26:25 [c] job ran, term 1
+   06:26:26 [c] job ran, term 1
+== proof: one lease row, one holder; expires_at is on the database clock ==
+   name    | holder | term | renewed_at | expires_at | expires_in_s 
+-----------+--------+------+------------+------------+--------------
+ scheduler | c      |    1 | 06:26:26.5 | 06:26:29.5 |          2.5
+(1 row)
+
+
+## 3. Leader killed (kill -9)
+   concept: a dead leader cannot release anything; the followers wait until expires_at passes, so failover costs up to the TTL plus one renew interval, and the job does not run meanwhile
+   06:26:27 kill -9 c (pid 58995)
+   06:26:29 [a] acquired the lease, term 2; c's lease had expired 0.0s ago
+   06:26:29 [b] follower, a leads (term 2)
+   06:26:29 [a] job ran, term 2
+   06:26:29 a holds the lease
+   06:26:30 [a] job ran, term 2
+   06:26:31 [a] job ran, term 2
+
+## 4. Leader paused right after a renew: self-fencing
+   concept: the leader freezes past its TTL; a follower takes over with a higher term; on resume, the old leader's own check (last renew sent more than a TTL ago on its monotonic clock) stops the job before any write
+   06:26:31 kill -USR2 a: stop right after the next renew
+   06:26:32 [a] renewed term 2, before the job's lease check: SIGSTOP now (a GC pause stand-in)
+   06:26:35 [b] acquired the lease, term 3; a's lease had expired 0.0s ago
+   06:26:35 [b] job ran, term 3
+   06:26:36 [b] job ran, term 3
+   06:26:37 kill -CONT a, after b took over
+   06:26:37 [a] SIGCONT: resumed
+   06:26:37 [a] self-fenced: last renew was sent 4.9s ago, past the 3s TTL, so the lease may be someone else's; job skipped
+   06:26:37 [b] job ran, term 3
+   06:26:38 [a] renew refused: b holds term 3; stepping down
+   06:26:38 [b] job ran, term 3
+   06:26:39 [b] job ran, term 3
+
+## 5. Paused after its check: fencing tokens
+   concept: the pause lands between the lease check and the write, so the check was true and the stale write goes out; ticks takes it (two leaders wrote), fenced_ticks rejects it because it has already seen a higher term
+   06:26:40 kill -USR1 b: stop right after the next lease check
+   06:26:40 [b] lease check passed for term 3, before the write: SIGSTOP now (a GC pause stand-in)
+   06:26:44 [a] acquired the lease, term 4; b's lease had expired 0.9s ago
+   06:26:44 [a] job ran, term 4
+   06:26:45 [a] job ran, term 4
+   06:26:46 kill -CONT b, after a took over
+   06:26:46 [b] SIGCONT: resumed
+   06:26:46 [b] job ran, term 3: ticks accepted it, fenced_ticks REJECTED it (stale fencing token: term 3 < term 4 already seen)
+   06:26:46 [a] job ran, term 4
+   06:26:47 [b] renew refused: a holds term 4; stepping down
+   06:26:47 [a] job ran, term 4
+   06:26:48 [a] job ran, term 4
+
+## 6. Graceful handover
+   concept: on SIGTERM the leader sets expires_at = now() before exiting, so a follower takes over on its next heartbeat instead of after the TTL
+   06:26:49 kill -TERM a
+   06:26:49 [a] SIGTERM: released the lease (term 4) so a follower need not wait for the TTL; exiting
+   06:26:49 [b] acquired the lease, term 5; a's lease had expired 0.3s ago
+   06:26:49 [b] job ran, term 5
+   06:26:50 [b] job ran, term 5
+   06:26:51 [b] SIGTERM: released the lease (term 5) so a follower need not wait for the TTL; exiting
+== proof: one row per leader change in ticks, with the gap since the previous job run ==
+ id | holder | term |     at     | gap_s 
+----+--------+------+------------+-------
+ 13 | c      |    1 | 06:26:23.5 |      
+ 17 | a      |    2 | 06:26:29.5 |   3.0
+ 20 | b      |    3 | 06:26:35.5 |   4.0
+ 25 | a      |    4 | 06:26:44.5 |   4.9
+ 27 | b      |    3 | 06:26:46.3 |   0.9
+ 28 | a      |    4 | 06:26:46.5 |   0.2
+ 31 | b      |    5 | 06:26:49.4 |   0.9
+(7 rows)
+
+== proof: from b's last write before its pause on, ticks took the stale write, fenced_ticks did not ==
+ id | holder | term |     at     
+----+--------+------+------------
+ 24 | b      |    3 | 06:26:39.6
+ 25 | a      |    4 | 06:26:44.5
+ 26 | a      |    4 | 06:26:45.5
+ 27 | b      |    3 | 06:26:46.3
+ 28 | a      |    4 | 06:26:46.5
+ 29 | a      |    4 | 06:26:47.5
+ 30 | a      |    4 | 06:26:48.5
+(7 rows)
+
+ id | holder | term |     at     
+----+--------+------+------------
+ 12 | b      |    3 | 06:26:39.6
+ 13 | a      |    4 | 06:26:44.5
+ 14 | a      |    4 | 06:26:45.5
+ 16 | a      |    4 | 06:26:46.5
+ 17 | a      |    4 | 06:26:47.5
+ 18 | a      |    4 | 06:26:48.5
+(6 rows)
+
+   resource   | max_term 
+--------------+----------
+ fenced_ticks |        5
+(1 row)
+
+
+## 7. Session lock: pg_try_advisory_lock
+   concept: no row, no TTL: the lock lives exactly as long as the holder's database session; a paused holder keeps it (its session is alive), a killed one loses it at once (the kernel closes its socket)
+   06:26:51 [holder] pg_try_advisory_lock(18) = true on backend 405 (pid 60691); holding it, with no lease row and no heartbeat
+ locktype | objid | pid |     mode      | granted 
+----------+-------+-----+---------------+---------
+ advisory |    18 | 405 | ExclusiveLock | t
+(1 row)
+
+   06:26:53 [taker] pg_try_advisory_lock(18) still false after 0.0s: another session holds it
+   06:26:53 kill -STOP the holder (pid 60691)
+   06:26:57 [taker] pg_try_advisory_lock(18) still false after 4.1s: another session holds it
+   06:26:57 kill -CONT, then kill -9 the holder
+   06:26:57 [taker] pg_try_advisory_lock(18) = true on backend 415 after 0.0s
+== proof: what ends a session whose client vanished without closing it (0 = off, or the OS default for keepalives) ==
+          name           | setting | unit 
+-------------------------+---------+------
+ idle_session_timeout    | 0       | ms
+ tcp_keepalives_count    | 0       | 
+ tcp_keepalives_idle     | 0       | s
+ tcp_keepalives_interval | 0       | s
+ tcp_user_timeout        | 0       | ms
+(5 rows)
+
+tcp_keepalive_time:7200
+tcp_keepalive_intvl:75
+tcp_keepalive_probes:9
+
+## 8. Behind a transaction-mode pooler
+   concept: a pooler hands each transaction whichever server connection is free; two pooled connections stand in for it here
+   06:26:57 [pooler] transaction 1 runs on backend 430: pg_try_advisory_lock(18) = true
+   06:26:57 [pooler] server says: you don't own a lock of type ExclusiveLock
+   06:26:57 [pooler] transaction 2 runs on backend 431: pg_advisory_unlock(18) = false
+   06:26:57 [pooler] the lock is still held by backend 430, an idle pooled connection; it stays held until that connection closes
+   06:26:57 [pooler] pg_try_advisory_xact_lock(18) = true inside a transaction on backend 431; backend 430 meanwhile gets false
+   06:26:57 [pooler] after COMMIT the xact lock is gone: backend 431 gets true; safe behind a transaction pooler, but it covers one transaction, not a leadership term

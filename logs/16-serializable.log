@@ -1,0 +1,57 @@
+# 16-serializable run 2026-09-27T13:26:00Z
+== fresh Postgres (docker compose down -v && up) ==
+ Container 16-serializable-postgres-1 Healthy 
+setup: products (stock counter), events (capacity), tickets (UNIQUE (event_id, seat))
+== demo: 20 concurrent buyers per scenario, 10 items available ==
+
+## 1. Lost update (READ COMMITTED)
+   concept: read stock, compute stock - 1 in the app, write it back: concurrent buyers overwrite each other
+   20 buyers: 20 told "sold", 0 told "sold out"
+   database: 1 recorded as sold for 10 available -> OVERSOLD
+   stock left: 9 (every buyer read 10 and wrote 9)
+
+## 2. Not needed: REPEATABLE READ catches the lost update
+   concept: the second writer of the same row gets 40001 instead of overwriting; retry the transaction and it reads the new stock
+   20 buyers: 10 told "sold", 10 told "sold out"
+   database: 10 recorded as sold for 10 available -> correct
+   aborted with: could not serialize access due to concurrent update
+   retries this run: 142
+
+## 3. Not needed: one atomic statement
+   concept: UPDATE ... SET stock = stock - 1 WHERE stock > 0 locks the row and re-checks the condition; READ COMMITTED is enough
+   20 buyers: 10 told "sold", 10 told "sold out"
+   database: 10 recorded as sold for 10 available -> correct
+
+## 4. Not needed: a unique constraint
+   concept: 20 buyers want seat A1; the check in the app is racy, but UNIQUE (event_id, seat) rejects every duplicate at insert
+   20 buyers: 1 told "sold", 19 told "sold out"
+   database: 1 recorded as sold for 1 available -> correct
+
+## 5. Write skew (READ COMMITTED)
+   concept: capacity is a rule over many rows: count the tickets, then insert a new one; the ticket rows that would conflict do not exist yet, so all buyers pass the check
+   20 buyers: 20 told "sold", 0 told "sold out"
+   database: 20 recorded as sold for 10 available -> OVERSOLD
+
+## 6. Write skew (REPEATABLE READ)
+   concept: a snapshot makes each transaction's reads stable, but they still do not see each other's inserts: same oversell
+   20 buyers: 20 told "sold", 0 told "sold out"
+   database: 20 recorded as sold for 10 available -> OVERSOLD
+
+## 7. Needed: SERIALIZABLE, with retries
+   concept: Postgres tracks read/write dependencies (SSI) and aborts one side of each conflict with 40001; the app retries the whole transaction
+   20 buyers: 10 told "sold", 10 told "sold out"
+   database: 10 recorded as sold for 10 available -> correct
+   aborted with: could not serialize access due to read/write dependencies among transactions
+   retries this run: 142
+
+## 8. Alternative: lock the parent row
+   concept: SELECT ... FROM events FOR UPDATE turns the many-row rule into a one-row lock; READ COMMITTED, no retries, but buyers queue
+   20 buyers: 10 told "sold", 10 told "sold out"
+   database: 10 recorded as sold for 10 available -> correct
+
+== proof: last scenario (row lock), exactly 10 tickets, 10 distinct buyers ==
+ tickets | buyers 
+---------+--------
+      10 |     10
+(1 row)
+

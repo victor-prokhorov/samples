@@ -1,0 +1,125 @@
+# 06-service-reliability run 2026-09-28T06:21:36Z
+== fresh Postgres for the payments service (docker compose down -v && up) ==
+ Container 06-service-reliability-postgres-1 Healthy 
+setup: database payments with charges and idempotency_keys (key is the primary key)
+== demo: the caller (this process) against payments, a separate process it starts, kills and restarts ==
+   [payments pid 55069] listening on :53010, catalog on :53011
+caller pid 55067 -> payments :53010 (a separate process with its own Postgres database), catalog :53011
+
+## 1. Timeouts, then deadline propagation
+   concept: a call without a deadline waits as long as the dependency does; a timeout frees the caller, and sending the remaining budget (x-deadline-ms) lets the dependency stop working for a caller that already left
+   payments /quote is degraded: 1500ms of database work per request (pg_sleep). 10 concurrent calls each time
+   no timeout                     caller: waited 1526-1529ms, 10 ok
+                                  payments: 10 queries ran to completion, 0 cancelled at the deadline, 15204ms of DB time in total, 0 answers written to a closed connection
+   200ms timeout                  caller: waited 201-203ms, 10 timeout (no reply within 200ms)
+                                  payments: 10 queries ran to completion, 0 cancelled at the deadline, 15050ms of DB time in total, 10 answers written to a closed connection
+   200ms timeout + x-deadline-ms  caller: waited 201-202ms, 10 timeout (no reply within 200ms)
+                                  payments: 0 queries ran to completion, 10 cancelled at the deadline, 2045ms of DB time in total, 10 answers written to a closed connection
+
+## 2. Bulkhead: one slow dependency must not starve the others
+   concept: a caller shares sockets (or threads) across dependencies; when one hangs it holds them all, so give each dependency its own bounded pool and reject beyond it
+   payments stays degraded (1500ms), catalog is healthy. 10 payment calls go out, then 3 catalog calls 50ms later
+   one shared pool (10 sockets)  payments: 10 ok; catalog waited 1457-1458ms (queued behind payments)
+   bulkhead (payments limit 4)   payments: 4 ok, 6 bulkhead-full (4 calls already in flight), rejections took 0ms; catalog waited 2ms
+
+## 3. Retry only what can succeed next time
+   concept: timeouts, connection resets, 503 and 429 are transient and worth retrying; a 400 will fail the same way forever. Backoff with full jitter, max 4 attempts, 300ms per attempt, 2s overall deadline
+   payments will answer: 503, 503, then ok
+      attempt 1: HTTP 503 service unavailable -> retry in 20ms
+      attempt 2: HTTP 503 service unavailable -> retry in 187ms
+      => ok after 210ms; payments received 3 request(s)
+   payments will answer: slow (timeout), then ok
+      attempt 1: timeout (no reply within 300ms) -> retry in 96ms
+      => ok after 398ms; payments received 2 request(s)
+   payments will answer: connection reset, then ok
+      attempt 1: network (socket hang up) -> retry in 18ms
+      => ok after 21ms; payments received 2 request(s)
+   payments will answer: 400 bad request
+      attempt 1: HTTP 400 invalid amount -> not retryable, give up
+      => failed: HTTP 400 invalid amount after 0ms; payments received 1 request(s)
+   payments will answer: 503 forever
+      attempt 1: HTTP 503 service unavailable -> retry in 71ms
+      attempt 2: HTTP 503 service unavailable -> retry in 50ms
+      attempt 3: HTTP 503 service unavailable -> retry in 372ms
+      attempt 4: HTTP 503 service unavailable -> max attempts reached, give up
+      => failed: HTTP 503 service unavailable after 496ms; payments received 4 request(s)
+
+## 4. Retry storms: synchronized vs jittered retries, and a retry budget
+   concept: 100 callers hit payments at the same instant (a deploy, a cache expiry). Payments serves 5 requests per 25ms (200/s) and sheds the rest with 503. Every caller retries up to 5 attempts, base 100ms, doubling
+   immediate retries
+      arrivals per 100ms: 465
+      465 requests reached payments for 100 callers; 10 succeeded, 90 gave up; slowest caller done after 32ms
+   exponential backoff, no jitter (100, 200, 400, 800ms: every caller retries at the same instants)
+      arrivals per 100ms: 100  95   0  90   0   0   0  85   0   0   0   0   0   0   0  80
+      450 requests reached payments for 100 callers; 25 succeeded, 75 gave up; slowest caller done after 1523ms
+   exponential backoff, full jitter (random between 0 and 100, 200, 400, 800ms)
+      arrivals per 100ms: 211  42  41  15  10   7   3   3   0   2   1   1
+      336 requests reached payments for 100 callers; 100 succeeded, 0 gave up; slowest caller done after 1136ms
+   payments is fully down (503 for everything): retries cannot help, they only multiply the load
+   full jitter, no budget
+      arrivals per 100ms: 220  73  48  27  30  30  17   7  10  17  10   8   3
+      500 requests reached payments for 100 callers; 0 succeeded, 100 gave up; slowest caller done after 1288ms
+   full jitter + retry budget (each request earns 0.1 retry token, a retry costs 1, at most 10 banked)
+      arrivals per 100ms: 109   1
+      110 requests reached payments for 100 callers; 0 succeeded, 100 gave up; slowest caller done after 99ms
+
+## 5. Idempotency keys: retrying a POST without charging twice
+   concept: a timeout says nothing about whether the server committed; the caller sends one Idempotency-Key per logical charge and reuses it on every retry, the server stores the response under that key in the same transaction as the charge and replays it
+   alice, no key. payments commits the charge, then answers after 1000ms
+      attempt 1: timeout (no reply within 300ms) -> retry in 67ms
+      => 201 {"id":2,"customer":"alice","amount":"42.00"}
+   bob, key charge-bob-1. same fault
+      attempt 1: timeout (no reply within 300ms) -> retry in 85ms
+      => 201 {"id":3,"amount":"42.00","customer":"bob"} (idempotent-replayed: stored response, no new charge)
+   carol, key charge-carol-1 sent twice at once (a double click). payments holds the first transaction open for 1000ms
+      attempt 1: HTTP 409 a request with this key is in flight -> retry in 1000ms
+      => 201 {"id":4,"customer":"carol","amount":"42.00"}
+      => 201 {"id":4,"amount":"42.00","customer":"carol"} (idempotent-replayed: stored response, no new charge)
+   bob again, same key charge-bob-1 but amount 99.00
+      attempt 1: HTTP 422 idempotency key reused with a different request -> not retryable, give up
+      => rejected: HTTP 422 idempotency key reused with a different request
+
+## 6. Circuit breaker: fail fast while the dependency is down
+   concept: after 5 consecutive failures the breaker opens and calls fail at once without touching payments; after a 1000ms cooldown it goes half-open and lets one probe through; the probe's result closes or reopens it
+   the caller receives a request every 50ms and calls payments /quote with a 200ms timeout; payments is degraded (1500ms)
+   without a breaker, 2s: 40 timeout (no reply within 200ms); each took 200-202ms; payments received 40 requests
+      t+ 408ms breaker closed -> open (5 consecutive failures)
+      t+1427ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+1629ms breaker half-open -> open (probe failed: timeout (no reply within 200ms))
+   with a breaker, 2s degraded: 9 timeout (no reply within 200ms), 31 breaker-open; payments received 9 requests; fast failures took 0ms
+   [payments pid 55069] killed
+      t+2647ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+2648ms breaker half-open -> open (probe failed: network (ECONNREFUSED))
+      t+3665ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+3667ms breaker half-open -> open (probe failed: network (ECONNREFUSED))
+   with a breaker, 1.5s down: 28 breaker-open, 2 network (ECONNREFUSED)
+   [payments pid 55334] listening on :53010, catalog on :53011
+   t+3976ms payments restarted, healthy
+      t+4685ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+4687ms breaker half-open -> closed (probe succeeded)
+   with a breaker, 1.5s healed: 14 breaker-open, 16 ok
+   [payments pid 55334] killed
+
+== proof: charges. alice was charged twice by a retry without a key; bob and carol once each, despite a retry, a concurrent duplicate and a reused key ==
+ id | customer | amount | idempotency_key 
+----+----------+--------+-----------------
+  1 | alice    |  42.00 | 
+  2 | alice    |  42.00 | 
+  3 | bob      |  42.00 | charge-bob-1
+  4 | carol    |  42.00 | charge-carol-1
+(4 rows)
+
+ customer | charges | total 
+----------+---------+-------
+ alice    |       2 | 84.00
+ bob      |       1 | 42.00
+ carol    |       1 | 42.00
+(3 rows)
+
+== proof: one stored response per key, written in the same transaction as its charge ==
+      key       | response_status |                   response_body                   
+----------------+-----------------+---------------------------------------------------
+ charge-bob-1   |             201 | {"id": 3, "amount": "42.00", "customer": "bob"}
+ charge-carol-1 |             201 | {"id": 4, "amount": "42.00", "customer": "carol"}
+(2 rows)
+
