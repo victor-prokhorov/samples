@@ -1,0 +1,288 @@
+# 31-runbook run 2026-10-02T16:10:48Z
+== fresh Postgres, no release recorded, no service running (docker compose down -v && up) ==
+ Container 31-runbook-postgres-1 Healthy 
+== demo: runbooks in Markdown, executed by src/runner.ts, against Postgres and the member service on :53041 ==
+
+## 1. docs-lint
+   concept: every runbook has Owner, Parameters and the four sections in order, each with steps that hold an sh or manual block; every ADR has a number, a date, a valid status and Context/Decision/Consequences; links resolve
+   fixtures/broken-docs/runbooks/restore-backup.md: no 'Parameters:' line (write 'Parameters: none')
+   fixtures/broken-docs/runbooks/restore-backup.md: no '## Preconditions' section
+   fixtures/broken-docs/runbooks/restore-backup.md: '## Verification' has no '### step'
+   fixtures/broken-docs/runbooks/restore-backup.md: no '## Rollback' section
+   fixtures/broken-docs/docs/adr/0004-use-a-message-queue.md: no '# N. Title' heading
+   fixtures/broken-docs/docs/adr/0004-use-a-message-queue.md: no 'Date: YYYY-MM-DD' line
+   fixtures/broken-docs/docs/adr/0004-use-a-message-queue.md: no '## Status' section
+   fixtures/broken-docs/docs/adr/0004-use-a-message-queue.md: no '## Consequences' section
+   fixtures/broken-docs/docs/onboarding.md: missing: every team needs an onboarding checklist
+   real docs: runbooks/monthly-data-update.md, runbooks/rollback.md, runbooks/scheduled-release.md, runbooks/user-request.md, docs/adr/0001-record-architecture-decisions.md, docs/adr/0002-executable-runbooks.md, docs/adr/0003-scheduled-releases-with-down-migrations.md, docs/onboarding.md: 0 problem(s)
+
+## 2. First scheduled release: v1
+   concept: the runner parses the Markdown and runs Preconditions, Steps and Verification in order; every step and its outcome is stored in ops.runs / ops.steps
+runbook #1: Scheduled release (runbooks/scheduled-release.md) VERSION=v1 MIGRATION=1, operator alice
+  preconditions
+    1. The database is reachable
+      [ok] 0.2s
+    2. The release has its migration
+      | migrations/001_members.down.sql
+      | migrations/001_members.up.sql
+      [ok] 0.0s
+    3. No change freeze is in force
+      [ok] 0.0s
+  steps
+    1. Record the running release, so rollback knows where to return
+      | VERSION=none
+      | MIGRATION=0
+      [ok] 0.0s
+    2. Back up the database
+      | 5143 .run/backup-before-v1.sql
+      [ok] 0.3s
+    3. Migrate the schema
+      | migrate up 001_members
+      | schema version 1
+      [ok] 0.8s
+    4. Restart the service on the new version
+      | not running
+      | started v1 (pid 21068)
+      [ok] 0.4s
+    5. Smoke test
+      | GET /health -> {"status":"ok","version":"v1"}
+      | GET /members/1 -> {"id":1,"name":"alice","email":"alice@old.example"} 200
+      [ok] 0.0s
+    6. Record the new release
+      [ok] 0.0s
+  verification
+    1. The service reports the new version
+      [ok] 0.0s
+    2. The schema is at the release's migration
+      [ok] 0.2s
+runbook #1: succeeded
+   => exit 0
+
+## 3. Scheduled release v2
+   concept: the backup, the migration, the restart and the smoke test are the same every time, whoever is on call
+runbook #2: Scheduled release (runbooks/scheduled-release.md) VERSION=v2 MIGRATION=2, operator alice
+  preconditions
+    1. The database is reachable
+      [ok] 0.2s
+    2. The release has its migration
+      | migrations/002_preferred_name.down.sql
+      | migrations/002_preferred_name.up.sql
+      [ok] 0.0s
+    3. No change freeze is in force
+      [ok] 0.0s
+  steps
+    1. Record the running release, so rollback knows where to return
+      | VERSION=v1
+      | MIGRATION=1
+      [ok] 0.0s
+    2. Back up the database
+      | 14062 .run/backup-before-v2.sql
+      [ok] 0.3s
+    3. Migrate the schema
+      | migrate up 002_preferred_name
+      | schema version 2
+      [ok] 0.8s
+    4. Restart the service on the new version
+      | stopped pid 21068
+      | started v2 (pid 22208)
+      [ok] 1.9s
+    5. Smoke test
+      | GET /health -> {"status":"ok","version":"v2"}
+      | GET /members/1 -> {"id":1,"name":"alice","email":"alice@old.example","preferred_name":null} 200
+      [ok] 0.1s
+    6. Record the new release
+      [ok] 0.0s
+  verification
+    1. The service reports the new version
+      [ok] 0.0s
+    2. The schema is at the release's migration
+      [ok] 0.2s
+runbook #2: succeeded
+   => exit 0
+
+## 4. Monthly data update, then the same file again
+   concept: preconditions guard what must be true before anything changes: the second run stops at 'not loaded before', exit 2, and nothing is touched
+runbook #3: Monthly data update (runbooks/monthly-data-update.md) FILE=data/contributions-2026-09.csv PERIOD=2026-09, operator alice
+  preconditions
+    1. The file is there and has not been loaded before
+      | sha256 92e7a1ad1c61, batches already loaded from this file: 0
+      [ok] 0.2s
+    2. Every row is for the period being loaded
+      [ok] 0.0s
+  steps
+    1. Load the file into staging
+      | 3 rows staged
+      [ok] 0.6s
+    2. Check every member exists
+      | unknown members: 0
+      [ok] 0.2s
+    3. Apply in one transaction and record the batch
+      [ok] 0.2s
+  verification
+    1. Control total: the database matches the file
+      | file 1102.75, database 1102.75
+      [ok] 0.2s
+runbook #3: succeeded
+   => exit 0
+runbook #4: Monthly data update (runbooks/monthly-data-update.md) FILE=data/contributions-2026-09.csv PERIOD=2026-09, operator alice
+  preconditions
+    1. The file is there and has not been loaded before
+      | sha256 92e7a1ad1c61, batches already loaded from this file: 1
+      [FAILED (exit 1)] 0.2s
+runbook #4: precondition failed: nothing was changed
+   => exit 2
+   contributions: 3 rows, total 1102.75, 1 batch
+
+## 5. A member request with manual steps
+   concept: a manual block is a step only a person can do; without an operator (no terminal, no --yes) the runner stops there and prints the rollback, and nothing after it runs
+runbook #5: Handle a member's change request (runbooks/user-request.md) MEMBER_ID=1 NEW_EMAIL=alice@new.example TICKET=SUP-1042, operator alice
+  preconditions
+    1. The member exists
+      | 1 alice alice@old.example
+      [ok] 0.2s
+  steps
+    1. Verify the member's identity
+      | MANUAL: Call the member back on the phone number their employer holds (not the one in the email) and confirm the request.
+      [not confirmed] 0.0s
+  stopped at "1. Verify the member's identity". Rollback (runbooks/user-request.md):
+    1. Restore the previous email
+      $ ops/psql.sh -c "UPDATE members m SET email = c.old_value FROM member_changes c WHERE c.ticket = '$TICKET' AND m.id = c.member_id"
+runbook #5: failed, rollback printed for the operator
+   => exit 1
+runbook #6: Handle a member's change request (runbooks/user-request.md) MEMBER_ID=1 NEW_EMAIL=alice@new.example TICKET=SUP-1042, operator alice
+  preconditions
+    1. The member exists
+      | 1 alice alice@old.example
+      [ok] 0.2s
+  steps
+    1. Verify the member's identity
+      | MANUAL: Call the member back on the phone number their employer holds (not the one in the email) and confirm the request.
+      [ok] 0.0s
+    2. Change the email, keeping the old value
+      [ok] 0.2s
+    3. Reply to the member
+      | MANUAL: Reply on the ticket: the change is done, and the next statement will go to the new address.
+      [ok] 0.0s
+  verification
+    1. The new email is stored and audited
+      [ok] 0.4s
+runbook #6: succeeded
+   => exit 0
+
+## 6. Release v3 fails its smoke test and rolls back
+   concept: a failed step stops the runbook, prints its Rollback section and, with --rollback auto, runs it: here that is rollback.md, the same procedure an engineer runs by hand
+runbook #7: Scheduled release (runbooks/scheduled-release.md) VERSION=v3 MIGRATION=3, operator alice
+  preconditions
+    1. The database is reachable
+      [ok] 0.2s
+    2. The release has its migration
+      | migrations/003_statement_preference.down.sql
+      | migrations/003_statement_preference.up.sql
+      [ok] 0.0s
+    3. No change freeze is in force
+      [ok] 0.0s
+  steps
+    1. Record the running release, so rollback knows where to return
+      | VERSION=v2
+      | MIGRATION=2
+      [ok] 0.0s
+    2. Back up the database
+      | 17729 .run/backup-before-v3.sql
+      [ok] 0.3s
+    3. Migrate the schema
+      | migrate up 003_statement_preference
+      | schema version 3
+      [ok] 0.8s
+    4. Restart the service on the new version
+      | stopped pid 22208
+      | started v3 (pid 25072)
+      [ok] 1.7s
+    5. Smoke test
+      | GET /health -> {"status":"ok","version":"v3"}
+      | GET /members/1 -> {"error":"column \"statement_pref\" does not exist"} 500
+      | member page is broken
+      [FAILED (exit 1)] 0.0s
+  stopped at "5. Smoke test". Rollback (runbooks/scheduled-release.md):
+    1. Roll back to the recorded release
+      $ npx tsx src/runner.ts runbooks/rollback.md --operator "$RUNBOOK_OPERATOR" --parent "$RUNBOOK_RUN_ID"
+  rollback
+    1. Roll back to the recorded release
+      | runbook #8: Roll back a release (runbooks/rollback.md), operator alice
+      |   preconditions
+      |     1. A previous release is recorded
+      |       | VERSION=v2
+      |       | MIGRATION=2
+      |       [ok] 0.0s
+      |   steps
+      |     1. Stop the service
+      |       | stopped pid 25072
+      |       [ok] 1.8s
+      |     2. Migrate the schema down to the previous release
+      |       | migrate down 003_statement_preference
+      |       | schema version 2
+      |       [ok] 0.9s
+      |     3. Start the previous version
+      |       | started v2 (pid 25916)
+      |       [ok] 0.5s
+      |     4. Smoke test
+      |       | GET /health -> {"status":"ok","version":"v2"}
+      |       | GET /members/1 -> {"id":1,"name":"alice","email":"alice@new.example","preferred_name":null} 200
+      |       [ok] 0.1s
+      |   verification
+      |     1. The service and schema match the previous release
+      |       [ok] 0.2s
+      | runbook #8: succeeded
+      [ok] 4.3s
+runbook #7: failed, rolled back
+   => exit 1
+   after the rollback: service v2, schema version 2
+stopped pid 25916
+
+== proof: ops.runs, one row per runbook run (run 8 is the rollback that release run 7 started) ==
+ id |             runbook             |                                   params                                   | operator | parent |                  outcome                  | seconds 
+----+---------------------------------+----------------------------------------------------------------------------+----------+--------+-------------------------------------------+---------
+  1 | runbooks/scheduled-release.md   | {"VERSION": "v1", "MIGRATION": "1"}                                        | alice    |        | succeeded                                 |     1.9
+  2 | runbooks/scheduled-release.md   | {"VERSION": "v2", "MIGRATION": "2"}                                        | alice    |        | succeeded                                 |     3.6
+  3 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}            | alice    |        | succeeded                                 |     1.5
+  4 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}            | alice    |        | precondition failed: nothing was changed  |     0.2
+  5 | runbooks/user-request.md        | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"} | alice    |        | failed, rollback printed for the operator |     0.2
+  6 | runbooks/user-request.md        | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"} | alice    |        | succeeded                                 |     0.9
+  7 | runbooks/scheduled-release.md   | {"VERSION": "v3", "MIGRATION": "3"}                                        | alice    |        | failed, rolled back                       |     7.4
+  8 | runbooks/rollback.md            | {}                                                                         | alice    |      7 | succeeded                                 |     3.4
+(8 rows)
+
+== proof: ops.steps that did not succeed, with the tail of their output ==
+ run_id |    section    |                        step                         |     status      | exit_code |                                      output                                      
+--------+---------------+-----------------------------------------------------+-----------------+-----------+----------------------------------------------------------------------------------
+      4 | Preconditions | 1. The file is there and has not been loaded before | FAILED (exit 1) |         1 | sha256 92e7a1ad1c61, batches already loaded from this file: 1 
+      5 | Steps         | 1. Verify the member's identity                     | not confirmed   |           | needs an operator: rerun with --yes once done, or from a terminal
+      7 | Steps         | 5. Smoke test                                       | FAILED (exit 1) |         1 |  {"error":"column \"statement_pref\" does not exist"} 500 member page is broken 
+(3 rows)
+
+== proof: schema_migrations (003 applied by run 7, removed by run 8) ==
+ version |        name        | applied_at 
+---------+--------------------+------------
+       1 | 001_members        | 16:10:55
+       2 | 002_preferred_name | 16:10:58
+(2 rows)
+
+== proof: import_batches and member_changes (one batch despite two runs; the change carries ticket and operator) ==
+ id | period  |              file              |    sha256    | rows |  total  
+----+---------+--------------------------------+--------------+------+---------
+  1 | 2026-09 | data/contributions-2026-09.csv | 92e7a1ad1c61 |    3 | 1102.75
+(1 row)
+
+ member_id | field |     old_value     |     new_value     |  ticket  | operator 
+-----------+-------+-------------------+-------------------+----------+----------
+         1 | email | alice@old.example | alice@new.example | SUP-1042 | alice
+(1 row)
+
+== proof: what the release left on disk ==
+app.log
+backup-before-v1.sql
+backup-before-v2.sql
+backup-before-v3.sql
+current
+previous
+VERSION=v2
+MIGRATION=2

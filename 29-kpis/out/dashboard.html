@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Member portal KPIs</title>
+<style>
+:root { color-scheme: light; --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #6b6a66; --line: #e1e0d9; --axis: #c3c2b7; --series: #2a78d6; --good: #006300; --bad: #b42323; --fail: #d03b3b; }
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; --page: #0d0d0d; --surface: #1a1a19; --ink: #ffffff; --ink-2: #c3c2b7; --muted: #a09f99; --line: #2c2c2a; --axis: #383835; --series: #3987e5; --good: #0ca30c; --bad: #e66767; --fail: #e66767; }
+}
+body { margin: 0; padding: 24px 16px; background: var(--page); color: var(--ink); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1000px; margin: 0 auto; }
+h1 { font-size: 22px; margin: 0 0 4px; } h2 { font-size: 16px; margin: 28px 0 8px; }
+p { color: var(--ink-2); margin: 0 0 12px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr)); gap: 12px; }
+.tile, .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.name { color: var(--ink-2); font-size: 13px; } .value { font-size: 28px; font-weight: 600; }
+.status { font-size: 13px; font-weight: 600; } .good { color: var(--good); } .bad { color: var(--bad); }
+.meta { color: var(--muted); font-size: 12px; margin-top: 4px; }
+svg text { font: 12px system-ui, sans-serif; } .label { fill: var(--ink-2); } .muted { fill: var(--muted); }
+.bar { fill: var(--series); } .fail { fill: var(--fail); } .axis { stroke: var(--axis); } .target { stroke: var(--ink-2); stroke-dasharray: 4 3; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; background: var(--surface); }
+th, td { text-align: left; vertical-align: top; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+<main>
+<h1>Member portal KPIs</h1>
+<p>Window 2026-09-03 to 2026-09-30 (28 days). Every number below comes from the SQL in <code>src/kpis.ts</code>.</p>
+<div class="tiles">
+<div class="tile">
+  <div class="name">Adoption</div>
+  <div class="value">47.3%</div>
+  <div class="status bad"><span aria-hidden="true">&#10007;</span> Missed: target &gt;= 60.0%</div>
+  <div class="meta">52 of 110 eligible members &middot; owner: product owner</div>
+</div>
+<div class="tile">
+  <div class="name">Change request task success</div>
+  <div class="value">85.1%</div>
+  <div class="status good"><span aria-hidden="true">&#10003;</span> Met: target &gt;= 85.0%</div>
+  <div class="meta">149 of 175 tasks &middot; owner: product owner</div>
+</div>
+<div class="tile">
+  <div class="name">Change request completion time (median)</div>
+  <div class="value">169 s</div>
+  <div class="status good"><span aria-hidden="true">&#10003;</span> Met: target &lt;= 240 s</div>
+  <div class="meta">p90 398 s &middot; owner: UX lead</div>
+</div>
+<div class="tile">
+  <div class="name">Form error rate</div>
+  <div class="value">13.4%</div>
+  <div class="status bad"><span aria-hidden="true">&#10007;</span> Missed: target &lt;= 10.0%</div>
+  <div class="meta">23 of 172 submissions &middot; owner: UX lead</div>
+</div>
+<div class="tile">
+  <div class="name">Latency p95, slowest route</div>
+  <div class="value">354 ms</div>
+  <div class="status bad"><span aria-hidden="true">&#10007;</span> Missed: target &lt;= 300 ms</div>
+  <div class="meta">GET /contributions, all routes together 13 ms &middot; owner: tech lead</div>
+</div>
+<div class="tile">
+  <div class="name">Availability</div>
+  <div class="value">99.48%</div>
+  <div class="status bad"><span aria-hidden="true">&#10007;</span> Missed: target &gt;= 99.50%</div>
+  <div class="meta">11 of 2102 requests failed &middot; owner: service owner</div>
+</div>
+<div class="tile">
+  <div class="name">Error budget remaining</div>
+  <div class="value">-4.7%</div>
+  <div class="status bad"><span aria-hidden="true">&#10007;</span> Missed: target &gt;= 0.0%</div>
+  <div class="meta">11 failed of 10.5 allowed &middot; owner: service owner</div>
+</div>
+<div class="tile">
+  <div class="name">Requests resolved within 3 days</div>
+  <div class="value">86.9%</div>
+  <div class="status bad"><span aria-hidden="true">&#10007;</span> Missed: target &gt;= 90.0%</div>
+  <div class="meta">113 of 130 due &middot; owner: support lead</div>
+</div>
+</div>
+<h2>Change request funnel (sessions)</h2>
+<div class="panel"><svg viewBox="0 0 960 126" role="img" width="100%"><g><title>login: 712 sessions</title>
+  <text x="162" y="19" text-anchor="end" class="label">login</text>
+  <rect x="170" y="7" width="520.0" height="18" rx="4" class="bar"/>
+  <text x="696.0" y="20" class="label">712 (100%)</text></g>
+<g><title>view_profile: 639 sessions</title>
+  <text x="162" y="49" text-anchor="end" class="label">view_profile</text>
+  <rect x="170" y="37" width="466.7" height="18" rx="4" class="bar"/>
+  <text x="642.7" y="50" class="label">639 (90%); -10% from the step above</text></g>
+<g><title>change_started: 175 sessions</title>
+  <text x="162" y="79" text-anchor="end" class="label">change_started</text>
+  <rect x="170" y="67" width="127.8" height="18" rx="4" class="bar"/>
+  <text x="303.8" y="80" class="label">175 (25%); -73% from the step above</text></g>
+<g><title>change_submitted: 149 sessions</title>
+  <text x="162" y="109" text-anchor="end" class="label">change_submitted</text>
+  <rect x="170" y="97" width="108.8" height="18" rx="4" class="bar"/>
+  <text x="284.8" y="110" class="label">149 (21%); -15% from the step above</text></g></svg></div>
+<h2>Failed member requests per day (SLO 99.5%, 11 failed of 10.5 allowed)</h2>
+<div class="panel"><svg viewBox="0 0 960 160" role="img" width="100%"><line x1="0" x2="960" y1="140" y2="140" class="axis"/><g><title>09-03: 0 failed of 86 requests</title>
+  <rect x="0.0" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  <text x="0.0" y="156" class="muted">09-03</text>
+  </g>
+<g><title>09-04: 0 failed of 64 requests</title>
+  <rect x="34.3" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-05: 0 failed of 71 requests</title>
+  <rect x="68.6" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-06: 0 failed of 64 requests</title>
+  <rect x="102.9" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-07: 0 failed of 75 requests</title>
+  <rect x="137.1" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-08: 0 failed of 66 requests</title>
+  <rect x="171.4" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-09: 0 failed of 88 requests</title>
+  <rect x="205.7" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-10: 0 failed of 40 requests</title>
+  <rect x="240.0" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  <text x="240.0" y="156" class="muted">09-10</text>
+  </g>
+<g><title>09-11: 0 failed of 84 requests</title>
+  <rect x="274.3" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-12: 0 failed of 59 requests</title>
+  <rect x="308.6" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-13: 0 failed of 70 requests</title>
+  <rect x="342.9" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-14: 0 failed of 85 requests</title>
+  <rect x="377.1" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-15: 0 failed of 62 requests</title>
+  <rect x="411.4" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-16: 0 failed of 61 requests</title>
+  <rect x="445.7" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-17: 11 failed of 78 requests</title>
+  <rect x="480.0" y="10" width="32.3" height="130" rx="2" class="fail"/>
+  <text x="480.0" y="156" class="muted">09-17</text>
+  <text x="516.3" y="20" class="label">09-17: 11 failed</text></g>
+<g><title>09-18: 0 failed of 82 requests</title>
+  <rect x="514.3" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-19: 0 failed of 67 requests</title>
+  <rect x="548.6" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-20: 0 failed of 67 requests</title>
+  <rect x="582.9" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-21: 0 failed of 73 requests</title>
+  <rect x="617.1" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-22: 0 failed of 88 requests</title>
+  <rect x="651.4" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-23: 0 failed of 71 requests</title>
+  <rect x="685.7" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-24: 0 failed of 73 requests</title>
+  <rect x="720.0" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  <text x="720.0" y="156" class="muted">09-24</text>
+  </g>
+<g><title>09-25: 0 failed of 99 requests</title>
+  <rect x="754.3" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-26: 0 failed of 105 requests</title>
+  <rect x="788.6" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-27: 0 failed of 64 requests</title>
+  <rect x="822.9" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-28: 0 failed of 81 requests</title>
+  <rect x="857.1" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-29: 0 failed of 86 requests</title>
+  <rect x="891.4" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g>
+<g><title>09-30: 0 failed of 93 requests</title>
+  <rect x="925.7" y="140" width="32.3" height="0" rx="2" class="bar"/>
+  
+  </g></svg></div>
+<h2>Latency by route</h2>
+<div class="panel"><svg viewBox="0 0 960 172" role="img" width="100%"><g><title>GET /contributions: 397 requests</title>
+  <text x="162" y="19" text-anchor="end" class="label">GET /contributions</text>
+  <rect x="170" y="7" width="460.2" height="18" rx="4" class="bar"/>
+  <text x="636.2" y="20" class="label">p95 354 ms, mean 50 ms</text></g>
+<g><title>GET /profile: 639 requests</title>
+  <text x="162" y="49" text-anchor="end" class="label">GET /profile</text>
+  <rect x="170" y="37" width="14.3" height="18" rx="4" class="bar"/>
+  <text x="190.3" y="50" class="label">p95 11 ms, mean 5 ms</text></g>
+<g><title>POST /changes: 179 requests</title>
+  <text x="162" y="79" text-anchor="end" class="label">POST /changes</text>
+  <rect x="170" y="67" width="14.3" height="18" rx="4" class="bar"/>
+  <text x="190.3" y="80" class="label">p95 11 ms, mean 5 ms</text></g>
+<g><title>GET /changes/new: 175 requests</title>
+  <text x="162" y="109" text-anchor="end" class="label">GET /changes/new</text>
+  <rect x="170" y="97" width="13.0" height="18" rx="4" class="bar"/>
+  <text x="189.0" y="110" class="label">p95 10 ms, mean 3 ms</text></g>
+<g><title>POST /login: 712 requests</title>
+  <text x="162" y="139" text-anchor="end" class="label">POST /login</text>
+  <rect x="170" y="127" width="11.7" height="18" rx="4" class="bar"/>
+  <text x="187.7" y="140" class="label">p95 9 ms, mean 3 ms</text></g><line x1="560" x2="560" y1="0" y2="156" class="target"/>
+  <text x="560" y="168" text-anchor="middle" class="muted">target 300 ms</text></svg></div>
+<h2>Definitions</h2>
+<div class="scroll"><table>
+<thead><tr><th>KPI</th><th>Question it answers</th><th>Formula</th><th>Target</th><th>Owner</th></tr></thead>
+<tbody>
+<tr><td>Adoption</td><td>Do eligible members use the portal at all?</td><td>eligible members with at least one login in the window / eligible members</td><td>&gt;= 60.0%</td><td>product owner</td></tr>
+<tr><td>Change request task success</td><td>When members start a change request, do they finish it?</td><td>sessions that opened the form and submitted a valid request / sessions that opened the form</td><td>&gt;= 85.0%</td><td>product owner</td></tr>
+<tr><td>Change request completion time (median)</td><td>How long does a successful change request take?</td><td>median of (first change_submitted - first change_started) over successful tasks</td><td>&lt;= 240 s</td><td>UX lead</td></tr>
+<tr><td>Form error rate</td><td>How often does the change form reject what members type?</td><td>POST /changes answered 422 / POST /changes answered 201 or 422</td><td>&lt;= 10.0%</td><td>UX lead</td></tr>
+<tr><td>Latency p95, slowest route</td><td>How long do the slowest 5% of requests wait on the worst member page?</td><td>max over member routes of the 95th percentile of duration_ms (not /health, not staff)</td><td>&lt;= 300 ms</td><td>tech lead</td></tr>
+<tr><td>Availability</td><td>What share of member requests did the service answer without a server error?</td><td>member requests with status &lt; 500 / member requests</td><td>&gt;= 99.50%</td><td>service owner</td></tr>
+<tr><td>Error budget remaining</td><td>How much more failure can the SLO absorb this window?</td><td>1 - failed requests / ((1 - 99.5%) x member requests)</td><td>&gt;= 0.0%</td><td>service owner</td></tr>
+<tr><td>Requests resolved within 3 days</td><td>Do staff handle change requests within the service level agreed with employers?</td><td>requests resolved within 3 days / requests whose 3-day deadline fell in the window (open ones count as missed)</td><td>&gt;= 90.0%</td><td>support lead</td></tr>
+</tbody>
+</table></div>
+</main>
+</body>
+</html>

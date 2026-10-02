@@ -1,0 +1,7 @@
+employer,member_no,first_name,last_name,email,birth_date
+acme,M0001,Alice,Martin,alice.martin@acme.example,1980-04-12
+acme,M0002,Bob,Durand,bob@acme.example,1975-11-03
+acme,M0003,Carol,Petit,carol@acme.example,1990-01-30
+acme,M0005,Eve,Laurent,eve@acme.example,1987-02-30
+acme,M0006,Frank,Girard,frank@acme.example,1979-02-14
+acme,M0007,Grace,Roux,grace@acme.example,1996-06-01

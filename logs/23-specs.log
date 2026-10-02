@@ -1,0 +1,284 @@
+# 23-specs run 2026-10-02T15:48:01Z
+== fresh Postgres (docker compose down -v && up) ==
+ Container 23-specs-postgres-1 Healthy 
+setup: members, bank_accounts (one row per effective date), change_requests, approvals, spec_results (the traceability matrix)
+== demo: features/change-bank-details.feature run by cucumber-js against two implementations ==
+
+## 1. The specs against the naive implementation
+   concept: the feature file is the acceptance criteria; run it before trusting code written from a one-line ticket
+Failures:
+
+1) Scenario: One approval is enough up to the threshold, not above it # features/change-bank-details.feature:32
+   ✔ Before # src/steps.ts:29
+   ✔ Given today is 2026-03-10 # src/steps.ts:37
+   ✔ And member "alice" is paid 800.00 a month into "GB00ACME00000011111111" # src/steps.ts:41
+   ✔ And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222" # src/steps.ts:41
+   ✔ Given member "carmen" is paid 1000.01 a month into "GB00ACME00000011111111" # src/steps.ts:41
+   ✔ And "carmen" requests to be paid into "FR7600000000000000033333333" from 2026-04-01 # src/steps.ts:52
+   ✔ When "carol" approves the request # src/steps.ts:63
+   ✖ Then the request is "awaiting second approval" # src/steps.ts:68
+       Error: expected status "awaiting second approval", got "approved"
+           at expect (/home/claude/samples/23-specs/src/steps.ts:8:34)
+           at SpecWorld.<anonymous> (/home/claude/samples/23-specs/src/steps.ts:70:3)
+           at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+
+2) Scenario: The same staff member cannot give both approvals # features/change-bank-details.feature:40
+   ✔ Before # src/steps.ts:29
+   ✔ Given today is 2026-03-10 # src/steps.ts:37
+   ✔ And member "alice" is paid 800.00 a month into "GB00ACME00000011111111" # src/steps.ts:41
+   ✔ And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222" # src/steps.ts:41
+   ✔ Given "bob" requests to be paid into "FR7600000000000000033333333" from 2026-04-01 # src/steps.ts:52
+   ✔ And "carol" approves the request # src/steps.ts:63
+   ✔ When "carol" approves the request # src/steps.ts:63
+   ✖ Then the approval is refused with "already approved by carol" # src/steps.ts:73
+       Error: expected refusal "already approved by carol", got null
+           at expect (/home/claude/samples/23-specs/src/steps.ts:8:34)
+           at SpecWorld.<anonymous> (/home/claude/samples/23-specs/src/steps.ts:74:3)
+   - And the request is "awaiting second approval" # src/steps.ts:68
+
+3) Scenario: Staff entering a request on a member's behalf cannot approve it # features/change-bank-details.feature:50
+   ✔ Before # src/steps.ts:29
+   ✔ Given today is 2026-03-10 # src/steps.ts:37
+   ✔ And member "alice" is paid 800.00 a month into "GB00ACME00000011111111" # src/steps.ts:41
+   ✔ And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222" # src/steps.ts:41
+   ✔ Given "carol" requests on behalf of "alice" to be paid into "FR7600000000000000033333333" from 2026-04-01 # src/steps.ts:56
+   ✔ When "carol" approves the request # src/steps.ts:63
+   ✖ Then the approval is refused with "cannot approve your own request" # src/steps.ts:73
+       Error: expected refusal "cannot approve your own request", got null
+           at expect (/home/claude/samples/23-specs/src/steps.ts:8:34)
+           at SpecWorld.<anonymous> (/home/claude/samples/23-specs/src/steps.ts:74:3)
+   - And the request is "pending" # src/steps.ts:68
+
+4) Scenario: A member cannot approve their own request # features/change-bank-details.feature:56
+   ✔ Before # src/steps.ts:29
+   ✔ Given today is 2026-03-10 # src/steps.ts:37
+   ✔ And member "alice" is paid 800.00 a month into "GB00ACME00000011111111" # src/steps.ts:41
+   ✔ And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222" # src/steps.ts:41
+   ✔ Given "alice" requests to be paid into "FR7600000000000000033333333" from 2026-04-01 # src/steps.ts:52
+   ✔ When "alice" approves the request # src/steps.ts:63
+   ✖ Then the approval is refused with "cannot approve your own request" # src/steps.ts:73
+       Error: expected refusal "cannot approve your own request", got null
+           at expect (/home/claude/samples/23-specs/src/steps.ts:8:34)
+           at SpecWorld.<anonymous> (/home/claude/samples/23-specs/src/steps.ts:74:3)
+
+5) Scenario: Yesterday is refused, today and later are accepted # features/change-bank-details.feature:71
+   ✔ Before # src/steps.ts:29
+   ✔ Given today is 2026-03-10 # src/steps.ts:37
+   ✔ And member "alice" is paid 800.00 a month into "GB00ACME00000011111111" # src/steps.ts:41
+   ✔ And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222" # src/steps.ts:41
+   ✔ When "alice" requests to be paid into "FR7600000000000000033333333" from 2026-03-10 # src/steps.ts:52
+   ✖ Then the request is "pending" # src/steps.ts:68
+       Error: no request was recorded: refused with "effective date is in the past"
+           at SpecWorld.<anonymous> (/home/claude/samples/23-specs/src/steps.ts:69:30)
+
+12 scenarios (5 failed, 7 passed)
+77 steps (5 failed, 2 skipped, 70 passed)
+0m00.385s (executing steps: 0m00.318s)
+   cucumber-js exit code (IMPL=naive): 1
+
+## 2. Traceability for the naive run
+   concept: every scenario inherits the @REQ-xx tag of its Rule, so results roll up to requirements
+   req    | scenario                                                                                                      | result
+   -------+---------------------------------------------------------------------------------------------------------------+-------
+   REQ-01 | A request stays pending, and the old account stays in use, until it is approved  => passing (1)
+          | A new request is pending and changes nothing yet                                                              | passed
+   REQ-02 | Above 1,000.00 a month, a change needs approvals from two different staff members  => FAILING (2/5)
+          | One approval is enough up to the threshold, not above it [999.99, approved]                                   | passed
+          | One approval is enough up to the threshold, not above it [1000.00, approved]                                  | passed
+          | One approval is enough up to the threshold, not above it [1000.01, awaiting second approval]                  | failed
+          | A second staff member completes the approval                                                                  | passed
+          | The same staff member cannot give both approvals                                                              | failed
+   REQ-03 | Nobody can approve a request they made themselves  => FAILING (2/2)
+          | Staff entering a request on a member's behalf cannot approve it                                               | failed
+          | A member cannot approve their own request                                                                     | failed
+   REQ-04 | The effective date cannot be in the past  => FAILING (1/3)
+          | Yesterday is refused, today and later are accepted [2026-03-09, refused with "effective date is in the past"] | passed
+          | Yesterday is refused, today and later are accepted [2026-03-10, "pending"]                                    | failed
+          | Yesterday is refused, today and later are accepted [2026-03-11, "pending"]                                    | passed
+   REQ-05 | Once approved, the new account is used from the effective date, and the old one before it  => passing (1)
+          | Payments switch accounts on the effective date                                                                | passed
+
+## 3. The same specs against the domain implementation
+   concept: nothing in the feature file changes; only the code under it does
+Feature: Request a change of bank details # features/change-bank-details.feature:1
+
+  A member's benefit is paid into one bank account. Changing it is the
+  most common target of fraud, so staff approve every change, larger
+  payments need a second pair of eyes, and nobody approves their own request.
+
+  Rule: A request stays pending, and the old account stays in use, until it is approved
+
+    @REQ-01
+    Scenario: A new request is pending and changes nothing yet # features/change-bank-details.feature:14
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      When "alice" requests to be paid into "FR7600000000000000033333333" from 2026-04-01
+      Then the request is "pending"
+      And on 2026-04-01 "alice" is paid into "GB00ACME00000011111111"
+
+  Rule: Above 1,000.00 a month, a change needs approvals from two different staff members
+
+    @REQ-02
+    Scenario Outline: One approval is enough up to the threshold, not above it # features/change-bank-details.feature:22
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      Given member "carmen" is paid 999.99 a month into "GB00ACME00000011111111"
+      And "carmen" requests to be paid into "FR7600000000000000033333333" from 2026-04-01
+      When "carol" approves the request
+      Then the request is "approved"
+
+    @REQ-02
+    Scenario Outline: One approval is enough up to the threshold, not above it # features/change-bank-details.feature:22
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      Given member "carmen" is paid 1000.00 a month into "GB00ACME00000011111111"
+      And "carmen" requests to be paid into "FR7600000000000000033333333" from 2026-04-01
+      When "carol" approves the request
+      Then the request is "approved"
+
+    @REQ-02
+    Scenario Outline: One approval is enough up to the threshold, not above it # features/change-bank-details.feature:22
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      Given member "carmen" is paid 1000.01 a month into "GB00ACME00000011111111"
+      And "carmen" requests to be paid into "FR7600000000000000033333333" from 2026-04-01
+      When "carol" approves the request
+      Then the request is "awaiting second approval"
+
+    @REQ-02
+    Scenario: A second staff member completes the approval # features/change-bank-details.feature:34
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      Given "bob" requests to be paid into "FR7600000000000000033333333" from 2026-04-01
+      And "carol" approves the request
+      When "dave" approves the request
+      Then the request is "approved"
+
+    @REQ-02
+    Scenario: The same staff member cannot give both approvals # features/change-bank-details.feature:40
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      Given "bob" requests to be paid into "FR7600000000000000033333333" from 2026-04-01
+      And "carol" approves the request
+      When "carol" approves the request
+      Then the approval is refused with "already approved by carol"
+      And the request is "awaiting second approval"
+
+  Rule: Nobody can approve a request they made themselves
+
+    @REQ-03
+    Scenario: Staff entering a request on a member's behalf cannot approve it # features/change-bank-details.feature:50
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      Given "carol" requests on behalf of "alice" to be paid into "FR7600000000000000033333333" from 2026-04-01
+      When "carol" approves the request
+      Then the approval is refused with "cannot approve your own request"
+      And the request is "pending"
+
+    @REQ-03
+    Scenario: A member cannot approve their own request # features/change-bank-details.feature:56
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      Given "alice" requests to be paid into "FR7600000000000000033333333" from 2026-04-01
+      When "alice" approves the request
+      Then the approval is refused with "cannot approve your own request"
+
+  Rule: The effective date cannot be in the past
+
+    @REQ-04
+    Scenario Outline: Yesterday is refused, today and later are accepted # features/change-bank-details.feature:64
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      When "alice" requests to be paid into "FR7600000000000000033333333" from 2026-03-09
+      Then the request is refused with "effective date is in the past"
+
+    @REQ-04
+    Scenario Outline: Yesterday is refused, today and later are accepted # features/change-bank-details.feature:64
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      When "alice" requests to be paid into "FR7600000000000000033333333" from 2026-03-10
+      Then the request is "pending"
+
+    @REQ-04
+    Scenario Outline: Yesterday is refused, today and later are accepted # features/change-bank-details.feature:64
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      When "alice" requests to be paid into "FR7600000000000000033333333" from 2026-03-11
+      Then the request is "pending"
+
+  Rule: Once approved, the new account is used from the effective date, and the old one before it
+
+    @REQ-05
+    Scenario: Payments switch accounts on the effective date # features/change-bank-details.feature:77
+      Given today is 2026-03-10
+      And member "alice" is paid 800.00 a month into "GB00ACME00000011111111"
+      And member "bob" is paid 2400.00 a month into "GB00ACME00000022222222"
+      Given "alice" requests to be paid into "FR7600000000000000033333333" from 2026-04-01
+      When "carol" approves the request
+      Then on 2026-03-31 "alice" is paid into "GB00ACME00000011111111"
+      And on 2026-04-01 "alice" is paid into "FR7600000000000000033333333"
+
+12 scenarios (12 passed)
+77 steps (77 passed)
+0m00.591s (executing steps: 0m00.524s)
+   cucumber-js exit code (IMPL=domain): 0
+
+## 4. Traceability for the domain run
+   concept: a requirement is done when it has at least one scenario and all of them pass
+   req    | scenario                                                                                                      | result
+   -------+---------------------------------------------------------------------------------------------------------------+-------
+   REQ-01 | A request stays pending, and the old account stays in use, until it is approved  => passing (1)
+          | A new request is pending and changes nothing yet                                                              | passed
+   REQ-02 | Above 1,000.00 a month, a change needs approvals from two different staff members  => passing (5)
+          | One approval is enough up to the threshold, not above it [999.99, approved]                                   | passed
+          | One approval is enough up to the threshold, not above it [1000.00, approved]                                  | passed
+          | One approval is enough up to the threshold, not above it [1000.01, awaiting second approval]                  | passed
+          | A second staff member completes the approval                                                                  | passed
+          | The same staff member cannot give both approvals                                                              | passed
+   REQ-03 | Nobody can approve a request they made themselves  => passing (2)
+          | Staff entering a request on a member's behalf cannot approve it                                               | passed
+          | A member cannot approve their own request                                                                     | passed
+   REQ-04 | The effective date cannot be in the past  => passing (3)
+          | Yesterday is refused, today and later are accepted [2026-03-09, refused with "effective date is in the past"] | passed
+          | Yesterday is refused, today and later are accepted [2026-03-10, "pending"]                                    | passed
+          | Yesterday is refused, today and later are accepted [2026-03-11, "pending"]                                    | passed
+   REQ-05 | Once approved, the new account is used from the effective date, and the old one before it  => passing (1)
+          | Payments switch accounts on the effective date                                                                | passed
+   5 requirements, 12 scenarios, all passing
+
+== proof: the traceability matrix in Postgres, naive vs domain, per requirement ==
+ requirement | scenarios | naive_passed | domain_passed 
+-------------+-----------+--------------+---------------
+ REQ-01      |         1 |            1 |             1
+ REQ-02      |         5 |            3 |             5
+ REQ-03      |         2 |            0 |             2
+ REQ-04      |         3 |            2 |             3
+ REQ-05      |         1 |            1 |             1
+(5 rows)
+
+== proof: the scenarios the naive implementation failed ==
+ requirement |                                           scenario                                           
+-------------+----------------------------------------------------------------------------------------------
+ REQ-02      | One approval is enough up to the threshold, not above it [1000.01, awaiting second approval]
+ REQ-02      | The same staff member cannot give both approvals
+ REQ-03      | A member cannot approve their own request
+ REQ-03      | Staff entering a request on a member's behalf cannot approve it
+ REQ-04      | Yesterday is refused, today and later are accepted [2026-03-10, "pending"]
+(5 rows)
+
+== proof: raw Cucumber messages, one per line (the input of the traceability report) ==
+   envelopes by type: {"meta":1,"source":1,"gherkinDocument":1,"pickle":12,"hook":2,"stepDefinition":8,"testRunStarted":1,"testCase":12,"testCaseStarted":12,"testStepStarted":89,"testStepFinished":89,"testCaseFinished":12,"testRunHookStarted":1,"testRunHookFinished":1,"testRunFinished":1}
+   one outline example as a pickle (scenario id + example row id, tags inherited from the Rule):
+   {"name":"One approval is enough up to the threshold, not above it","astNodeIds":["30ab9d4e-fab6-424d-a9f4-676138da486d","966bdf7a-bc76-4f27-aecb-197f9c6fe77e"],"tags":["@REQ-02"],"steps":["today is 2026-03-10","member \"alice\" is paid 800.00 a month into \"GB00ACME00000011111111\"","member \"bob\" is paid 2400.00 a month into \"GB00ACME00000022222222\"","member \"carmen\" is paid 999.99 a month into \"GB00ACME00000011111111\"","\"carmen\" requests to be paid into \"FR7600000000000000033333333\" from 2026-04-01","\"carol\" approves the request","the request is \"approved\""]}
+   {"testRunFinished":{"testRunStartedId":"31da7ebf-4766-4e55-82ca-2e12c47e00ae","timestamp":{"seconds":1790956090,"nanos":4000000},"success":true}}

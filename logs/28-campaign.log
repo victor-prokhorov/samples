@@ -1,0 +1,199 @@
+# 28-campaign run 2026-10-02T15:51:49Z
+== fresh Postgres (docker compose down -v && up) ==
+ Container 28-campaign-postgres-1 Healthy 
+setup: 16 members with 12 monthly contributions for 2025, statement_jobs (primary key year + member), statement_attempts
+== demo: the SMTP sink runs in the demo process; naive loop and workers are child processes ==
+SMTP sink on :52528 in this process (scripted: bob greylisted twice, carol 550 unknown, dan 451 forever); 16 members; workers are child processes
+
+## 1. Naive campaign: a loop that sends, crashes, and is run again
+   concept: with no record of what was sent, a rerun after a crash sends again to everyone before the crash point; a transient 451 is logged and skipped, so that member never gets a statement
+   [naive] M0001 alice@acme.example: sent
+   [naive] M0002 bob@acme.example: Can't send mail - all recipients were rejected: 451 4.7.1 greylisted, try again later (logged, skipped)
+   [naive] M0003 carol@acme.example: Can't send mail - all recipients were rejected: 550 5.1.1 mailbox unknown (logged, skipped)
+   [naive] M0004 dan@acme.example: Can't send mail - all recipients were rejected: 451 4.3.0 mailbox temporarily unavailable (logged, skipped)
+   [naive] M0005 erin@acme.example: sent
+   [naive] M0006 frank@acme.example: sent
+   [naive] M0007 grace@globex.example: sent
+   [naive] crash (SIGKILL)
+   run 1 -> SIGKILL
+   [naive] M0001 alice@acme.example: sent
+   [naive] M0002 bob@acme.example: Can't send mail - all recipients were rejected: 451 4.7.1 greylisted, try again later (logged, skipped)
+   [naive] M0003 carol@acme.example: Can't send mail - all recipients were rejected: 550 5.1.1 mailbox unknown (logged, skipped)
+   [naive] M0004 dan@acme.example: Can't send mail - all recipients were rejected: 451 4.3.0 mailbox temporarily unavailable (logged, skipped)
+   [naive] M0005 erin@acme.example: sent
+   [naive] M0006 frank@acme.example: sent
+   [naive] M0007 grace@globex.example: sent
+   [naive] M0008 heidi@globex.example: sent
+   [naive] M0009 ivan@globex.example: sent
+   [naive] M0010 judy@globex.example: sent
+   [naive] M0011 ken@globex.example: sent
+   [naive] M0012 lena@initech.example: sent
+   [naive] M0013 mike@initech.example: sent
+   [naive] M0014 nina@initech.example: sent
+   [naive] M0015 oscar@initech.example: sent
+   [naive] M0016 paula@initech.example: sent
+   run 2 -> exit 0
+   SMTP sink received 17 messages: alice x2, erin x2, frank x2, grace x2, heidi x1, ivan x1, judy x1, ken x1, lena x1, mike x1, nina x1, oscar x1, paula x1
+
+## 2. Create the campaign: one job per member and year
+   concept: the job table is the campaign's state; its primary key (year, member_id) makes creating the campaign idempotent, and a member is never queued twice for the same year
+   enqueue 2025: 16 jobs created; again: 0
+
+## 3. Dry run on a sample
+   concept: render real PDFs for a few members chosen by a stable hash, print what would be sent, send nothing and change no job: the check a person signs off before the batch starts
+   would send to ken@globex.example: "Your 2025 annual statement", Message-ID <statement-2025-M0011@portal.example>, out/statement-2025-M0011.pdf (3065 bytes, sha256 87bf01be6256)
+   would send to judy@globex.example: "Your 2025 annual statement", Message-ID <statement-2025-M0010@portal.example>, out/statement-2025-M0010.pdf (3074 bytes, sha256 2d23bfc4dd27)
+   would send to carol@acme.example: "Your 2025 annual statement", Message-ID <statement-2025-M0003@portal.example>, out/statement-2025-M0003.pdf (3053 bytes, sha256 706d110ececb)
+   text read back from out/statement-2025-M0011.pdf:
+     | Annual statement 2025
+     | Ken, member M0011, employer globex
+     | 2025-01        328.25
+     | 2025-02        331.50
+     | 2025-03        334.75
+     | 2025-04        338.00
+     | 2025-05        341.25
+     | 2025-06        344.50
+     | 2025-07        347.75
+     | 2025-08        351.00
+     | 2025-09        354.25
+     | 2025-10        357.50
+     | 2025-11        360.75
+     | 2025-12        364.00
+     | Total contributions 2025: 4153.50
+   rendering twice gives the same sha256; SMTP received 0 messages; jobs touched: 0
+
+## 4. Start the batch; the worker crashes midway
+   concept: a worker claims one due job at a time (UPDATE ... FROM (SELECT ... FOR UPDATE SKIP LOCKED)), sets a lease, sends, then records the outcome; here it is killed after SMTP accepted M0007 and before it recorded that
+   [worker A] started: 10 msg/s, lease 2000 ms, max 4 attempts, will crash after sending M0007
+   [worker A] M0001 alice@acme.example   attempt 1: sent <statement-2025-M0001@portal.example>
+   [worker A] M0002 bob@acme.example     attempt 1: 451 4.7.1 greylisted, try again later -> retry in 177 ms
+   [worker A] M0003 carol@acme.example   attempt 1: 550 5.1.1 mailbox unknown -> dead letter (permanent)
+   [worker A] M0004 dan@acme.example     attempt 1: 451 4.3.0 mailbox temporarily unavailable -> retry in 194 ms
+   [worker A] M0005 erin@acme.example    attempt 1: sent <statement-2025-M0005@portal.example>
+   [worker A] M0006 frank@acme.example   attempt 1: sent <statement-2025-M0006@portal.example>
+   [worker A] M0007 grace@globex.example attempt 1: 250 accepted by SMTP, now crashing (SIGKILL) before recording it
+   worker A -> SIGKILL
+   dead      1  M0003
+   pending   9  M0008,M0009,M0010,M0011,M0012,M0013,M0014,M0015,M0016
+   retry     2  M0002,M0004
+   sending   1  M0007
+   sent      3  M0001,M0005,M0006
+   in doubt: [{"member_no":"M0007","locked_by":"A","lease_live":true}]
+
+## 5. Resume with two workers in parallel, throttled
+   concept: B and C claim different rows (SKIP LOCKED skips rows another worker holds); sent jobs are never claimed again; M0007 is retaken once A's lease expires; 10 msg/s in total (each worker 5/s); 4xx retried with exponential backoff and jitter, 5xx or 4 attempts -> dead letter
+   [worker B] started: 5 msg/s, lease 2000 ms, max 4 attempts
+   [worker C] started: 5 msg/s, lease 2000 ms, max 4 attempts
+   [worker B] M0008 heidi@globex.example attempt 1: sent <statement-2025-M0008@portal.example>
+   [worker C] M0009 ivan@globex.example  attempt 1: sent <statement-2025-M0009@portal.example>
+   [worker B] M0010 judy@globex.example  attempt 1: sent <statement-2025-M0010@portal.example>
+   [worker C] M0011 ken@globex.example   attempt 1: sent <statement-2025-M0011@portal.example>
+   [worker B] M0012 lena@initech.example attempt 1: sent <statement-2025-M0012@portal.example>
+   [worker C] M0013 mike@initech.example attempt 1: sent <statement-2025-M0013@portal.example>
+   [worker C] M0007 attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
+   [worker B] M0014 nina@initech.example attempt 1: sent <statement-2025-M0014@portal.example>
+   [worker C] M0007 grace@globex.example attempt 2: sent <statement-2025-M0007@portal.example>
+   [worker B] M0015 oscar@initech.example attempt 1: sent <statement-2025-M0015@portal.example>
+   [worker C] M0016 paula@initech.example attempt 1: sent <statement-2025-M0016@portal.example>
+   [worker B] M0002 bob@acme.example     attempt 2: 451 4.7.1 greylisted, try again later -> retry in 452 ms
+   [worker C] M0004 dan@acme.example     attempt 2: 451 4.3.0 mailbox temporarily unavailable -> retry in 372 ms
+   [worker C] M0004 dan@acme.example     attempt 3: 451 4.3.0 mailbox temporarily unavailable -> retry in 624 ms
+   [worker B] M0002 bob@acme.example     attempt 3: sent <statement-2025-M0002@portal.example>
+   [worker B] M0004 dan@acme.example     attempt 4: 451 4.3.0 mailbox temporarily unavailable -> dead letter (4 attempts used)
+   [worker B] done: 6 sent, 1 retries scheduled, 1 dead letters
+   [worker C] done: 5 sent, 2 retries scheduled, 0 dead letters
+   workers B -> exit 0, C -> exit 0
+   SMTP sink received 15 messages: alice x1, erin x1, frank x1, grace x2, heidi x1, ivan x1, judy x1, ken x1, lena x1, mike x1, nina x1, oscar x1, paula x1, bob x1
+   grace: 2 copies, Message-IDs ["<statement-2025-M0007@portal.example>"]
+   busiest 1-second window of SMTP attempts while resuming: 10 (limit 10/s); messages received before the resume: 4
+
+## 6. The dead-letter list, then a fix and a requeue
+   concept: a dead letter keeps its last error for a person to act on; once the address is corrected, requeueing that one job sends it, and the rest of the campaign is untouched
+   campaign 2025 report
+     dead     2
+     sent     14
+     acme     4/6 sent
+     globex   5/5 sent
+     initech  5/5 sent
+     sent on the first attempt 12, after retries 2; SMTP attempts 21; in-doubt resends 1
+     dead letters 2:
+       M0003 carol@acme.example after 1 attempt(s): 550 5.1.1 mailbox unknown
+       M0004 dan@acme.example after 4 attempt(s): 451 4.3.0 mailbox temporarily unavailable
+   support corrects carol's address to carol.petit@acme.example and requeues her job
+   [worker D] started: 10 msg/s, lease 2000 ms, max 4 attempts
+   [worker D] M0003 carol.petit@acme.example attempt 1: sent <statement-2025-M0003@portal.example>
+   [worker D] done: 1 sent, 0 retries scheduled, 0 dead letters
+   worker D -> exit 0
+
+## 7. Run the batch again after it finished
+   concept: every job is sent or dead, so a rerun (a cron firing twice, an operator retrying) claims nothing and sends nothing
+   [worker E] started: 10 msg/s, lease 2000 ms, max 4 attempts
+   [worker E] done: 0 sent, 0 retries scheduled, 0 dead letters
+   worker E -> exit 0
+   SMTP sink still has 16 messages
+
+## 8. Campaign report
+   concept: what the business asks after a campaign: how many went out, per employer, how many needed retries, how many were resent in doubt, and who did not get one and why
+   campaign 2025 report
+     dead     1
+     sent     15
+     acme     5/6 sent
+     globex   5/5 sent
+     initech  5/5 sent
+     sent on the first attempt 13, after retries 2; SMTP attempts 22; in-doubt resends 1
+     dead letters 1:
+       M0004 dan@acme.example after 4 attempt(s): 451 4.3.0 mailbox temporarily unavailable
+
+== proof: statement_jobs. One row per (year, member); M0003's address was corrected and requeued; M0004 is the dead letter ==
+ member_no |          email           | status | attempts |              message_id               |  pdf_sha256  |                last_error                 
+-----------+--------------------------+--------+----------+---------------------------------------+--------------+-------------------------------------------
+ M0001     | alice@acme.example       | sent   |        1 | <statement-2025-M0001@portal.example> | d56c17f93946 | 
+ M0002     | bob@acme.example         | sent   |        3 | <statement-2025-M0002@portal.example> | 448090bb3c42 | 
+ M0003     | carol.petit@acme.example | sent   |        1 | <statement-2025-M0003@portal.example> | 706d110ececb | 
+ M0004     | dan@acme.example         | dead   |        4 | <statement-2025-M0004@portal.example> |              | 451 4.3.0 mailbox temporarily unavailable
+ M0005     | erin@acme.example        | sent   |        1 | <statement-2025-M0005@portal.example> | 7c6256f26485 | 
+ M0006     | frank@acme.example       | sent   |        1 | <statement-2025-M0006@portal.example> | 021ee207d06a | 
+ M0007     | grace@globex.example     | sent   |        2 | <statement-2025-M0007@portal.example> | 6dfa35b173d5 | 
+ M0008     | heidi@globex.example     | sent   |        1 | <statement-2025-M0008@portal.example> | 974209c1870d | 
+ M0009     | ivan@globex.example      | sent   |        1 | <statement-2025-M0009@portal.example> | 676d3eab1113 | 
+ M0010     | judy@globex.example      | sent   |        1 | <statement-2025-M0010@portal.example> | 2d23bfc4dd27 | 
+ M0011     | ken@globex.example       | sent   |        1 | <statement-2025-M0011@portal.example> | 87bf01be6256 | 
+ M0012     | lena@initech.example     | sent   |        1 | <statement-2025-M0012@portal.example> | ce518527244b | 
+ M0013     | mike@initech.example     | sent   |        1 | <statement-2025-M0013@portal.example> | f55307a9956e | 
+ M0014     | nina@initech.example     | sent   |        1 | <statement-2025-M0014@portal.example> | 872a8eff36cc | 
+ M0015     | oscar@initech.example    | sent   |        1 | <statement-2025-M0015@portal.example> | 3136a80fe881 | 
+ M0016     | paula@initech.example    | sent   |        1 | <statement-2025-M0016@portal.example> | a776d815f3eb | 
+(16 rows)
+
+== proof: statement_attempts. Every SMTP attempt, by worker; the in_doubt row is written by worker B when it took M0007 over from A, whose lease had expired ==
+ id | member_no | attempt | worker | outcome  |                                                           detail                                                            
+----+-----------+---------+--------+----------+-----------------------------------------------------------------------------------------------------------------------------
+  1 | M0001     |       1 | A      | sent     | 250 OK: message queued
+  2 | M0002     |       1 | A      | retry    | 451 4.7.1 greylisted, try again later
+ 18 | M0002     |       2 | B      | retry    | 451 4.7.1 greylisted, try again later
+ 21 | M0002     |       3 | B      | sent     | 250 OK: message queued
+  3 | M0003     |       1 | A      | dead     | 550 5.1.1 mailbox unknown
+ 23 | M0003     |       1 | D      | sent     | 250 OK: message queued
+  4 | M0004     |       1 | A      | retry    | 451 4.3.0 mailbox temporarily unavailable
+ 19 | M0004     |       2 | C      | retry    | 451 4.3.0 mailbox temporarily unavailable
+ 20 | M0004     |       3 | C      | retry    | 451 4.3.0 mailbox temporarily unavailable
+ 22 | M0004     |       4 | B      | dead     | 451 4.3.0 mailbox temporarily unavailable
+  5 | M0005     |       1 | A      | sent     | 250 OK: message queued
+  6 | M0006     |       1 | A      | sent     | 250 OK: message queued
+ 13 | M0007     |       1 | C      | in_doubt | attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
+ 15 | M0007     |       2 | C      | sent     | 250 OK: message queued
+  7 | M0008     |       1 | B      | sent     | 250 OK: message queued
+  8 | M0009     |       1 | C      | sent     | 250 OK: message queued
+  9 | M0010     |       1 | B      | sent     | 250 OK: message queued
+ 10 | M0011     |       1 | C      | sent     | 250 OK: message queued
+ 11 | M0012     |       1 | B      | sent     | 250 OK: message queued
+ 12 | M0013     |       1 | C      | sent     | 250 OK: message queued
+ 14 | M0014     |       1 | B      | sent     | 250 OK: message queued
+ 16 | M0015     |       1 | B      | sent     | 250 OK: message queued
+ 17 | M0016     |       1 | C      | sent     | 250 OK: message queued
+(23 rows)
+
+== proof: the dry-run sample PDFs in out/ (same sha256 as the PDF later sent to the same member, as long as the data did not change) ==
+out/statement-2025-M0003.pdf 3053 bytes, starts with %PDF-1.3, sha256 706d110ececb
+out/statement-2025-M0010.pdf 3074 bytes, starts with %PDF-1.3, sha256 2d23bfc4dd27
+out/statement-2025-M0011.pdf 3065 bytes, starts with %PDF-1.3, sha256 87bf01be6256

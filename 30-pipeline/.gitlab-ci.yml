@@ -1,0 +1,98 @@
+# CI/CD for the statement app. Needs a runner with Node 22 (shell executor), or add `image: node:22` under default.
+# Locally: npx gitlab-ci-local --shell-isolation (see ../run-30-pipeline.sh).
+# Scheduled releases: create a pipeline schedule in GitLab (Build > Pipeline schedules), e.g. cron "0 6 * * 2" (Tuesdays 06:00);
+# only that schedule, or a tag like v1.4.0, reaches the deploy stage.
+
+stages: [lint, typecheck, test, audit, build, deploy]
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_COMMIT_TAG
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH
+
+variables:
+  DEPLOY_DIR: /srv/statement-app
+  npm_config_cache: $CI_PROJECT_DIR/.npm
+
+default:
+  interruptible: true
+  cache:
+    key:
+      files: [package-lock.json]
+    paths: [.npm/]
+  before_script:
+    - node --version
+    - npm ci --prefer-offline --no-audit --no-fund --loglevel=error
+
+lint:
+  stage: lint
+  script:
+    - npm run lint
+
+typecheck:
+  stage: typecheck
+  script:
+    - npm run typecheck
+
+unit:
+  stage: test
+  script:
+    - npx vitest run --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+  artifacts:
+    when: always
+    reports:
+      junit: reports/junit.xml
+    paths: [reports/junit.xml]
+
+a11y:
+  stage: test
+  script:
+    - npm run a11y
+  artifacts:
+    when: always
+    paths: [reports/a11y.json]
+
+audit:
+  stage: audit
+  script:
+    - npm run audit
+  rules:
+    # an advisory published overnight must not block unrelated work, but it does block a release
+    - if: $CI_PIPELINE_SOURCE == "schedule" || $CI_COMMIT_TAG
+      allow_failure: false
+    - allow_failure: true
+
+build:
+  stage: build
+  script:
+    - npm run build
+  artifacts:
+    paths: [dist/]
+    expire_in: 1 week
+
+deploy:
+  stage: deploy
+  needs: [build]
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+  environment:
+    name: production
+  resource_group: production
+  interruptible: false
+  cache: []
+  before_script: []
+  script:
+    - RELEASE="${CI_COMMIT_TAG:-scheduled-$CI_COMMIT_SHORT_SHA-$CI_PIPELINE_ID}"
+    - mkdir -p "$DEPLOY_DIR/releases/$RELEASE"
+    - cp -r dist/. "$DEPLOY_DIR/releases/$RELEASE/"
+    - echo '{"type":"module"}' > "$DEPLOY_DIR/releases/$RELEASE/package.json"
+    - printf '{"release":"%s","commit":"%s","source":"%s"}\n' "$RELEASE" "$CI_COMMIT_SHA" "$CI_PIPELINE_SOURCE" > "$DEPLOY_DIR/releases/$RELEASE/release.json"
+    # switch atomically: rename a new symlink over the old one, so a reader never sees a half-copied release
+    - ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
+    - node -e "import('$DEPLOY_DIR/current/page.js').then((m) => { if (!m.statementPage('smoke', 2026, []).includes('<html lang=\"en\">')) process.exit(1); console.log('smoke ok') })"
+    - echo "deployed $RELEASE to $DEPLOY_DIR/current"

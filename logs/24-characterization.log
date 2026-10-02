@@ -1,0 +1,115 @@
+# 24-characterization run 2026-10-02T15:40:01Z
+== fresh Postgres with the legacy function (docker compose down -v && up) ==
+ Container 24-characterization-postgres-1 Healthy 
+setup: legacy_monthly_contribution() (the PL/pgSQL as found), cases (inputs, legacy output, rewrite outputs, verdict)
+== demo: golden master of legacy_monthly_contribution(), the TS rewrite checked against it ==
+
+## 1. Generate inputs
+   concept: boundary values on every threshold the code might have (cap, offset, minimum, birthdays, join days, leap years) plus seeded random cases
+   352 boundary + 1000 random (seed 2026) = 1352 cases
+
+## 2. Record the golden master
+   concept: run every input through the legacy PL/pgSQL and keep the outputs in a committed approval file; the legacy output is the spec
+   legacy outputs differing from approved/legacy.approved.tsv: 0
+   1352 approved cases, 276 of them 0.00
+
+## 3. The rewrite from the booklet, against the golden master
+   concept: the written rules (5/7/9% of salary above 6,000 capped at 150,000, rounded, from the month of joining) are not what the system does
+   676 of 1352 cases differ
+   #19    salary    7333.33  born 1995-06-15  joined 2010-01-04  period 2024-02-01  legacy     0.00  rewrite     5.56
+   #21    salary    7333.33  born 1965-06-15  joined 2010-01-04  period 2024-02-01  legacy     0.00  rewrite    10.00
+   #27    salary    7714.28  born 1965-06-15  joined 2010-01-04  period 2024-02-01  legacy    12.85  rewrite    12.86
+   #55    salary  156000.00  born 1995-06-15  joined 2010-01-04  period 2024-02-01  legacy   600.00  rewrite   625.00
+   #63    salary   48000.00  born 1989-02-02  joined 2010-01-04  period 2024-02-01  legacy   245.00  rewrite   175.00
+   #86    salary   48000.00  born 1980-06-15  joined 2024-02-16  period 2024-02-01  legacy     0.00  rewrite   245.00
+   #966   salary   17983.98  born 1976-03-07  joined 2024-05-23  period 2026-03-01  legacy    89.87  rewrite    69.91
+
+## 4. Discover the rules from the mismatches
+   concept: turn each pattern into a hypothesis, switch it on in the rewrite, and keep it if it reproduces legacy; a mismatch is explained by the smallest set that does
+    417  truncateToCent
+    114  capSalaryBeforeOffset
+     53  midMonthCutoff
+     41  ageByDaysOver365
+     38  deMinimis
+     12  truncateToCent + deMinimis
+      1  ageByDaysOver365 + truncateToCent
+
+## 5. Decide per rule: keep the quirk or fix it on purpose
+   concept: kept rules become the rewrite's behaviour; fixed ones go on an allowlist with a reason, so their mismatches are expected and nothing else is
+   KEEP midMonthCutoff        payroll closes on the 15th; the booklet never said so, but every employer's payroll relies on it
+   KEEP capSalaryBeforeOffset the cap is on the payroll salary field; the booklet's wording was ambiguous and 15 years of statements follow legacy
+   FIX  ageByDaysOver365      legacy counts age as days / 365, so leap days make members older: up to 9 days before a 35th birthday and 13 before a 50th they pay the higher rate
+   KEEP truncateToCent        employers deduct the truncated amount; rounding would open a 0.01 reconciliation difference on about half the members every month
+   KEEP deMinimis             collecting it costs more than it is worth; it is in the employer agreement, not in the booklet
+
+## 6. The final rewrite, against the golden master
+   concept: equal, or differing only where a documented fix says it must; zero unexplained mismatches is the green bar
+   1352 cases: 1310 equal, 42 allowlisted (ageByDaysOver365), 0 unexplained
+   #63    salary   48000.00  born 1989-02-02  joined 2010-01-04  period 2024-02-01  legacy   245.00  rewrite   175.00
+   #64    salary   48000.00  born 1989-02-03  joined 2010-01-04  period 2024-02-01  legacy   245.00  rewrite   175.00
+   #65    salary   48000.00  born 1989-02-09  joined 2010-01-04  period 2024-02-01  legacy   245.00  rewrite   175.00
+   #73    salary   48000.00  born 1974-02-02  joined 2010-01-04  period 2024-02-01  legacy   315.00  rewrite   245.00
+
+## 7. The golden master catches a regression
+   concept: someone 'tidies' the truncation into rounding: those mismatches are on no allowlist, so the check goes red
+   430 unexplained mismatches, for example:
+   #21    salary    7333.33  born 1965-06-15  joined 2010-01-04  period 2024-02-01  legacy     0.00  rewrite    10.00
+   #26    salary    7714.28  born 1980-06-15  joined 2010-01-04  period 2024-02-01  legacy     0.00  rewrite    10.00
+
+## 8. The decision table
+   concept: what was learned, written for people: one row per rule, with where it came from and what was decided
+   | # | When | Then | Source | Decision |
+   | --- | --- | --- | --- | --- |
+   | R1 | salary is 0 or less | 0.00 | booklet | |
+   | R2 | joined after the last day of the period | 0.00 | booklet | |
+   | R3 | joined in the period's month after the 15th | 0.00 for that month | legacy, 53 mismatches | keep: payroll closes on the 15th; the booklet never said so, but every employer's payroll relies on it |
+   | R4 | salary above 150,000.00 | pensionable = min(salary, 150,000.00) - 6,000.00, so at most 144,000.00 | legacy, 114 mismatches | keep: the cap is on the payroll salary field; the booklet's wording was ambiguous and 15 years of statements follow legacy |
+   | R5 | age on the 1st of the period: under 35 / 35 to 49 / 50 and over | rate 5% / 7% / 9% of pensionable salary | legacy, 42 mismatches | fix: legacy counts age as days / 365, so leap days make members older: up to 9 days before a 35th birthday and 13 before a 50th they pay the higher rate |
+   | R6 | pensionable x rate / 12 has more than 2 decimals | truncated to the cent, never rounded up | legacy, 430 mismatches | keep: employers deduct the truncated amount; rounding would open a 0.01 reconciliation difference on about half the members every month |
+   | R7 | the monthly amount is under 10.00 | 0.00 | legacy, 50 mismatches | keep: collecting it costs more than it is worth; it is in the employer agreement, not in the booklet |
+
+== proof: the approval file (committed; head) ==
+id	kind	salary	birth_date	joined_on	period	legacy
+1	boundary	-100.00	1995-06-15	2010-01-04	2024-02-01	0.00
+2	boundary	-100.00	1980-06-15	2010-01-04	2024-02-01	0.00
+3	boundary	-100.00	1965-06-15	2010-01-04	2024-02-01	0.00
+   lines: 1353
+== proof: every case's verdict for the final rewrite ==
+              verdict              |   kind   | count 
+-----------------------------------+----------+-------
+ allowlisted: fix ageByDaysOver365 | boundary |    41
+ allowlisted: fix ageByDaysOver365 | random   |     1
+ equal                             | boundary |   311
+ equal                             | random   |   999
+(4 rows)
+
+== proof: why the booklet rewrite differed, per case (the smallest set of rules that reproduces legacy) ==
+           explained_by            | count 
+-----------------------------------+-------
+ (no mismatch)                     |   676
+ truncateToCent                    |   417
+ capSalaryBeforeOffset             |   114
+ midMonthCutoff                    |    53
+ ageByDaysOver365                  |    41
+ deMinimis                         |    38
+ truncateToCent + deMinimis        |    12
+ ageByDaysOver365 + truncateToCent |     1
+(8 rows)
+
+== proof: the leap-year bug in the golden master: legacy age (days / 365) vs calendar age, allowlisted cases at the default salary ==
+ legacy_age | real_age | count | min_days_to_birthday | max_days_to_birthday | legacy | rewrite 
+------------+----------+-------+----------------------+----------------------+--------+---------
+         35 |       34 |    15 |                    1 |                    9 | 245.00 |  175.00
+         50 |       49 |    26 |                    1 |                   13 | 315.00 |  245.00
+(2 rows)
+
+== proof: the rates hidden in the legacy outputs, by calendar age (implied rate = legacy x 12 / pensionable, truncation shaves the last digit) ==
+ calendar_age | implied_rate | count 
+--------------+--------------+-------
+ under 35     |         0.05 |   310
+ under 35     |         0.07 |    15
+ 35 to 49     |         0.07 |   290
+ 35 to 49     |         0.09 |    27
+ 50 and over  |         0.09 |   434
+(5 rows)
+
