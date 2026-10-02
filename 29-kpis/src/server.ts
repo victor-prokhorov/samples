@@ -119,9 +119,12 @@ const server = http.createServer(async (req, res) => {
   } catch (err) {
     reply = ok({ error: String(err) }, 500);
   }
-  res.writeHead(reply.status, { "content-type": "application/json" }).end(JSON.stringify(reply.json));
   const duration = performance.now() - started;
+  // logged before replying: once the client has its answer, the request is in request_log, even if the process is stopped right after
   await db.query("INSERT INTO request_log (at, method, route, status, duration_ms) VALUES ($1, $2, $3, $4, $5)", [now, req.method, template, reply.status, duration]);
+  res.writeHead(reply.status, { "content-type": "application/json" }).end(JSON.stringify(reply.json));
 });
 
 server.listen(PORT, () => console.log(`   [portal pid ${process.pid}] listening on :${PORT}, every request in request_log, usage events in events`));
+// SIGTERM: stop accepting connections, let the requests in flight finish, then close the pool
+process.on("SIGTERM", () => server.close(() => void db.end().then(() => process.exit(0))));

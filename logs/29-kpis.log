@@ -1,4 +1,4 @@
-# 29-kpis run 2026-10-02T16:07:57Z
+# 29-kpis run 2026-10-02T17:08:44Z
 == fresh Postgres for events and request_log (docker compose down -v && up) ==
  Container 29-kpis-postgres-1 Healthy 
 setup: employers, members, events (usage), request_log (one row per HTTP request), change_requests
@@ -7,8 +7,8 @@ setup: 120 members (Acme 60, Globex 40, Initech 20), 110 eligible
 
 ## 1. The app emits what happened
    concept: the portal writes a usage event per member action (events) and a row per HTTP request (request_log); KPIs are SQL over those two tables, nothing is counted by hand
-   [portal pid 20524] listening on :53039, every request in request_log, usage events in events
-   simulated 2026-09-03 .. 2026-10-01: 712 member visits, 672 hourly health probes, 149 change requests (137 resolved by staff); incident 2026-09-17T09:00:00Z/2026-09-17T13:00:00Z; took 3337ms
+   [portal pid 21754] listening on :53039, every request in request_log, usage events in events
+   simulated 2026-09-03 .. 2026-10-01: 712 member visits, 672 hourly health probes, 149 change requests (137 resolved by staff); incident 2026-09-17T09:00:00Z/2026-09-17T13:00:00Z; took 4676ms
    events: login=712, view_profile=639, view_contributions=393, change_started=175, change_submitted=149, change_rejected=23
 
 ## 2. A vanity count versus adoption
@@ -21,12 +21,12 @@ setup: 120 members (Acme 60, Globex 40, Initech 20), 110 eligible
 
 ## 3. A mean versus the p95
    concept: a mean blends the many fast requests with the few slow ones; the 95th percentile is what the slowest one in twenty members waits
-   GET /contributions       397 requests  mean   50 ms  p95  354 ms
-   GET /profile             639 requests  mean    5 ms  p95   11 ms
-   POST /changes            179 requests  mean    5 ms  p95   11 ms
-   GET /changes/new         175 requests  mean    3 ms  p95   10 ms
-   POST /login              712 requests  mean    3 ms  p95    9 ms
-   all member routes together: mean 13 ms, p95 13 ms (the fast pages drown the slow one, so the KPI takes the slowest route)
+   GET /contributions       397 requests  mean   51 ms  p95  356 ms
+   GET /profile             639 requests  mean    6 ms  p95   17 ms
+   POST /changes            179 requests  mean    7 ms  p95   16 ms
+   POST /login              712 requests  mean    4 ms  p95   10 ms
+   GET /changes/new         175 requests  mean    4 ms  p95    9 ms
+   all member routes together: mean 14 ms, p95 20 ms (the fast pages drown the slow one, so the KPI takes the slowest route)
    the slow tail: 14 members with more than 30 years of service, whose history query is slow
 
 ## 4. A health check versus what members got
@@ -34,7 +34,12 @@ setup: 120 members (Acme 60, Globex 40, Initech 20), 110 eligible
    health probes: 672, 100.0% answered 200
    availability:  99.48% (11 of 2102 requests failed), SLO 99.5%
    error budget:  11 failed of 10.5 allowed, remaining -5%
-   09-17: 11 of 78 member requests failed (burn rate 28.2x the budget rate)
+   09-17: 11 of 78 member requests failed (burn rate 28.2x the budget rate over the day)
+     09:00: 0 of 2 failed (burn rate 0.0x)
+     10:00: 3 of 8 failed (burn rate 75.0x)
+     11:00: 5 of 11 failed (burn rate 90.9x)
+     12:00: 3 of 5 failed (burn rate 120.0x)
+   incident 09:00-13:00 (4 hours): 11 of 26 member requests failed (burn rate 84.6x the budget rate)
 
 ## 5. Change request funnel
    concept: each step counts sessions that reached it; the drop between steps shows where members give up (validation errors, the outage, abandoning the form)
@@ -58,7 +63,7 @@ setup: 120 members (Acme 60, Globex 40, Initech 20), 110 eligible
    Change request task success                   85.1%  >= 85.0%   met     product owner  149 of 175 tasks
    Change request completion time (median)       169 s  <= 240 s   met     UX lead        p90 398 s
    Form error rate                               13.4%  <= 10.0%   MISSED  UX lead        23 of 172 submissions
-   Latency p95, slowest route                   354 ms  <= 300 ms  MISSED  tech lead      GET /contributions, all routes together 13 ms
+   Latency p95, slowest route                   356 ms  <= 300 ms  MISSED  tech lead      GET /contributions, all routes together 20 ms
    Availability                                 99.48%  >= 99.50%  MISSED  service owner  11 of 2102 requests failed
    Error budget remaining                        -4.7%  >= 0.0%    MISSED  service owner  11 failed of 10.5 allowed
    Requests resolved within 3 days               86.9%  >= 90.0%   MISSED  support lead   113 of 130 due
@@ -81,15 +86,15 @@ setup: 120 members (Acme 60, Globex 40, Initech 20), 110 eligible
 == proof: request_log, one row per HTTP request, the stream the service KPIs read ==
  method |           route            | status | requests | mean_ms | p95_ms 
 --------+----------------------------+--------+----------+---------+--------
- POST   | /changes                   |    201 |      149 |       6 |     11
- POST   | /changes                   |    422 |       23 |       3 |      5
+ POST   | /changes                   |    201 |      149 |       7 |     17
+ POST   | /changes                   |    422 |       23 |       5 |      6
  POST   | /changes                   |    503 |        7 |       0 |      0
- GET    | /changes/new               |    200 |      175 |       3 |     10
- GET    | /contributions             |    200 |      393 |      51 |    354
+ GET    | /changes/new               |    200 |      175 |       4 |      9
+ GET    | /contributions             |    200 |      393 |      52 |    356
  GET    | /contributions             |    503 |        4 |       0 |      0
  GET    | /health                    |    200 |      672 |       0 |      0
- POST   | /login                     |    200 |      712 |       3 |      9
- GET    | /profile                   |    200 |      639 |       5 |     11
+ POST   | /login                     |    200 |      712 |       4 |     10
+ GET    | /profile                   |    200 |      639 |       6 |     17
  POST   | /staff/changes/:id/resolve |    200 |      137 |       1 |      2
 (10 rows)
 
@@ -97,11 +102,11 @@ setup: 120 members (Acme 60, Globex 40, Initech 20), 110 eligible
           hour          | probes | probes_ok | member_requests | failed 
 ------------------------+--------+-----------+-----------------+--------
  2026-09-17 08:00:00+00 |      1 |         1 |              11 |      0
- 2026-09-17 09:00:00+00 |      1 |         1 |               3 |      0
+ 2026-09-17 09:00:00+00 |      1 |         1 |               2 |      0
  2026-09-17 10:00:00+00 |      1 |         1 |               8 |      3
- 2026-09-17 11:00:00+00 |      1 |         1 |              12 |      5
+ 2026-09-17 11:00:00+00 |      1 |         1 |              11 |      5
  2026-09-17 12:00:00+00 |      1 |         1 |               5 |      3
- 2026-09-17 13:00:00+00 |      1 |         1 |               3 |      0
+ 2026-09-17 13:00:00+00 |      1 |         1 |               2 |      0
 (6 rows)
 
 == proof: change_requests against the 3-day SLA ==

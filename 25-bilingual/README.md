@@ -16,7 +16,7 @@ npm run check    # the catalogue check alone, exits 1 on any problem (for CI)
 ```
 
 - `messages/en.json`, `messages/fr.json` the catalogues: plural, select, number and date arguments, gender-free French wording (`Membre`, `Administration employeur`, `Dernière connexion le ...`), no-break spaces before `:` and `%`.
-- `src/negotiate.ts` `Accept-Language` parsing: q-values, `q=0`, exact match then primary language, fallback.
+- `src/negotiate.ts` `Accept-Language` parsing: q-values, `q=0` (never chosen, also not through `*`), exact match then primary language, fallback.
 - `src/i18n.ts` the translator for a locale: messages through `IntlMessageFormat`, money and dates through `Intl`, the formatting locale per language (`en` formats as `en-GB`, `fr` as `fr-FR`).
 - `src/catalogues.ts` loads catalogues and compares them: same keys, every message parses, same ICU arguments with the same types, same select cases.
 - `src/check-catalogues.ts` the CI gate (`npm run check`).

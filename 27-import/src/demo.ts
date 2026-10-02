@@ -72,6 +72,7 @@ const sep = await importFile(data("acme-2026-09-contributions.csv"));
 show(sep);
 check(sep.status === "applied" && sep.written?.inserted === 5, "5 valid contributions applied");
 check(new Set(sep.rejects.map((x) => x.line_no)).size === 3 && sep.rejects.filter((x) => x.line_no === 8).length === 3, "3 lines rejected, line 8 for 3 reasons");
+check(sep.amounts?.declared === "1075.50" && sep.amounts.unparsable === 1, "the control total matches the amounts that parse; 18O.00 is in neither");
 
 step("6. The same file again, and the same bytes under another name", "the batch records the file's sha256 and a partial unique index allows one applied batch per hash, so a rerun is a no-op whatever the file is called");
 const again = await importFile(data("acme-2026-09-contributions.csv"));
@@ -88,27 +89,50 @@ const v2 = await importFile(data("acme-2026-09-contributions-v2.csv"));
 show(v2);
 check(v2.written?.inserted === 1 && v2.written.updated === 0 && v2.diff?.unchanged === 5, "1 inserted (M0003), 5 unchanged");
 
-step("8. Files refused as a whole", `a file is applied whole-or-not when its shape is wrong: wrong columns (COPY HEADER match), fewer rows than the control file declares, or more than ${MAX_REJECT_RATE * 100}% of rows rejected`);
-for (const f of ["initech-2026-09-contributions.csv", "initech-2026-09-members.csv", "globex-2026-09-contributions.csv"]) {
+step(
+  "8. Files refused as a whole",
+  `a file is applied whole-or-not when its shape is wrong: wrong columns (COPY HEADER match), fewer rows than the control file declares, more than ${MAX_REJECT_RATE * 100}% of rows rejected, or a control total the amounts that parse do not add up to; the refused batch keeps its rejects`,
+);
+const refused: Record<string, number> = {};
+for (const f of ["initech-2026-09-contributions.csv", "initech-2026-09-members.csv", "globex-2026-09-contributions.csv", "acme-2026-10-contributions.csv"]) {
   const rep = await importFile(data(f));
   show(rep);
   check(rep.status === "refused", `${f} refused`);
+  refused[f] = rep.batchId!;
 }
-const leaked = await one("SELECT count(*) AS n FROM members WHERE employer <> 'acme'");
+const leaked = await one("SELECT (SELECT count(*) FROM members WHERE employer <> 'acme') + (SELECT count(*) FROM contributions WHERE period = '2026-10') AS n");
 check(leaked.n === "0", "nothing from the refused files reached members or contributions");
+const kept = await db.query("SELECT batch_id, count(*)::int AS n FROM import_rejects WHERE batch_id = ANY ($1) GROUP BY batch_id ORDER BY batch_id", [Object.values(refused)]);
+console.log(`   rejects stored for the refused batches: ${kept.rows.map((x) => `batch ${x.batch_id}: ${x.n}`).join(", ")}`);
+check(
+  kept.rows.find((x) => x.batch_id === refused["globex-2026-09-contributions.csv"])?.n === 3 && kept.rows.find((x) => x.batch_id === refused["acme-2026-10-contributions.csv"])?.n === 1,
+  "the refused batches kept their rejects (3 for globex, 1 for acme October)",
+);
 
-step("9. Reconciliation", "after the load, the target must agree with the batch log: per employer and month, the rows and the sum in contributions equal what the last applied batch accepted");
+step(
+  "9. Reconciliation",
+  "only batches write contributions, by insert or update, never delete; so per employer and month the rows equal what every applied batch inserted, and the sum equals the sum of each batch's net change (new minus old amount over the rows it wrote), whether a file was the full month or a few corrected lines",
+);
 const rec = await db.query(`
-  SELECT b.employer, b.period, b.id AS batch, b.accepted, b.amount_accepted, count(c.*)::int AS in_table, coalesce(sum(c.amount), 0)::text AS sum_in_table
-  FROM import_batches b LEFT JOIN contributions c ON c.employer = b.employer AND c.period = b.period
-  WHERE b.kind = 'contributions' AND b.status = 'applied'
-    AND b.id = (SELECT max(id) FROM import_batches x WHERE x.kind = b.kind AND x.employer = b.employer AND x.period = b.period AND x.status = 'applied')
-  GROUP BY b.id ORDER BY b.period`);
+  SELECT b.employer, b.period, string_agg(b.id::text, ' + ' ORDER BY b.id) AS batches,
+    string_agg(b.inserted::text, ' + ' ORDER BY b.id) AS each_inserted, sum(b.inserted)::int AS inserted,
+    string_agg(b.amount_net::text, ' + ' ORDER BY b.id) AS each_net, sum(b.amount_net)::text AS net,
+    (SELECT count(*)::int FROM contributions c WHERE c.employer = b.employer AND c.period = b.period) AS in_table,
+    (SELECT coalesce(sum(c.amount), 0)::text FROM contributions c WHERE c.employer = b.employer AND c.period = b.period) AS sum_in_table
+  FROM import_batches b WHERE b.kind = 'contributions' AND b.status = 'applied'
+  GROUP BY b.employer, b.period ORDER BY b.period`);
 for (const x of rec.rows) {
-  const ok = x.accepted === x.in_table && x.amount_accepted === x.sum_in_table;
-  console.log(`   ${x.employer} ${x.period}: batch ${x.batch} accepted ${x.accepted} rows / ${x.amount_accepted}; contributions has ${x.in_table} rows / ${x.sum_in_table} -> ${ok ? "reconciled" : "MISMATCH"}`);
+  const ok = x.inserted === x.in_table && x.net === x.sum_in_table;
+  console.log(
+    `   ${x.employer} ${x.period}: batch ${x.batches} inserted ${x.each_inserted} = ${x.inserted} rows, net ${x.each_net} = ${x.net}; contributions has ${x.in_table} rows / ${x.sum_in_table} -> ${ok ? "reconciled" : "MISMATCH"}`,
+  );
   check(ok, `${x.employer} ${x.period} reconciles`);
 }
+const stray = await db.query(`
+  SELECT c.* FROM contributions c JOIN import_batches b ON b.id = c.last_batch_id
+  WHERE b.status <> 'applied' OR b.kind <> 'contributions' OR b.employer <> c.employer OR b.period <> c.period`);
+check(stray.rowCount === 0, "every contribution points at the applied batch of its employer and month that last wrote it");
+console.log("   every contribution: last_batch_id is an applied contributions batch of the same employer and month");
 const bal = await db.query("SELECT id, rows_received, accepted, rejected FROM import_batches WHERE status = 'applied' AND rows_received <> accepted + rejected");
 check(bal.rowCount === 0, "every applied batch: rows received = accepted + rejected");
 console.log("   every applied batch: rows received = accepted + rejected");

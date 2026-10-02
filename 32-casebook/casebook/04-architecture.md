@@ -9,7 +9,7 @@ A deliberately boring stack the team of five can run: one server-rendered web ap
 C4Context
     title Member portal: system context
     Person(member, "Member", "Employee of a partner organisation")
-    Person(hr, "Employer administrator", "HR at one of 26 employers")
+    Person(hr, "Employer administrator", "HR at one of about forty employers")
     Person(staff, "Support staff", "Processes change requests")
     System(portal, "Member portal", "Profile, contributions, change requests, statements, monthly uploads")
     System_Ext(idp, "Identity provider", "OpenID Connect, MFA")
@@ -112,4 +112,4 @@ sequenceDiagram
 - Server-rendered pages with progressive enhancement, not a single-page app: accessibility, mobile performance, one deployable.
 - No passwords in the portal: OpenID Connect against the organisation's identity provider, MFA step-up for bank details.
 - One Postgres database with an outbox for side effects (emails, sync to legacy), not a message broker: the volumes are small.
-- Employer scoping enforced in the database (row-level security keyed on the employer), not only in the application.
+- Data scoping enforced in the database, not only in the application: row-level security on members, contributions, statements, change requests and uploads, keyed on the signed-in role, member and employer that the application sets per transaction, and failing closed when none is set (details in [07-accessibility-security.md](07-accessibility-security.md)).

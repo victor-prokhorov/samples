@@ -11,6 +11,11 @@ describe("checkRequest", () => {
   it("refuses a date in the past", () => {
     expect(checkRequest({ ...ok, effectiveFrom: "2026-03-09" }, { today, pending: [] })).toEqual(["The date cannot be in the past"]);
   });
+  it("refuses dates that do not exist", () => {
+    for (const effectiveFrom of ["2026-13-01", "2026-02-30", "2026-04-31", "2026-00-10"])
+      expect(checkRequest({ ...ok, effectiveFrom }, { today, pending: [] })).toEqual(["Enter a real date, like 2026-04-01"]);
+    expect(checkRequest({ ...ok, effectiveFrom: "2028-02-29" }, { today: "2028-02-28", pending: [] })).toEqual([]);
+  });
   it("accepts the 90th day and refuses the 91st", () => {
     expect(checkRequest({ ...ok, effectiveFrom: "2026-06-08" }, { today, pending: [] })).toEqual([]);
     expect(checkRequest({ ...ok, effectiveFrom: "2026-06-09" }, { today, pending: [] })).toEqual(["The date must be within 90 days"]);

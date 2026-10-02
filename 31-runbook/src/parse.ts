@@ -2,12 +2,13 @@ import { readFile } from "node:fs/promises";
 
 export type Block = { lang: string; code: string };
 export type Step = { title: string; text: string[]; blocks: Block[] };
-export type Section = { name: string; steps: Step[] };
+export type Section = { name: string; steps: Step[]; loose: Block[] };
 export type Doc = { file: string; title: string; meta: Record<string, string>; sections: Section[] };
 
 export const REQUIRED = ["Preconditions", "Steps", "Verification", "Rollback"];
 
 // Markdown is the source of truth: "# Title", "Key: value" lines, "## Section", "### Step", and fenced blocks (sh runs, manual asks the operator).
+// A block in a section but before its first step belongs to no step and never runs: it is kept in section.loose so docs-lint reports it.
 export async function parse(file: string): Promise<Doc> {
   const doc: Doc = { file, title: "", meta: {}, sections: [] };
   let section: Section | null = null;
@@ -16,13 +17,14 @@ export async function parse(file: string): Promise<Doc> {
   for (const line of (await readFile(file, "utf8")).split("\n")) {
     if (fence) {
       if (line.startsWith("```")) {
-        (step ?? { blocks: [] as Block[] }).blocks.push(fence);
+        if (step) step.blocks.push(fence);
+        else if (section) section.loose.push(fence);
         fence = null;
       } else fence.code += `${line}\n`;
     } else if (line.startsWith("```")) fence = { lang: line.slice(3).trim(), code: "" };
     else if (line.startsWith("# ")) doc.title = line.slice(2).trim();
     else if (line.startsWith("## ")) {
-      section = { name: line.slice(3).trim(), steps: [] };
+      section = { name: line.slice(3).trim(), steps: [], loose: [] };
       step = null;
       doc.sections.push(section);
     } else if (line.startsWith("### ") && section) {

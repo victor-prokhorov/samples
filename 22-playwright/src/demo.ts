@@ -17,9 +17,9 @@ function check(cond: boolean, what: string) {
 function run(args: string[], env: Record<string, string> = {}) {
   const shown = Object.entries(env).map(([k, v]) => `${k}=${v} `).join("");
   console.log(`   $ ${shown}npx ${args.join(" ")}`);
-  // Merged and with colour codes stripped, so the log reads like a terminal.
+  // Merged and with colour codes stripped, so the log reads like a terminal; paths relative to this folder, so it does not depend on the checkout.
   const r = spawnSync("sh", ["-c", `npx ${args.join(" ")} 2>&1`], { encoding: "utf8", env: { ...process.env, ...env } });
-  process.stdout.write(r.stdout.replace(/\x1b\[[0-9;]*m/g, ""));
+  process.stdout.write(r.stdout.replace(/\x1b\[[0-9;]*m/g, "").replaceAll(process.cwd() + "/", "").replaceAll(process.cwd(), "."));
   console.log(`   -> exit ${r.status}`);
   return r.status;
 }

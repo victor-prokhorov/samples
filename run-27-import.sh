@@ -15,9 +15,9 @@ echo "== demo: monthly files from employers in data/, a naive import then a stag
 npm run --silent demo
 echo
 echo "== proof: import_batches. One applied batch per file hash; refused files are recorded with the reason. Ids have gaps: a rolled-back or skipped INSERT still uses a sequence value =="
-psql -c "SELECT id, file_name, left(sha256, 12) AS sha256, status, rows_declared AS declared, rows_received AS received, accepted, rejected, inserted, updated, unchanged, missing, amount_declared, amount_accepted, amount_rejected FROM import_batches ORDER BY id"
+psql -c "SELECT id, file_name, left(sha256, 12) AS sha256, status, rows_declared AS declared, rows_received AS received, accepted, rejected, inserted, updated, unchanged, missing, amount_declared, amount_accepted, amount_rejected, amount_net FROM import_batches ORDER BY id"
 psql -c "SELECT id, reason FROM import_batches WHERE status = 'refused' ORDER BY id"
-echo "== proof: import_rejects. One row per broken rule, with the raw line =="
+echo "== proof: import_rejects. One row per broken rule, with the raw line; refused batches keep theirs =="
 psql -c "SELECT batch_id, line_no, rule, detail, raw FROM import_rejects ORDER BY batch_id, line_no, rule"
 echo "== proof: members. M0001 updated and M0007 inserted by batch 4, M0004 (missing from September) kept, M0005 kept its August row =="
 psql -c "SELECT employer, member_no, first_name, last_name, email, birth_date, last_batch_id FROM members ORDER BY employer, member_no"

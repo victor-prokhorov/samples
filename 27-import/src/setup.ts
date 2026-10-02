@@ -27,6 +27,7 @@ await db.query(`
     amount_declared NUMERIC(12, 2),
     amount_accepted NUMERIC(12, 2),
     amount_rejected NUMERIC(12, 2),
+    amount_net NUMERIC(12, 2), -- what the batch changed in the table's total: new minus old amount over the rows it wrote
     at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
   CREATE UNIQUE INDEX import_batches_applied_once ON import_batches (sha256) WHERE status = 'applied';

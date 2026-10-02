@@ -15,7 +15,7 @@ type Job = { member_id: number; attempts: number; message_id: string; was: strin
 
 const log = (s: string) => console.log(`   [worker ${WORKER}] ${s}`);
 
-// Claimable: due pending/retry jobs, and 'sending' jobs whose worker stopped renewing the lease (crashed or hung).
+// Claimable: due pending/retry jobs, and 'sending' jobs whose lease expired (the worker crashed, hung, or is slower than the lease).
 async function claim(): Promise<Job | undefined> {
   const { rows } = await db.query<Job>(
     `WITH next AS (
@@ -32,7 +32,8 @@ async function claim(): Promise<Job | undefined> {
   return rows[0];
 }
 
-// Every outcome is fenced on locked_by: a worker that lost its lease cannot overwrite the new owner's result.
+// Every outcome is fenced on locked_by: a worker that lost its lease cannot overwrite the current lease holder's result.
+// Returns false, recording nothing, when the lease was lost; any other error (the database is down) is thrown.
 async function finish(job: Job, outcome: "sent" | "retry" | "dead", detail: string, startedAt: Date, extra: { sha256?: string; delayMs?: number } = {}) {
   const c = await db.connect();
   try {
@@ -44,9 +45,13 @@ async function finish(job: Job, outcome: "sent" | "retry" | "dead", detail: stri
        WHERE year = $1 AND member_id = $2 AND status = 'sending' AND locked_by = $7`,
       [YEAR, job.member_id, outcome, outcome === "sent" ? null : detail, extra.sha256 ?? null, extra.delayMs ?? null, WORKER],
     );
-    if (r.rowCount === 0) throw new Error(`lease on member ${job.member_id} lost to another worker`);
+    if (r.rowCount === 0) {
+      await c.query("ROLLBACK");
+      return false;
+    }
     await attempt(c, job, outcome, detail, startedAt);
     await c.query("COMMIT");
+    return true;
   } catch (err) {
     await c.query("ROLLBACK");
     throw err;
@@ -85,30 +90,37 @@ async function process1(job: Job) {
   }
   const { pdf, sha256 } = await renderStatement(data, YEAR);
   const startedAt = await throttle();
+  const lost = (outcome: string) => {
+    log(`${who}: ${outcome}, but the lease was lost to another worker; the current lease holder's outcome counts, this one is not recorded`);
+    return "lost";
+  };
+  // Only the SMTP call is in the try: a failure to record an accepted send must not be stored as a retry.
+  let info: Awaited<ReturnType<typeof sendStatement>>;
   try {
-    const info = await sendStatement(data.member.email, data.member.name, YEAR, data.member.member_no, pdf);
-    if (CRASH_ON === data.member.member_no) {
-      log(`${who}: ${info.response.split(" ")[0]} accepted by SMTP, now crashing (SIGKILL) before recording it`);
-      process.kill(process.pid, "SIGKILL");
-    }
-    await finish(job, "sent", info.response, startedAt, { sha256 });
-    log(`${who}: sent ${job.message_id}`);
-    return "sent";
+    info = await sendStatement(data.member.email, data.member.name, YEAR, data.member.member_no, pdf);
   } catch (err) {
     const { transient, detail } = classify(err);
     if (transient && job.attempts < MAX_ATTEMPTS) {
       const delayMs = Math.round(BASE_BACKOFF_MS * 2 ** (job.attempts - 1) * (0.5 + Math.random() / 2));
-      await finish(job, "retry", detail, startedAt, { delayMs });
+      if (!(await finish(job, "retry", detail, startedAt, { delayMs }))) return lost(detail);
       log(`${who}: ${detail} -> retry in ${delayMs} ms`);
       return "retry";
     }
-    await finish(job, "dead", detail, startedAt);
+    if (!(await finish(job, "dead", detail, startedAt))) return lost(detail);
     log(`${who}: ${detail} -> dead letter (${transient ? `${MAX_ATTEMPTS} attempts used` : "permanent"})`);
     return "dead";
   }
+  if (CRASH_ON === data.member.member_no) {
+    log(`${who}: ${info.response.split(" ")[0]} accepted by SMTP, now crashing (SIGKILL) before recording it`);
+    process.kill(process.pid, "SIGKILL");
+  }
+  // A database error here is thrown and stops the worker: the job stays 'sending' and is taken over in doubt once the lease expires.
+  if (!(await finish(job, "sent", info.response, startedAt, { sha256 }))) return lost(`sent ${job.message_id}`);
+  log(`${who}: sent ${job.message_id}`);
+  return "sent";
 }
 
-const counts: Record<string, number> = { sent: 0, retry: 0, dead: 0 };
+const counts: Record<string, number> = { sent: 0, retry: 0, dead: 0, lost: 0 };
 log(`started: ${RATE} msg/s, lease ${LEASE_MS} ms, max ${MAX_ATTEMPTS} attempts${CRASH_ON ? `, will crash after sending ${CRASH_ON}` : ""}`);
 for (;;) {
   const job = await claim();
@@ -124,5 +136,5 @@ for (;;) {
   if (rows[0].n === 0) break;
   await sleep(Math.min(500, Math.max(20, Number(rows[0].wait_ms))));
 }
-log(`done: ${counts.sent} sent, ${counts.retry} retries scheduled, ${counts.dead} dead letters`);
+log(`done: ${counts.sent} sent, ${counts.retry} retries scheduled, ${counts.dead} dead letters${counts.lost ? `, ${counts.lost} leases lost` : ""}`);
 await db.end();

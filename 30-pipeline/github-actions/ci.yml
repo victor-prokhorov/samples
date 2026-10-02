@@ -5,7 +5,7 @@ name: ci
 on:
   push:
     branches: [main]
-    tags: ["v*.*.*"]
+    tags: ["v[0-9]+.[0-9]+.[0-9]+"] # filter pattern: + repeats, . is literal; the deploy job checks the exact regex again
   pull_request:
   schedule:
     - cron: "0 6 * * 2" # scheduled release: Tuesdays 06:00 UTC
@@ -90,18 +90,28 @@ jobs:
   deploy:
     needs: build
     if: github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
+    # it writes into /srv on the production host: a GitHub-hosted runner (ubuntu-latest) is a fresh VM thrown away after the job,
+    # so the job runs on a self-hosted runner installed on that host and registered with the label production
+    runs-on: [self-hosted, production]
     environment: production
     concurrency: production
     env:
       DEPLOY_DIR: /srv/statement-app
     steps:
+      # the same rule as GitLab's $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/: a tag like v1.4.0-rc1 never deploys
+      - if: github.ref_type == 'tag'
+        run: |
+          [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "$GITHUB_REF_NAME is not a release tag vX.Y.Z"; exit 1; }
       - uses: actions/download-artifact@v4
         with: { name: dist, path: dist }
       - run: |
-          RELEASE="${{ github.ref_type == 'tag' && github.ref_name || format('scheduled-{0}-{1}', github.sha, github.run_id) }}"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then RELEASE="$GITHUB_REF_NAME"; else RELEASE="scheduled-${GITHUB_SHA::8}-$GITHUB_RUN_ID"; fi
           mkdir -p "$DEPLOY_DIR/releases/$RELEASE"
           cp -r dist/. "$DEPLOY_DIR/releases/$RELEASE/"
           echo '{"type":"module"}' > "$DEPLOY_DIR/releases/$RELEASE/package.json"
+          printf '{"release":"%s","commit":"%s","source":"%s"}\n' "$RELEASE" "$GITHUB_SHA" "$GITHUB_EVENT_NAME" > "$DEPLOY_DIR/releases/$RELEASE/release.json"
+          # smoke-test the new release where it will run, before it goes live: if it fails, the job stops and current still points at the previous release
+          node -e "import('$DEPLOY_DIR/releases/$RELEASE/page.js').then((m) => { if (!m.statementPage('smoke', 2026, []).includes('<html lang=\"en\">')) process.exit(1); console.log('smoke ok') })"
+          # switch atomically: rename a new symlink over the old one, so a reader never sees a half-copied release
           ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
-          echo "deployed $RELEASE"
+          echo "deployed $RELEASE to $DEPLOY_DIR/current"

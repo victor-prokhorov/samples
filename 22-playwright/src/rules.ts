@@ -4,6 +4,12 @@ export type ChangeRequest = { kind: string; value: string; effectiveFrom: string
 
 const DAY = 86_400_000;
 
+// Date.parse gives NaN for month 13 but rolls 2026-02-30 over to 2026-03-02; a real date survives the round trip.
+const isRealDate = (day: string) => {
+  const t = Date.parse(day);
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === day;
+};
+
 // Returns the reasons a member's change request is refused; empty means it can be recorded as pending.
 export function checkRequest(req: ChangeRequest, ctx: { today: string; pending: string[] }): string[] {
   const errors: string[] = [];
@@ -12,6 +18,7 @@ export function checkRequest(req: ChangeRequest, ctx: { today: string; pending: 
   if (!value) errors.push("Enter the new value");
   else if (req.kind === "email" && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)) errors.push("Enter an email address like name@example.com");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(req.effectiveFrom)) errors.push("Enter the date the change applies from");
+  else if (!isRealDate(req.effectiveFrom)) errors.push("Enter a real date, like 2026-04-01");
   else {
     const days = (Date.parse(req.effectiveFrom) - Date.parse(ctx.today)) / DAY;
     if (days < 0) errors.push("The date cannot be in the past");

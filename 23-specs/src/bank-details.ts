@@ -21,7 +21,8 @@ export const domain: BankDetailsService = {
       );
       const r = rows[0];
       if (r.status === "approved") throw new RuleViolation("request is already approved");
-      if (r.requested_by === approver) throw new RuleViolation("cannot approve your own request");
+      // Own request: whoever entered it, and the member whose account it changes, even when staff entered it for them.
+      if (r.requested_by === approver || r.member_id === approver) throw new RuleViolation("cannot approve your own request");
       if (r.effective_from < isoDay(now)) throw new RuleViolation("effective date is in the past");
       const done = await c.query("INSERT INTO approvals (request_id, approver) VALUES ($1, $2) ON CONFLICT DO NOTHING", [requestId, approver]);
       if (done.rowCount === 0) throw new RuleViolation(`already approved by ${approver}`);

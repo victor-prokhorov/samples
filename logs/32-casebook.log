@@ -1,6 +1,7 @@
-# 32-casebook run 2026-10-02T16:11:18Z
+# 32-casebook run 2026-10-02T17:26:53Z
 == fresh Postgres for the data model (docker compose down -v && up) ==
  Container 32-casebook-postgres-1 Healthy 
+== Chromium for mermaid-cli: chromium-1194 (PUPPETEER_EXECUTABLE_PATH) ==
 == demo: the design case in casebook/*.md, checked: traceability, diagrams, data model ==
 
 ## 1. A draft that reads well but does not hold together
@@ -22,7 +23,7 @@
 
 ## 3. A data model that lets one person approve twice
    concept: the journeys' queries run against the DDL; J4.3 expects the database to refuse a second approval by the first approver, and the draft has no four_eyes constraint
-   J4.3 expected error, got 0 row(s)
+   J4.3 expected error four_eyes, got 0 row(s)
 
 ## 4. The casebook: every requirement traced
    concept: the matrix requirement -> acceptance criteria -> journey steps; cross-cutting requirements (accessibility, languages, reliability, data protection) apply to all journeys
@@ -45,43 +46,45 @@
    18 journey steps, each mapped; ER entities = tables: 10; lifecycle states = status CHECK values: submitted, in_review, awaiting_second_approval, approved, rejected, cancelled, applied
 
 ## 5. Render every diagram to SVG
-   concept: mermaid-cli with puppeteer pointed at the preinstalled Chromium (puppeteer.json); the SVGs are committed in diagrams/ for readers whose viewer does not render Mermaid
+   concept: mermaid-cli with puppeteer pointed at a local Chromium (PUPPETEER_EXECUTABLE_PATH); the SVGs are committed in diagrams/ for readers whose viewer does not render Mermaid
    casebook/01-discovery.md:32                -> diagrams/01-stakeholder-map.svg          quadrantChart, 7831 bytes
    casebook/02-personas-journeys.md:38        -> diagrams/02-journey-change-address.svg   journey, 18262 bytes
-   casebook/04-architecture.md:8              -> diagrams/04-c4-context.svg               c4, 38389 bytes
-   casebook/04-architecture.md:33             -> diagrams/04-c4-container.svg             flowchart-v2, 132422 bytes
+   casebook/04-architecture.md:8              -> diagrams/04-c4-context.svg               c4, 38546 bytes
+   casebook/04-architecture.md:33             -> diagrams/04-c4-container.svg             flowchart-v2, 132395 bytes
    casebook/04-architecture.md:62             -> diagrams/04-sequence-login.svg           sequence, 32895 bytes
    casebook/04-architecture.md:86             -> diagrams/04-sequence-change-request.svg  sequence, 34893 bytes
-   casebook/05-data-model.md:6                -> diagrams/05-er-model.svg                 er, 195250 bytes
+   casebook/05-data-model.md:6                -> diagrams/05-er-model.svg                 er, 195267 bytes
    casebook/06-change-request-lifecycle.md:6  -> diagrams/06-state-change-request.svg     stateDiagram, 50176 bytes
    casebook/08-migration-plan.md:16           -> diagrams/08-gantt-migration.svg          gantt, 13100 bytes
 
 ## 6. Apply the data model and run the queries the journeys need
-   concept: DDL and seed from 05-data-model.md into an empty Postgres, then each journey step's query in order on one connection; the expected row count, or an error where the database must refuse
+   concept: DDL and seed from 05-data-model.md into an empty Postgres, then each journey step's query in order on one connection, the user's steps as the application's role with row-level security; the expected row count, or the constraint that must refuse
    10 tables created
-   J1.2 expect 1     ok  1 row(s), first: name=alice employer=Acme status=active
-   J1.3 expect 12    ok  12 row(s), first: period=2025-01 employer=Acme amount=412.50 year_total=4950.00
-   J1.4 expect 1     ok  1 row(s), first: year=2025 total=4950.00 matches_history=true
-   J2.2 expect 1     ok  1 row(s), first: address=8 avenue Foch, 69006 Lyon
-   J2.4 expect 1     ok  1 row(s), first: reference=CR-1002 status=submitted
-   J2.5 expect 1     ok  1 row(s), first: reference=CR-1002 type=address status=submitted submitted_at=2026-09-30
-   J3.3 expect 2     ok  2 row(s), first: period=2026-09 line=4 reason=unknown member 999
-   J3.4 expect 2     ok  2 row(s), first: id=2 name=bob employer_id=globex
-   J4.1 expect 2     ok  2 row(s), first: reference=CR-1001 type=bank_details status=awaiting_second_approval submitted_at=2026-09-29 sla_due=2026-10-02
-   J4.2 expect 1     ok  1 row(s), first: reference=CR-1002 status=applied address=12 rue Garibaldi, 69003 Lyon
-   J4.3 expect error ok  new row for relation "change_requests" violates check constraint "four_eyes"
-   J4.4 expect 1     ok  1 row(s), first: at=2026-10-02 actor=idp|dan reference=CR-1002 before=8 avenue Foch, 69006 Lyon after=12 rue Garibaldi, 69003 Lyon
+   J1.2 expect 1               ok  1 row(s), first: name=alice employer=Acme status=active
+   J1.3 expect 12              ok  12 row(s), first: period=2025-01 employer=Acme amount=412.50 year_total=4950.00
+   J1.4 expect 1               ok  1 row(s), first: year=2025 total=4950.00 matches_history=true
+   J2.2 expect 1               ok  1 row(s), first: address=8 avenue Foch, 69006 Lyon
+   J2.4 expect 1               ok  1 row(s), first: reference=CR-1002 status=submitted
+   J2.5 expect 1               ok  1 row(s), first: reference=CR-1002 type=address status=submitted submitted_at=2026-09-30
+   J3.3 expect 2               ok  2 row(s), first: period=2026-09 line=4 reason=unknown member 999
+   J3.4 expect 2               ok  2 row(s), first: id=2 name=bob employer_id=globex
+   J3.4 expect 0               ok  0 row(s)
+   J4.1 expect 2               ok  2 row(s), first: reference=CR-1001 type=bank_details status=awaiting_second_approval submitted_at=2026-09-29 sla_due=2026-10-02
+   J4.2 expect 1               ok  1 row(s), first: reference=CR-1002 status=applied address=12 rue Garibaldi, 69003 Lyon
+   J4.3 expect error four_eyes ok  new row for relation "change_requests" violates check constraint "four_eyes"
+   J4.4 expect 1               ok  1 row(s), first: at=2026-10-02 actor=idp|dan reference=CR-1002 before=8 avenue Foch, 69006 Lyon after=12 rue Garibaldi, 69003 Lyon
+   the same model without "GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO portal_app;": J2.4 expected 1, got permission denied for sequence change_requests_id_seq
 
 ## 7. The deliverables
    concept: what three hours produced: eleven documents, the diagrams and SQL inside them, all checked by the steps above
-   casebook/00-brief.md                         545 words  0 diagram(s)  0 SQL block(s)
+   casebook/00-brief.md                         566 words  0 diagram(s)  0 SQL block(s)
    casebook/01-discovery.md                     495 words  1 diagram(s)  0 SQL block(s)
    casebook/02-personas-journeys.md             723 words  1 diagram(s)  0 SQL block(s)
    casebook/03-requirements.md                 1009 words  0 diagram(s)  0 SQL block(s)
-   casebook/04-architecture.md                  620 words  4 diagram(s)  0 SQL block(s)
-   casebook/05-data-model.md                   1497 words  1 diagram(s)  14 SQL block(s)
+   casebook/04-architecture.md                  649 words  4 diagram(s)  0 SQL block(s)
+   casebook/05-data-model.md                   1898 words  1 diagram(s)  15 SQL block(s)
    casebook/06-change-request-lifecycle.md      300 words  1 diagram(s)  0 SQL block(s)
-   casebook/07-accessibility-security.md        610 words  0 diagram(s)  0 SQL block(s)
+   casebook/07-accessibility-security.md        714 words  0 diagram(s)  0 SQL block(s)
    casebook/08-migration-plan.md                460 words  1 diagram(s)  0 SQL block(s)
    casebook/09-risks.md                         387 words  0 diagram(s)  0 SQL block(s)
    casebook/10-kpis.md                          352 words  0 diagram(s)  0 SQL block(s)
@@ -105,7 +108,7 @@
   2 | change_request.applied   | {"reference": "CR-1002"}
 (2 rows)
 
-== proof: the constraints that carry the rules (REQ-05, REQ-11) and the row-level security policy (REQ-10) ==
+== proof: the constraints that carry the rules (REQ-05, REQ-11), the row-level security per table (REQ-10, REQ-16) and portal_app's sequence grants ==
            conname            |                                                                              pg_get_constraintdef                                                                              
 ------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  bank_needs_two               | CHECK (((type <> 'bank_details'::text) OR (status <> ALL (ARRAY['approved'::text, 'applied'::text])) OR (second_approver IS NOT NULL)))
@@ -115,18 +118,35 @@
  rejection_has_reason         | CHECK (((status <> 'rejected'::text) OR (reason IS NOT NULL)))
 (5 rows)
 
-   policyname   |                                                                         qual                                                                          
-----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------
- employer_scope | ((current_setting('app.role'::text, true) IS DISTINCT FROM 'employer_admin'::text) OR (employer_id = current_setting('app.employer_id'::text, true)))
-(1 row)
+      table      | rls |  policyname  |                                                                                                                                                                     qual                                                                                                                                                                      
+-----------------+-----+--------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ audit_log       | f   |              | 
+ change_requests | t   | portal_scope | ((current_setting('app.role'::text, true) = 'staff'::text) OR ((current_setting('app.role'::text, true) = 'member'::text) AND ((member_id)::text = current_setting('app.member_id'::text, true))))
+ contributions   | t   | portal_scope | ((current_setting('app.role'::text, true) = 'staff'::text) OR ((current_setting('app.role'::text, true) = 'employer_admin'::text) AND (employer_id = current_setting('app.employer_id'::text, true))) OR ((current_setting('app.role'::text, true) = 'member'::text) AND ((member_id)::text = current_setting('app.member_id'::text, true))))
+ employers       | f   |              | 
+ members         | t   | portal_scope | ((current_setting('app.role'::text, true) = 'staff'::text) OR ((current_setting('app.role'::text, true) = 'employer_admin'::text) AND (employer_id = current_setting('app.employer_id'::text, true))) OR ((current_setting('app.role'::text, true) = 'member'::text) AND ((id)::text = current_setting('app.member_id'::text, true))))
+ outbox          | f   |              | 
+ statements      | t   | portal_scope | ((current_setting('app.role'::text, true) = 'staff'::text) OR ((current_setting('app.role'::text, true) = 'member'::text) AND ((member_id)::text = current_setting('app.member_id'::text, true))))
+ upload_batches  | t   | portal_scope | ((current_setting('app.role'::text, true) = 'staff'::text) OR ((current_setting('app.role'::text, true) = 'employer_admin'::text) AND (employer_id = current_setting('app.employer_id'::text, true))))
+ upload_rejects  | t   | portal_scope | (batch_id IN ( SELECT upload_batches.id                                                                                                                                                                                                                                                                                                      +
+                 |     |              |    FROM upload_batches))
+ users           | f   |              | 
+(10 rows)
+
+      sequencename      | portal_app_usage 
+------------------------+------------------
+ audit_log_id_seq       | t
+ change_requests_id_seq | t
+ outbox_id_seq          | t
+(3 rows)
 
 == proof: the committed SVGs ==
 diagrams/01-stakeholder-map.svg                 7831 bytes  aria-roledescription="quadrantChart"
 diagrams/02-journey-change-address.svg         18262 bytes  aria-roledescription="journey"
-diagrams/04-c4-container.svg                  132422 bytes  aria-roledescription="flowchart-v2"
-diagrams/04-c4-context.svg                     38389 bytes  aria-roledescription="c4"
+diagrams/04-c4-container.svg                  132395 bytes  aria-roledescription="flowchart-v2"
+diagrams/04-c4-context.svg                     38546 bytes  aria-roledescription="c4"
 diagrams/04-sequence-change-request.svg        34893 bytes  aria-roledescription="sequence"
 diagrams/04-sequence-login.svg                 32895 bytes  aria-roledescription="sequence"
-diagrams/05-er-model.svg                      195250 bytes  aria-roledescription="er"
+diagrams/05-er-model.svg                      195267 bytes  aria-roledescription="er"
 diagrams/06-state-change-request.svg           50176 bytes  aria-roledescription="stateDiagram"
 diagrams/08-gantt-migration.svg                13100 bytes  aria-roledescription="gantt"

@@ -2,7 +2,7 @@
 
 **Pain: a form that some members cannot use at all.** A placeholder that disappears once you type, a "button" that the keyboard never reaches, an error shown only as a red border, focus left at the top of the page after a failed submit. Nobody on the team notices, because they all use a mouse and see colour, and the members who cannot complete the form simply call or stop trying.
 
-**Reach for it when** you build forms for the public or for members, which in many countries must meet WCAG 2.1 or 2.2 level AA by law (RGAA in France, EN 301 549 in the EU, Section 508 in the US): put an automated scan and a keyboard journey in the test suite so regressions fail the build.
+**Reach for it when** you build forms for the public or for members, which in many countries must meet WCAG 2.1 or 2.2 level AA by law (RGAA in France, EN 301 549 in the EU, Section 508 in the US, which references WCAG 2.0 AA): put an automated scan and a keyboard journey in the test suite so regressions fail the build.
 
 **Do not reach for it when** you expect it to replace an audit. Automated rules find a minority of failures; screen reader testing with real users, and a conformance audit against WCAG-EM or the RGAA checklist, are still needed before you claim conformance.
 

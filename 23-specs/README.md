@@ -12,15 +12,15 @@
 docker compose up -d --wait
 npm i
 npm run setup                    # members, bank_accounts, change_requests, approvals, spec_results
-IMPL=naive npm run specs         # 5 of 12 scenarios fail
-IMPL=domain npm run specs        # 12 of 12 pass
+IMPL=naive npm run specs         # 6 of 13 scenarios fail
+IMPL=domain npm run specs        # 13 of 13 pass
 npm run demo                     # both runs, then the traceability matrix for each
 ```
 
 - `features/change-bank-details.feature` the acceptance criteria: one `Rule` per requirement, scenarios and scenario outlines with boundary examples (999.99, 1000.00, 1000.01; yesterday, today, tomorrow).
 - `src/steps.ts` step definitions and the World: a fixed "today", a fresh database per scenario (`TRUNCATE` in `Before`), rule violations captured so a `Then` can assert on them.
 - `src/service.ts` the interface both implementations share, and the threshold.
-- `src/bank-details.ts` the domain implementation: self-approval check, one approval per staff member (primary key), two approvals above the threshold, date comparison on calendar days, an approved change becomes a new `bank_accounts` row from its effective date.
+- `src/bank-details.ts` the domain implementation: self-approval check (neither whoever entered the request nor the member whose account it changes may approve it), one approval per staff member (primary key), two approvals above the threshold, date comparison on calendar days, an approved change becomes a new `bank_accounts` row from its effective date.
 - `src/naive.ts` the implementation from the one-line ticket: one approval always applies the change, no self-approval check, and the effective date compared as a timestamp, so today counts as the past.
 - `src/trace.ts` reads `--format message` output (ndjson): Rules and their `@REQ` tags, pickles, test cases, step results; rolls scenario results up to requirements.
 - `src/demo.ts` runs Cucumber twice and prints and stores the traceability matrix.

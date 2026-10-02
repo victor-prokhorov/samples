@@ -18,13 +18,13 @@ npx gitlab-ci-local --shell-isolation --variable CI_PIPELINE_SOURCE=schedule --v
 npm run demo                                                                     # the seven steps below
 ```
 
-- `.gitlab-ci.yml` stages, workflow rules, npm cache keyed on `package-lock.json`, artifacts (JUnit, a11y report, `dist/`), the audit that only blocks releases, and the deploy job (`rules`, `needs`, `environment`, `resource_group`, symlink switch, smoke check).
-- `github-actions/ci.yml` the same jobs for GitHub Actions: `needs`, `if`, `concurrency`, `continue-on-error`, `upload-artifact`.
-- `src/statement.ts`, `src/page.ts`, `src/server.ts` the app: a statement total, the HTML page, a node:http server.
+- `.gitlab-ci.yml` stages, workflow rules, npm cache keyed on `package-lock.json`, artifacts (JUnit, a11y report, `dist/`), the audit that only blocks releases, and the deploy job (`rules`, `needs`, runner `tags`, `environment`, `resource_group`, smoke check of the new release, then the symlink switch).
+- `github-actions/ci.yml` the same jobs for GitHub Actions: `needs`, `if`, `concurrency`, `continue-on-error`, `upload-artifact`; the deploy runs on a self-hosted runner on the production host (`runs-on: [self-hosted, production]`) and checks the tag against `^v[0-9]+\.[0-9]+\.[0-9]+$` first.
+- `src/statement.ts`, `src/page.ts`, `src/server.ts` the app: a statement total, the HTML page, a node:http server (`npm run build && npm start`, port 53040, or `PORT`).
 - `src/statement.test.ts` the vitest unit tests.
 - `scripts/a11y.ts` axe-core on the rendered page in jsdom (WCAG 2.x A and AA rules that do not need layout), report in `reports/a11y.json`.
-- `scripts/compare.ts` parses both pipeline files and checks they run the same commands per job.
-- `scripts/demo.ts` drives `gitlab-ci-local`: lists jobs per trigger, a pipeline failing on a lint error, the same pipeline green, a scheduled deploy, a tagged deploy.
+- `scripts/compare.ts` parses both pipeline files and compares, per job, the commands in order and the runner, and which triggers (schedule, push, release and non-release tags) deploy.
+- `scripts/demo.ts` drives `gitlab-ci-local`: lists jobs per trigger, a pipeline failing on a lint error, the same pipeline green, a scheduled deploy, a tagged deploy, the comparison of both pipeline files (and of a drifted copy).
 - `eslint.config.js`, `tsconfig.json`, `tsconfig.build.json` lint rules, the typecheck (no emit) and the build (emits `dist/`).
 
 Needs `rsync` (gitlab-ci-local copies the project per job with it).

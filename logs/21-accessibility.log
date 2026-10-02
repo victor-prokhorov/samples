@@ -1,8 +1,8 @@
-# 21-accessibility run 2026-10-02T15:55:29Z
+# 21-accessibility run 2026-10-02T17:08:44Z
 == fresh state: no database; remove earlier scan results ==
 == demo: Chromium (Playwright) drives the same form in two versions, served by react-dom/server from a separate node:http process ==
-   [form server pid 12115] listening on :53031 (/bad and /good)
-demo pid 11933 -> Chromium 141.0.7390.37 (Playwright) against the form server on :53031
+   [form server pid 21249] listening on :53031 (/bad and /good)
+demo pid 20885 -> Chromium 141.0.7390.37 (Playwright) against the form server on :53031
 
 ## 1. Inaccessible form: automated scan with axe-core (WCAG 2.0/2.1/2.2 A and AA rules)
    concept: axe runs in the real page in Chromium and reports each failed rule with the WCAG success criteria it maps to; the form is scanned empty and again after a failed submit, because errors are a different page state
@@ -16,7 +16,7 @@ demo pid 11933 -> Chromium 141.0.7390.37 (Playwright) against the form server on
      label            critical  WCAG 4.1.2        RGAA 11.1   2 nodes  Form elements must have labels
 
 ## 2. Inaccessible form: what a screen reader gets after the failed submit
-   concept: the fields have red borders and nothing else: no error text, no aria-invalid, no description. Chromium falls back to the placeholder for a name, so axe's label rule passes these inputs, yet the error is colour only (WCAG 1.4.1) and never identified in text (3.3.1). Automated tools catch a minority of failures
+   concept: the fields have red borders and nothing else: no error text, no aria-invalid, no description. axe's label rule accepts a non-empty placeholder as a label (and Chromium uses it as the name), so these inputs pass, yet the error is colour only (WCAG 1.4.1) and never identified in text (3.3.1). Automated tools catch a minority of failures
    input[name=line1]    role=textbox    name="Address line 1"           description=""                                                         invalid=false
    input[name=city]     role=textbox    name="Town or city"             description=""                                                         invalid=false
    input[name=postcode] role=textbox    name="Postcode"                 description=""                                                         invalid=false

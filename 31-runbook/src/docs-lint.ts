@@ -27,6 +27,7 @@ async function runbook(file: string) {
     const section = doc.sections.find((s) => s.name === name);
     if (!section) problems.push(`no '## ${name}' section`);
     else if (!section.steps.length) problems.push(`'## ${name}' has no '### step'`);
+    for (const b of section?.loose ?? []) problems.push(`'## ${name}' has a ${b.lang || "plain"} block outside any '### step' (it never runs)`);
     for (const step of section?.steps ?? []) {
       if (!step.blocks.some((b) => b.lang === "sh" || b.lang === "manual")) problems.push(`'${name} / ${step.title}' has no sh or manual block`);
       for (const b of step.blocks) if (b.lang !== "sh" && b.lang !== "manual") problems.push(`'${name} / ${step.title}' has a block in '${b.lang}' (use sh or manual)`);

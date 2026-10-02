@@ -116,7 +116,7 @@ async function inaccessible(browser: Browser) {
   const ids = new Set([...empty, ...failed].map((v) => v.id));
   check(["html-has-lang", "color-contrast", "label"].every((id) => ids.has(id)), "axe finds the missing lang, the low contrast and the unlabelled radios");
 
-  step("2. Inaccessible form: what a screen reader gets after the failed submit", "the fields have red borders and nothing else: no error text, no aria-invalid, no description. Chromium falls back to the placeholder for a name, so axe's label rule passes these inputs, yet the error is colour only (WCAG 1.4.1) and never identified in text (3.3.1). Automated tools catch a minority of failures");
+  step("2. Inaccessible form: what a screen reader gets after the failed submit", "the fields have red borders and nothing else: no error text, no aria-invalid, no description. axe's label rule accepts a non-empty placeholder as a label (and Chromium uses it as the name), so these inputs pass, yet the error is colour only (WCAG 1.4.1) and never identified in text (3.3.1). Automated tools catch a minority of failures");
   const fields = [];
   for (const sel of ["input[name=line1]", "input[name=city]", "input[name=postcode]", "input[name=country]"]) fields.push(await showSpoken(page, sel));
   const red = await page.locator("input.err").count();

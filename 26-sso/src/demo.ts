@@ -124,7 +124,7 @@ try {
     }
   }
 
-  step("7. Rejected logins", "each check stops a specific attack: state binds the callback to the browser that started the login (login CSRF), the login transaction and the code are single-use (replay), PKCE makes an intercepted code useless without the verifier, the nonce binds the ID token to this login (token injection)");
+  step("7. Rejected logins", "each check stops a specific attack: state binds the callback to the browser that started the login (login CSRF), the login transaction and the code are single-use (replay), PKCE makes an intercepted code useless without the verifier, the nonce binds the ID token to this login (token injection), returnTo must resolve to this app (open redirect)");
   const tokenRequest = async (code: string, verifier: string | undefined) => {
     const form: Record<string, string> = { grant_type: "authorization_code", code, redirect_uri: `${APP}/callback` };
     if (verifier) form.code_verifier = verifier;
@@ -188,6 +188,13 @@ try {
   page = r.page!;
   console.log(`     nonce -> ${body(page)}`);
   check(page.status === 400 && page.text.includes("nonce"), "an ID token minted for another nonce is rejected");
+
+  console.log("   e) a login link whose returnTo points to another site (the login used as an open redirect); alice's browser, already signed in at the IdP");
+  for (const want of ["/\\evil.example", "//evil.example", "/.//evil.example"]) {
+    const r = await signIn(alice, "alice", { returnTo: want });
+    console.log(`     returnTo=${want.padEnd(17)} -> signed in, lands on ${r.page!.url.href}`);
+    check(r.page?.status === 200 && r.page.url.href === `${APP}/`, `returnTo ${want} is refused: back to / on this app`);
+  }
   const txLeftAfter = (await db.query("SELECT count(*)::int AS n FROM login_transactions")).rows[0].n;
   check(txLeftAfter === 0, "every login transaction, accepted or rejected, was consumed");
 

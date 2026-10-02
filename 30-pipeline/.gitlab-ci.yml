@@ -1,4 +1,5 @@
-# CI/CD for the statement app. Needs a runner with Node 22 (shell executor), or add `image: node:22` under default.
+# CI/CD for the statement app. Needs a runner with Node 22 (shell executor), or add `image: node:22` under default;
+# deploy needs a shell runner on the production host, tagged production.
 # Locally: npx gitlab-ci-local --shell-isolation (see ../run-30-pipeline.sh).
 # Scheduled releases: create a pipeline schedule in GitLab (Build > Pipeline schedules), e.g. cron "0 6 * * 2" (Tuesdays 06:00);
 # only that schedule, or a tag like v1.4.0, reaches the deploy stage.
@@ -80,6 +81,8 @@ deploy:
   rules:
     - if: $CI_PIPELINE_SOURCE == "schedule"
     - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+  # it writes into $DEPLOY_DIR on the production host, so it runs on that host's runner (registered with the tag production)
+  tags: [production]
   environment:
     name: production
   resource_group: production
@@ -92,7 +95,8 @@ deploy:
     - cp -r dist/. "$DEPLOY_DIR/releases/$RELEASE/"
     - echo '{"type":"module"}' > "$DEPLOY_DIR/releases/$RELEASE/package.json"
     - printf '{"release":"%s","commit":"%s","source":"%s"}\n' "$RELEASE" "$CI_COMMIT_SHA" "$CI_PIPELINE_SOURCE" > "$DEPLOY_DIR/releases/$RELEASE/release.json"
+    # smoke-test the new release where it will run, before it goes live: if it fails, the job stops and current still points at the previous release
+    - node -e "import('$DEPLOY_DIR/releases/$RELEASE/page.js').then((m) => { if (!m.statementPage('smoke', 2026, []).includes('<html lang=\"en\">')) process.exit(1); console.log('smoke ok') })"
     # switch atomically: rename a new symlink over the old one, so a reader never sees a half-copied release
     - ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
-    - node -e "import('$DEPLOY_DIR/current/page.js').then((m) => { if (!m.statementPage('smoke', 2026, []).includes('<html lang=\"en\">')) process.exit(1); console.log('smoke ok') })"
     - echo "deployed $RELEASE to $DEPLOY_DIR/current"

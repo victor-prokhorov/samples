@@ -10,7 +10,7 @@ import { KINDS, Kind } from "./kinds.js";
 
 export const MAX_REJECT_RATE = 0.5;
 
-export type Reject = { line_no: number; rule: string; detail: string };
+export type Reject = { line_no: number; rule: string; detail: string; raw?: Record<string, string | null> };
 
 export type Report = {
   file: string;
@@ -26,7 +26,7 @@ export type Report = {
   rejects: Reject[];
   diff?: { added: string[]; changed: string[]; unchanged: number; missing: string[] };
   written?: { inserted: number; updated: number };
-  amounts?: { declared: string; accepted: string; rejected: string; unparsable: number };
+  amounts?: { declared: string; accepted: string; rejected: string; unparsable: number; net?: string };
 };
 
 class Refused extends Error {}
@@ -41,6 +41,8 @@ export async function importFile(path: string, opts: { dryRun?: boolean } = {}):
   const [, employer, period, kindName] = parsed;
   const kind = KINDS[kindName];
   const control = ctl(await readFile(path.replace(/\.csv$/, ".ctl"), "utf8"));
+  // A declared amount that is missing or not a plain amount is stored as NULL; run() refuses the file if its kind needs one.
+  const amountDeclared = /^\d+(\.\d{1,2})?$/.test(control.amount ?? "") ? control.amount : undefined;
   const report: Report = {
     file,
     sha256: createHash("sha256").update(bytes).digest("hex"),
@@ -60,7 +62,7 @@ export async function importFile(path: string, opts: { dryRun?: boolean } = {}):
       `INSERT INTO import_batches (file_name, sha256, kind, employer, period, status, rows_declared, amount_declared)
        VALUES ($1, $2, $3, $4, $5, 'applied', $6, $7)
        ON CONFLICT (sha256) WHERE status = 'applied' DO NOTHING RETURNING id`,
-      [file, report.sha256, kindName, employer, period, report.rowsDeclared, control.amount ?? null],
+      [file, report.sha256, kindName, employer, period, report.rowsDeclared, amountDeclared ?? null],
     );
     if (!batch.rowCount) {
       await client.query("ROLLBACK");
@@ -68,7 +70,7 @@ export async function importFile(path: string, opts: { dryRun?: boolean } = {}):
       return { ...report, status: "already_applied", batchId: prev.rows[0].id, reason: `same bytes as batch ${prev.rows[0].id} (${prev.rows[0].file_name})` };
     }
     report.batchId = batch.rows[0].id;
-    await run(client, kind, path, report, control.amount);
+    await run(client, kind, path, report, amountDeclared);
     if (opts.dryRun) {
       await client.query("ROLLBACK");
       return { ...report, status: "dry_run", batchId: undefined };
@@ -80,10 +82,29 @@ export async function importFile(path: string, opts: { dryRun?: boolean } = {}):
     if (!(err instanceof Refused)) throw err;
     report.reason = err.message;
     if (!opts.dryRun) {
+      // The rejects were written under the rolled-back batch: write them again under the refused one, so the employer gets every reason.
       const r = await client.query<{ id: number }>(
-        `INSERT INTO import_batches (file_name, sha256, kind, employer, period, status, reason, rows_declared, rows_received, rejected, amount_declared)
-         VALUES ($1, $2, $3, $4, $5, 'refused', $6, $7, $8, $9, $10) RETURNING id`,
-        [file, report.sha256, kindName, employer, period, report.reason, report.rowsDeclared, report.rowsReceived ?? null, new Set(report.rejects.map((r) => r.line_no)).size, control.amount ?? null],
+        `WITH b AS (
+           INSERT INTO import_batches (file_name, sha256, kind, employer, period, status, reason, rows_declared, rows_received, rejected, amount_declared)
+           VALUES ($1, $2, $3, $4, $5, 'refused', $6, $7, $8, $9, $10) RETURNING id
+         ), r AS (
+           INSERT INTO import_rejects (batch_id, line_no, rule, detail, raw)
+           SELECT b.id, x.line_no, x.rule, x.detail, x.raw FROM b, jsonb_to_recordset($11) AS x (line_no INT, rule TEXT, detail TEXT, raw JSONB)
+         )
+         SELECT id FROM b`,
+        [
+          file,
+          report.sha256,
+          kindName,
+          employer,
+          period,
+          report.reason,
+          report.rowsDeclared,
+          report.rowsReceived ?? null,
+          new Set(report.rejects.map((r) => r.line_no)).size,
+          amountDeclared ?? null,
+          JSON.stringify(report.rejects),
+        ],
       );
       report.batchId = r.rows[0].id;
     }
@@ -107,6 +128,7 @@ async function run(c: pg.PoolClient, kind: Kind, path: string, report: Report, a
   if (report.rowsReceived !== report.rowsDeclared) {
     throw new Refused(`control count: the .ctl declares ${report.rowsDeclared} rows, the file has ${report.rowsReceived} (truncated or padded file)`);
   }
+  if (kind.amount && amountDeclared === undefined) throw new Refused("control total: the .ctl has no amount= line with a plain amount, so the total cannot be verified");
 
   for (const r of kind.rules) {
     await c.query(
@@ -114,7 +136,7 @@ async function run(c: pg.PoolClient, kind: Kind, path: string, report: Report, a
            SELECT ${batchId}, s.line_no, '${r.rule}', ${r.detail}, to_jsonb(s) - 'line_no' FROM stage s WHERE ${r.when}`),
     );
   }
-  report.rejects = (await c.query<Reject>("SELECT line_no, rule, detail FROM import_rejects WHERE batch_id = $1 ORDER BY line_no, rule", [batchId])).rows;
+  report.rejects = (await c.query<Reject>("SELECT line_no, rule, detail, raw FROM import_rejects WHERE batch_id = $1 ORDER BY line_no, rule", [batchId])).rows;
   const rejected = new Set(report.rejects.map((r) => r.line_no)).size;
   if (rejected / report.rowsReceived > MAX_REJECT_RATE) {
     throw new Refused(`${rejected} of ${report.rowsReceived} rows rejected, over the ${MAX_REJECT_RATE * 100}% threshold: nothing applied`);
@@ -155,11 +177,17 @@ async function run(c: pg.PoolClient, kind: Kind, path: string, report: Report, a
                  AND pg_input_is_valid(coalesce(s.${a}, ''), 'numeric(12, 2)'))::text AS rejected,
               (SELECT count(*)::int FROM stage s WHERE NOT pg_input_is_valid(coalesce(s.${a}, ''), 'numeric(12, 2)')) AS unparsable`,
     );
-    report.amounts = { declared: amountDeclared ?? "?", ...sums.rows[0] };
-    const gap = Number(amountDeclared) - Number(sums.rows[0].accepted) - Number(sums.rows[0].rejected);
-    if (Math.abs(gap) > 0.001 && sums.rows[0].unparsable === 0) {
-      throw new Refused(`control total: the .ctl declares ${amountDeclared}, the file adds up to ${(Number(amountDeclared) - gap).toFixed(2)}`);
+    const amounts: NonNullable<Report["amounts"]> = { declared: amountDeclared!, ...sums.rows[0] };
+    report.amounts = amounts;
+    // The declared total must equal every amount that parses, accepted or rejected. An amount that does not parse cannot be counted,
+    // so a file with one passes only if the sender's total left it out too; otherwise the total cannot be verified and the file is refused.
+    const parsed = Number(sums.rows[0].accepted) + Number(sums.rows[0].rejected);
+    if (Math.abs(Number(amountDeclared) - parsed) > 0.001) {
+      const unparsable = sums.rows[0].unparsable ? ` (${sums.rows[0].unparsable} amount(s) not a number: the total cannot be verified)` : "";
+      throw new Refused(`control total: the .ctl declares ${amountDeclared}, the amounts that parse add up to ${parsed.toFixed(2)}${unparsable}`);
     }
+    // What this batch changes in the table's total (new amount minus old, over the rows it inserts or updates), for reconciliation.
+    amounts.net = (await c.query(`SELECT coalesce(sum(v.${a} - coalesce(t.${a}, 0)), 0)::text AS net FROM valid v LEFT JOIN ${t} t ON ${on("t", "v")}`)).rows[0].net;
   }
 
   const all = [...kind.columns, "last_batch_id"];
@@ -172,7 +200,7 @@ async function run(c: pg.PoolClient, kind: Kind, path: string, report: Report, a
   report.written = { inserted: written.rows.filter((r) => r.inserted).length, updated: written.rows.filter((r) => !r.inserted).length };
   await c.query(
     `UPDATE import_batches SET rows_received = $2, accepted = $3, rejected = $4, inserted = $5, updated = $6, unchanged = $7, missing = $8,
-       amount_accepted = $9, amount_rejected = $10 WHERE id = $1`,
+       amount_accepted = $9, amount_rejected = $10, amount_net = $11 WHERE id = $1`,
     [
       batchId,
       report.rowsReceived,
@@ -184,6 +212,7 @@ async function run(c: pg.PoolClient, kind: Kind, path: string, report: Report, a
       report.diff.missing.length,
       report.amounts?.accepted ?? null,
       report.amounts?.rejected ?? null,
+      report.amounts?.net ?? null,
     ],
   );
 }
