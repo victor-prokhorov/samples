@@ -1,0 +1,319 @@
+# 22-playwright run 2026-10-02T15:55:35Z
+== fresh Postgres and no earlier reports, traces or saved sessions (docker compose down -v && up) ==
+ Container 22-playwright-postgres-1 Healthy 
+setup: template database portal_template (employers, members, contributions, change_requests; alice and bob), and portal cloned from it for the hand-run server
+== demo: Vitest for the rule, then @playwright/test runs (each a separate process) against an app server per worker ==
+
+## 1. Unit tests of the domain rule (Vitest)
+   concept: the rule that decides whether a change request is accepted is a pure function; its edge cases (90th vs 91st day, same kind vs other kind) are cheap to test exhaustively here, so the browser tests only need one journey per outcome
+   $ npx vitest run --reporter=verbose
+
+ RUN  v3.2.7 /home/claude/samples/22-playwright
+
+ ✓ src/rules.test.ts > checkRequest > accepts a valid request effective today 2ms
+ ✓ src/rules.test.ts > checkRequest > refuses a date in the past 0ms
+ ✓ src/rules.test.ts > checkRequest > accepts the 90th day and refuses the 91st 0ms
+ ✓ src/rules.test.ts > checkRequest > refuses a second pending request of the same kind, not of another kind 0ms
+ ✓ src/rules.test.ts > checkRequest > checks the email format only for email changes 0ms
+ ✓ src/rules.test.ts > checkRequest > reports every problem at once 1ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  15:55:40
+   Duration  418ms (transform 75ms, setup 0ms, collect 60ms, tests 5ms, environment 0ms, prepare 81ms)
+
+   -> exit 0
+
+## 2. User journeys in Chromium, 2 workers, one database per worker, login once
+   concept: the setup project signs in through the UI once and saves the cookie (storageState); every journey starts signed in. Each worker clones its own database from a template and runs its own app server, and each test truncates the requests table first (no transaction: the browser's requests run on other connections). Locators are roles and labels, the way a user and a screen reader find things
+   $ REPORT=reports/journeys.json npx playwright test e2e/journeys.spec.ts --output=test-results/journeys
+
+Running 6 tests using 2 workers
+
+   [worker 0] database portal_w0, app on http://localhost:42817
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (488ms)
+   [worker 2] database portal_w2, app on http://localhost:44839
+   [worker 1] database portal_w1, app on http://localhost:41829
+  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (568ms)
+  ✓  2 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (829ms)
+  ✓  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (289ms)
+  ✓  6 [chromium] › e2e/journeys.spec.ts:51:3 › signed out › a signed-out visitor is sent to the sign-in page (209ms)
+  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (625ms)
+
+  6 passed (4.5s)
+   -> exit 0
+   passed  [setup] sign in once as alice and save the session                   worker 0, 488 ms
+   passed  [chromium] view contributions                                           worker 1, 829 ms
+   passed  [chromium] request an email change and see it pending                   worker 2, 568 ms
+   passed  [chromium] request an address change and see it pending                 worker 2, 289 ms
+   passed  [chromium] a second pending change of the same kind is refused          worker 1, 625 ms
+   passed  [chromium] signed out > a signed-out visitor is sent to the sign-in page worker 2, 209 ms
+   storageState .auth/alice.json: cookie sid=1.DyFqWL... httpOnly=true sameSite=Lax; journeys ran on workers 1, 2
+
+## 3. The same journeys without the per-test reset, on one worker
+   concept: tests now share whatever the previous test left behind: the address test finds the email test's request and counts 3 rows instead of 2. The failure depends on test order, which is the signature of a leaking fixture. Playwright replaces a worker after a failure, so the next test gets a freshly cloned database and passes again
+   $ NO_RESET=1 REPORT=reports/leaky.json npx playwright test e2e/journeys.spec.ts --output=test-results/leaky --workers=1
+
+Running 6 tests using 1 worker
+
+   [worker 0] database portal_w0, app on http://localhost:34101
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (449ms)
+   [worker 1] database portal_w1, app on http://localhost:35439
+  ✓  2 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (742ms)
+  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (360ms)
+  ✘  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (5.3s)
+   [worker 2] database portal_w2, app on http://localhost:37429
+  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (742ms)
+  ✓  6 [chromium] › e2e/journeys.spec.ts:51:3 › signed out › a signed-out visitor is sent to the sign-in page (112ms)
+
+
+  1) [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending ─────────
+
+    Error: expect(locator).toHaveCount(expected) failed
+
+    Locator:  getByRole('table', { name: 'Change requests' }).getByRole('row')
+    Expected: 2
+    Received: 3
+    Timeout:  5000ms
+
+    Call log:
+      - Expect "toHaveCount" with timeout 5000ms
+      - waiting for getByRole('table', { name: 'Change requests' }).getByRole('row')
+        9 × locator resolved to 3 elements
+          - unexpected value "3"
+
+
+      30 |   await page.getByRole("button", { name: "Submit request" }).click();
+      31 |   const rows = page.getByRole("table", { name: "Change requests" }).getByRole("row");
+    > 32 |   await expect(rows).toHaveCount(2);
+         |                      ^
+      33 |   await expect(rows.nth(1).getByRole("cell").last()).toHaveText("Pending");
+      34 | });
+      35 |
+        at /home/claude/samples/22-playwright/e2e/journeys.spec.ts:32:22
+
+    Error Context: test-results/leaky/journeys-request-an-address-change-and-see-it-pending-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/leaky/journeys-request-an-address-change-and-see-it-pending-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/leaky/journeys-request-an-address-change-and-see-it-pending-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending ──────────
+  5 passed (11.1s)
+   -> exit 1
+   passed  [setup] sign in once as alice and save the session                   worker 0, 449 ms
+   passed  [chromium] view contributions                                           worker 1, 742 ms
+   passed  [chromium] request an email change and see it pending                   worker 1, 360 ms
+   failed  [chromium] request an address change and see it pending                 worker 1, 5329 ms
+   passed  [chromium] a second pending change of the same kind is refused          worker 2, 742 ms
+   passed  [chromium] signed out > a signed-out visitor is sent to the sign-in page worker 2, 112 ms
+   failed: ["request an address change and see it pending"]
+
+## 4. A fixed sleep against an auto-waiting assertion, fast API (100 ms)
+   concept: the total is filled by a fetch after the page loads. waitForTimeout(500) then reading textContent passes while the API answers in 100 ms; toHaveText retries until the text matches or 5 s pass
+   $ API_DELAY_MS=100 REPORT=reports/waiting-fast.json npx playwright test e2e/waiting.spec.ts --output=test-results/waiting-fast
+
+Running 3 tests using 2 workers
+
+   [worker 0] database portal_w0, app on http://localhost:46443
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (566ms)
+   [worker 1] database portal_w1, app on http://localhost:41489
+   [worker 2] database portal_w2, app on http://localhost:35187
+  ✓  3 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (522ms)
+  ✓  2 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (896ms)
+
+  3 passed (3.8s)
+   -> exit 0
+   passed  [setup] sign in once as alice and save the session                   worker 0, 566 ms
+   passed  [chromium] total after a fixed 500 ms sleep                             worker 1, 896 ms
+   passed  [chromium] total with a web-first assertion                             worker 2, 522 ms
+
+## 5. The same two tests, slow API (1500 ms): the flake made deterministic
+   concept: a slow CI runner or a loaded database is all it takes: the fixed sleep reads 'Loading total...' and fails, the web-first assertion waits and passes. trace: retain-on-failure keeps a trace (DOM snapshots, network, console, each action) only for the failure
+   $ API_DELAY_MS=1500 REPORT=reports/waiting-slow.json npx playwright test e2e/waiting.spec.ts --output=test-results/waiting-slow
+
+Running 3 tests using 2 workers
+
+   [worker 0] database portal_w0, app on http://localhost:39441
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (538ms)
+   [worker 1] database portal_w1, app on http://localhost:37803
+   [worker 2] database portal_w2, app on http://localhost:42657
+  ✘  2 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (934ms)
+  ✓  3 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (2.2s)
+
+
+  1) [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep ───────────────────────
+
+    Error: expect(received).toBe(expected) // Object.is equality
+
+    Expected: "Total: 1,350.00"
+    Received: "Loading total..."
+
+       5 |   await page.goto("/contributions");
+       6 |   await page.waitForTimeout(500);
+    >  7 |   expect(await page.getByRole("status").textContent()).toBe("Total: 1,350.00");
+         |                                                        ^
+       8 | });
+       9 |
+      10 | test("total with a web-first assertion", async ({ page }) => {
+        at /home/claude/samples/22-playwright/e2e/waiting.spec.ts:7:56
+
+    Error Context: test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep ────────────────────────
+  2 passed (6.5s)
+   -> exit 1
+   passed  [setup] sign in once as alice and save the session                   worker 0, 538 ms
+   failed  [chromium] total after a fixed 500 ms sleep                             worker 1, 934 ms
+   passed  [chromium] total with a web-first assertion                             worker 2, 2231 ms
+   trace of the failed test: test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip
+
+## 6. CSS selectors against role and label locators, after a markup refactor (MARKUP=v2)
+   concept: the refactor keeps every label and button text but changes structure and classes: the CSS test breaks though a user sees no difference; the role and label test still passes
+   $ REPORT=reports/locators-v1.json npx playwright test e2e/locators.spec.ts --output=test-results/locators-v1
+
+Running 3 tests using 2 workers
+
+   [worker 0] database portal_w0, app on http://localhost:36657
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (603ms)
+   [worker 1] database portal_w1, app on http://localhost:43199
+   [worker 2] database portal_w2, app on http://localhost:40447
+  ✓  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (650ms)
+  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (687ms)
+
+  3 passed (4.0s)
+   -> exit 0
+   passed  [setup] sign in once as alice and save the session                   worker 0, 603 ms
+   passed  [chromium] sign in with CSS selectors                                   worker 1, 650 ms
+   passed  [chromium] sign in with role and label locators                         worker 2, 687 ms
+   $ MARKUP=v2 REPORT=reports/locators-v2.json npx playwright test e2e/locators.spec.ts --output=test-results/locators-v2
+
+Running 3 tests using 2 workers
+
+   [worker 0] database portal_w0, app on http://localhost:46583
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (515ms)
+   [worker 1] database portal_w1, app on http://localhost:39101
+   [worker 2] database portal_w2, app on http://localhost:44349
+  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (560ms)
+  ✘  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (5.4s)
+
+
+  1) [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors ────────────────────────────
+
+    TimeoutError: locator.fill: Timeout 5000ms exceeded.
+    Call log:
+      - waiting for locator('#login-form > div:nth-child(1) > input')
+
+
+       5 | test("sign in with CSS selectors", async ({ page }) => {
+       6 |   await page.goto("/login");
+    >  7 |   await page.locator("#login-form > div:nth-child(1) > input").fill("alice");
+         |                                                                ^
+       8 |   await page.locator("#login-form > div:nth-child(2) > input").fill("alice-password");
+       9 |   await page.locator("button.btn-primary").click();
+      10 |   await expect(page.locator("main > h1")).toHaveText("Your contributions");
+        at /home/claude/samples/22-playwright/e2e/locators.spec.ts:7:64
+
+    Error Context: test-results/locators-v2/locators-sign-in-with-CSS-selectors-chromium/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    test-results/locators-v2/locators-sign-in-with-CSS-selectors-chromium/trace.zip
+    Usage:
+
+        npx playwright show-trace test-results/locators-v2/locators-sign-in-with-CSS-selectors-chromium/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors ─────────────────────────────
+  2 passed (8.4s)
+   -> exit 1
+   passed  [setup] sign in once as alice and save the session                   worker 0, 515 ms
+   failed  [chromium] sign in with CSS selectors                                   worker 1, 5395 ms
+   passed  [chromium] sign in with role and label locators                         worker 2, 560 ms
+
+== proof: the saved session every journey reuses (.auth/alice.json, cookie value cut) ==
+{
+  "name": "sid",
+  "value": "1.DyFqWL...",
+  "domain": "localhost",
+  "path": "/",
+  "httpOnly": true,
+  "sameSite": "Lax"
+}
+== proof: per-test results from the JSON reports (status, project, worker, retry) ==
+reports/journeys.json: expected=6 unexpected=0
+  passed [setup] sign in once as alice and save the session worker=0 retry=0
+  passed [chromium] view contributions worker=1 retry=0
+  passed [chromium] request an email change and see it pending worker=2 retry=0
+  passed [chromium] request an address change and see it pending worker=2 retry=0
+  passed [chromium] a second pending change of the same kind is refused worker=1 retry=0
+  passed [chromium] a signed-out visitor is sent to the sign-in page worker=2 retry=0
+reports/leaky.json: expected=5 unexpected=1
+  passed [setup] sign in once as alice and save the session worker=0 retry=0
+  passed [chromium] view contributions worker=1 retry=0
+  passed [chromium] request an email change and see it pending worker=1 retry=0
+  failed [chromium] request an address change and see it pending worker=1 retry=0
+  passed [chromium] a second pending change of the same kind is refused worker=2 retry=0
+  passed [chromium] a signed-out visitor is sent to the sign-in page worker=2 retry=0
+reports/locators-v1.json: expected=3 unexpected=0
+  passed [setup] sign in once as alice and save the session worker=0 retry=0
+  passed [chromium] sign in with CSS selectors worker=1 retry=0
+  passed [chromium] sign in with role and label locators worker=2 retry=0
+reports/locators-v2.json: expected=2 unexpected=1
+  passed [setup] sign in once as alice and save the session worker=0 retry=0
+  failed [chromium] sign in with CSS selectors worker=1 retry=0
+  passed [chromium] sign in with role and label locators worker=2 retry=0
+reports/waiting-fast.json: expected=3 unexpected=0
+  passed [setup] sign in once as alice and save the session worker=0 retry=0
+  passed [chromium] total after a fixed 500 ms sleep worker=1 retry=0
+  passed [chromium] total with a web-first assertion worker=2 retry=0
+reports/waiting-slow.json: expected=2 unexpected=1
+  passed [setup] sign in once as alice and save the session worker=0 retry=0
+  failed [chromium] total after a fixed 500 ms sleep worker=1 retry=0
+  passed [chromium] total with a web-first assertion worker=2 retry=0
+== proof: traces kept, only for failed tests (trace: retain-on-failure) ==
+test-results/leaky/journeys-request-an-address-change-and-see-it-pending-chromium/trace.zip
+test-results/locators-v2/locators-sign-in-with-CSS-selectors-chromium/trace.zip
+test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip
+== proof: what test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip recorded: the actions, then the network calls ==
+  step: Launch browser
+  step: Create context
+  step: Create page
+  step: Navigate to "/contributions"
+  step: Wait for timeout
+  step: Get text content getByRole('status')
+  step: Expect "toBe"
+  step: Close context
+  step: Attach "error-context"
+  GET /contributions -> 200 in 31 ms
+  GET /api/contributions/total -> no response yet when the test ended
+== proof: databases. The per-worker clones were dropped when their worker finished ==
+     datname     
+-----------------
+ portal
+ portal_template
+ postgres
+(3 rows)
+
+== proof: the template every worker clones (seed data) ==
+ username | employer | months |  total  
+----------+----------+--------+---------
+ alice    | Acme     |      6 | 1350.00
+ bob      | Globex   |      3 |  540.00
+(2 rows)
+

@@ -1,0 +1,123 @@
+# 29-kpis run 2026-10-02T16:07:57Z
+== fresh Postgres for events and request_log (docker compose down -v && up) ==
+ Container 29-kpis-postgres-1 Healthy 
+setup: employers, members, events (usage), request_log (one row per HTTP request), change_requests
+setup: 120 members (Acme 60, Globex 40, Initech 20), 110 eligible
+== demo: the portal (a separate process) emits events, a simulator drives 28 days of traffic, SQL computes the KPIs ==
+
+## 1. The app emits what happened
+   concept: the portal writes a usage event per member action (events) and a row per HTTP request (request_log); KPIs are SQL over those two tables, nothing is counted by hand
+   [portal pid 20524] listening on :53039, every request in request_log, usage events in events
+   simulated 2026-09-03 .. 2026-10-01: 712 member visits, 672 hourly health probes, 149 change requests (137 resolved by staff); incident 2026-09-17T09:00:00Z/2026-09-17T13:00:00Z; took 3337ms
+   events: login=712, view_profile=639, view_contributions=393, change_started=175, change_submitted=149, change_rejected=23
+
+## 2. A vanity count versus adoption
+   concept: "logins this month" only goes up; adoption divides distinct eligible members who logged in by all eligible members, so it says who is NOT using the portal
+   logins in the window: 712 (sounds like success)
+   adoption: 47.3% (52 of 110 eligible members), target >= 60%
+   Acme     25/55 eligible members active (45%)
+   Globex   23/37 eligible members active (62%)
+   Initech  4/18 eligible members active (22%)
+
+## 3. A mean versus the p95
+   concept: a mean blends the many fast requests with the few slow ones; the 95th percentile is what the slowest one in twenty members waits
+   GET /contributions       397 requests  mean   50 ms  p95  354 ms
+   GET /profile             639 requests  mean    5 ms  p95   11 ms
+   POST /changes            179 requests  mean    5 ms  p95   11 ms
+   GET /changes/new         175 requests  mean    3 ms  p95   10 ms
+   POST /login              712 requests  mean    3 ms  p95    9 ms
+   all member routes together: mean 13 ms, p95 13 ms (the fast pages drown the slow one, so the KPI takes the slowest route)
+   the slow tail: 14 members with more than 30 years of service, whose history query is slow
+
+## 4. A health check versus what members got
+   concept: a probe on /health that never touches the database says 100% up; availability counts the member requests that actually failed, and the SLO turns the shortfall into an error budget
+   health probes: 672, 100.0% answered 200
+   availability:  99.48% (11 of 2102 requests failed), SLO 99.5%
+   error budget:  11 failed of 10.5 allowed, remaining -5%
+   09-17: 11 of 78 member requests failed (burn rate 28.2x the budget rate)
+
+## 5. Change request funnel
+   concept: each step counts sessions that reached it; the drop between steps shows where members give up (validation errors, the outage, abandoning the form)
+   login                712
+   view_profile         639 (-10% from login)
+   change_started       175 (-73% from view_profile)
+   change_submitted     149 (-15% from change_started)
+   23 sessions hit a validation error at least once
+
+## 6. Every KPI has a definition, an owner and a target
+   concept: kpis.ts is the one place a KPI is defined; validate() rejects a KPI nobody owns or that has no target, before a number reaches a dashboard
+   rejected: logins: no question
+   rejected: logins: no owner
+   rejected: logins: no target
+   8 definitions valid
+
+## 7. The KPI report
+   concept: each value is the definition's SQL run over the window, compared with its target; a missed target names the owner who acts on it
+   KPI                                           value  target     status  owner          detail
+   Adoption                                      47.3%  >= 60.0%   MISSED  product owner  52 of 110 eligible members
+   Change request task success                   85.1%  >= 85.0%   met     product owner  149 of 175 tasks
+   Change request completion time (median)       169 s  <= 240 s   met     UX lead        p90 398 s
+   Form error rate                               13.4%  <= 10.0%   MISSED  UX lead        23 of 172 submissions
+   Latency p95, slowest route                   354 ms  <= 300 ms  MISSED  tech lead      GET /contributions, all routes together 13 ms
+   Availability                                 99.48%  >= 99.50%  MISSED  service owner  11 of 2102 requests failed
+   Error budget remaining                        -4.7%  >= 0.0%    MISSED  service owner  11 failed of 10.5 allowed
+   Requests resolved within 3 days               86.9%  >= 90.0%   MISSED  support lead   113 of 130 due
+
+## 8. Static dashboard
+   concept: one self-contained HTML file: no script, no external library, inline SVG bars, status as text and icon (not colour alone), definitions table under the charts
+   wrote out/dashboard.html: 13434 bytes, 37 bars, 8 KPI tiles, external references: 0
+
+== proof: events, the usage stream the product KPIs read ==
+        name        | events | members | sessions |   first    |    last    
+--------------------+--------+---------+----------+------------+------------
+ login              |    712 |      54 |      712 | 2026-09-03 | 2026-09-30
+ view_profile       |    639 |      54 |      639 | 2026-09-03 | 2026-09-30
+ view_contributions |    393 |      54 |      393 | 2026-09-03 | 2026-09-30
+ change_started     |    175 |      52 |      175 | 2026-09-03 | 2026-09-30
+ change_submitted   |    149 |      51 |      149 | 2026-09-03 | 2026-09-30
+ change_rejected    |     23 |      19 |       23 | 2026-09-03 | 2026-09-30
+(6 rows)
+
+== proof: request_log, one row per HTTP request, the stream the service KPIs read ==
+ method |           route            | status | requests | mean_ms | p95_ms 
+--------+----------------------------+--------+----------+---------+--------
+ POST   | /changes                   |    201 |      149 |       6 |     11
+ POST   | /changes                   |    422 |       23 |       3 |      5
+ POST   | /changes                   |    503 |        7 |       0 |      0
+ GET    | /changes/new               |    200 |      175 |       3 |     10
+ GET    | /contributions             |    200 |      393 |      51 |    354
+ GET    | /contributions             |    503 |        4 |       0 |      0
+ GET    | /health                    |    200 |      672 |       0 |      0
+ POST   | /login                     |    200 |      712 |       3 |      9
+ GET    | /profile                   |    200 |      639 |       5 |     11
+ POST   | /staff/changes/:id/resolve |    200 |      137 |       1 |      2
+(10 rows)
+
+== proof: the incident hour by hour (only member requests fail; /health keeps answering 200) ==
+          hour          | probes | probes_ok | member_requests | failed 
+------------------------+--------+-----------+-----------------+--------
+ 2026-09-17 08:00:00+00 |      1 |         1 |              11 |      0
+ 2026-09-17 09:00:00+00 |      1 |         1 |               3 |      0
+ 2026-09-17 10:00:00+00 |      1 |         1 |               8 |      3
+ 2026-09-17 11:00:00+00 |      1 |         1 |              12 |      5
+ 2026-09-17 12:00:00+00 |      1 |         1 |               5 |      3
+ 2026-09-17 13:00:00+00 |      1 |         1 |               3 |      0
+(6 rows)
+
+== proof: change_requests against the 3-day SLA ==
+  status  | requests | within_sla | late | avg_hours 
+----------+----------+------------+------+-----------
+ approved |      137 |        121 |   16 |        40
+ pending  |       12 |          0 |    0 |          
+(2 rows)
+
+== proof: out/dashboard.html (static, no script) ==
+13434 out/dashboard.html
+Adoption Missed: target >= 60.0%
+Change request task success Met: target >= 85.0%
+Change request completion time (median) Met: target <= 240 s
+Form error rate Missed: target <= 10.0%
+Latency p95, slowest route Missed: target <= 300 ms
+Availability Missed: target >= 99.50%
+Error budget remaining Missed: target >= 0.0%
+Requests resolved within 3 days Missed: target >= 90.0%

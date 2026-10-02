@@ -1,0 +1,16 @@
+{
+  "page.title": "Your member account",
+  "greeting": "Hello {name}",
+  "role": "{role, select, member {Member} employer {Employer administrator} other {Portal staff}}",
+  "lastLogin": "Last signed in on {date, date, long}",
+  "pending": "{count, plural, one {# pending request} other {# pending requests}}",
+  "contributions.title": "Contributions this year",
+  "contributions.total": "Total: {amount, number, ::currency/EUR}",
+  "contributions.rate": "Contribution rate: {rate, number, ::percent}",
+  "table.date": "Date",
+  "table.employer": "Employer",
+  "table.amount": "Amount",
+  "action.request": "Request a change",
+  "action.logout": "Sign out",
+  "language.label": "Language"
+}

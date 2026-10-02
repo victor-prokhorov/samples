@@ -1,0 +1,189 @@
+# 21-accessibility run 2026-10-02T15:55:29Z
+== fresh state: no database; remove earlier scan results ==
+== demo: Chromium (Playwright) drives the same form in two versions, served by react-dom/server from a separate node:http process ==
+   [form server pid 12115] listening on :53031 (/bad and /good)
+demo pid 11933 -> Chromium 141.0.7390.37 (Playwright) against the form server on :53031
+
+## 1. Inaccessible form: automated scan with axe-core (WCAG 2.0/2.1/2.2 A and AA rules)
+   concept: axe runs in the real page in Chromium and reports each failed rule with the WCAG success criteria it maps to; the form is scanned empty and again after a failed submit, because errors are a different page state
+   axe /bad -> 3 violations, 7 rules passed, 0 need review (out/axe-bad-empty.json)
+     color-contrast   serious   WCAG 1.4.3        RGAA 3.2    3 nodes  Elements must meet minimum color contrast ratio thresholds
+     html-has-lang    serious   WCAG 3.1.1        RGAA 8.3    1 nodes  <html> element must have a lang attribute
+     label            critical  WCAG 4.1.2        RGAA 11.1   2 nodes  Form elements must have labels
+   axe /bad -> 3 violations, 7 rules passed, 0 need review (out/axe-bad-errors.json)
+     color-contrast   serious   WCAG 1.4.3        RGAA 3.2    3 nodes  Elements must meet minimum color contrast ratio thresholds
+     html-has-lang    serious   WCAG 3.1.1        RGAA 8.3    1 nodes  <html> element must have a lang attribute
+     label            critical  WCAG 4.1.2        RGAA 11.1   2 nodes  Form elements must have labels
+
+## 2. Inaccessible form: what a screen reader gets after the failed submit
+   concept: the fields have red borders and nothing else: no error text, no aria-invalid, no description. Chromium falls back to the placeholder for a name, so axe's label rule passes these inputs, yet the error is colour only (WCAG 1.4.1) and never identified in text (3.3.1). Automated tools catch a minority of failures
+   input[name=line1]    role=textbox    name="Address line 1"           description=""                                                         invalid=false
+   input[name=city]     role=textbox    name="Town or city"             description=""                                                         invalid=false
+   input[name=postcode] role=textbox    name="Postcode"                 description=""                                                         invalid=false
+   input[name=country]  role=textbox    name="Country"                  description=""                                                         invalid=false
+   4 inputs have the red .err border; focus after the reload is on: body
+   markup: lang=(none) title="Form" <label>=0 fieldset+legend=0 autocomplete=0 buttons=0
+
+## 3. Inaccessible form: keyboard only
+   concept: a div with a click handler is not focusable and has no role, so Tab never reaches Save (WCAG 2.1.1, 4.1.2); with several text inputs and no submit button, Enter does not submit either (HTML implicit submission)
+   Tab  1 -> textbox "Address line 1"
+   Tab  2 -> textbox "Town or city"
+   Tab  3 -> textbox "Postcode"
+   Tab  4 -> textbox "Country"
+   Tab  5 -> radio
+   Enter in the postcode field: 0 POST requests, still on /bad
+
+## 4. Accessible form: the same scan, empty and after a failed submit
+   concept: lang on <html>, a <label> for every input, fieldset and legend around the address and the radios, autocomplete tokens, contrast at least 4.5:1, errors in text tied to their field with aria-describedby and aria-invalid, an error summary, and a page title that starts with Error:
+   axe /good -> 0 violations, 17 rules passed, 0 need review (out/axe-good-empty.json)
+   axe /good -> 0 violations, 24 rules passed, 0 need review (out/axe-good-errors.json)
+   POST /good with nothing filled -> 422
+   markup: lang=en title="Error: Change your address - Member portal" <label>=6 fieldset+legend=2 autocomplete=4 buttons=1
+
+## 5. Accessible form: keyboard-only journey
+   concept: Tab visits every control in reading order and the radio group is one tab stop; Enter on the button submits; after a failed submit focus lands on the error summary (role=alert, so it is also announced), each summary link moves focus to its field, and the corrected form submits with the keyboard alone
+   Tab  1 -> textbox "Address line 1"
+   Tab  2 -> textbox "Town or city"
+   Tab  3 -> textbox "Postcode"
+   Tab  4 -> textbox "Country"
+   Tab  5 -> radio "From today"
+   Tab  6 -> button "Save new address"
+   focus on button "Save new address", press Enter
+   -> 422, focus is now on #error-summary: alert "There is a problem"
+   Tab -> link "Enter the first line of your address"
+   Enter -> focus on #line1: textbox "Address line 1"
+
+## 6. Accessible form: what a screen reader gets
+   concept: the name comes from the <label>, the description joins the hint and the error message (aria-describedby), invalid comes from aria-invalid; the summary is an alert named by its heading
+   #error-summary       role=alert      name="There is a problem"       description=""                                                         invalid=false
+   #line1               role=textbox    name="Address line 1"           description="Error: Enter the first line of your address"              invalid=true
+   #postcode            role=textbox    name="Postcode"                 description="For example, AB1 2CD Error: Enter a real postcode, like AB1 2CD" invalid=true
+   #when-today          role=radio      name="From today"               description=""                                                         invalid=false
+   typed the address, Space on "From today", Tab -> button "Save new address", Enter
+   -> /good/done: "Address saved"
+
+## 7. Findings by WCAG 2.2 success criterion, with the closest RGAA 4.1 criterion
+   concept: automated rules found some failures; the rest needed a scripted keyboard journey and a look at the accessibility tree. An audit (RGAA or WCAG-EM) still needs a person with a screen reader
+   html-has-lang              WCAG 3.1.1         RGAA 8.3        found by axe
+   color-contrast             WCAG 1.4.3         RGAA 3.2        found by axe
+   label                      WCAG 4.1.2         RGAA 11.1       found by axe (radios only; placeholders pass)
+   colour-only error          WCAG 1.4.1         RGAA 3.1        found by accessibility tree
+   error not announced        WCAG 3.3.1, 4.1.2  RGAA 11.10      found by accessibility tree
+   no error summary or focus  WCAG 3.3.1, 2.4.3  RGAA 11.10      found by keyboard journey
+   div as button              WCAG 2.1.1, 4.1.2  RGAA 7.3        found by keyboard journey
+   radios not grouped         WCAG 1.3.1         RGAA 11.5, 11.6 found by markup query
+   no autocomplete tokens     WCAG 1.3.5         RGAA 11.13      found by markup query
+
+== proof: axe violations per scan (rule, impact, WCAG tags, failing nodes), raw from out/axe-*.json ==
+out/axe-bad-empty.json: 3 violations, 7 rules passed
+  color-contrast serious [wcag143] nodes=3: body > .hint form > .hint #save
+  html-has-lang serious [wcag311] nodes=1: html
+  label critical [wcag412] nodes=2: input[value="today"] input[value="next-statement"]
+out/axe-bad-errors.json: 3 violations, 7 rules passed
+  color-contrast serious [wcag143] nodes=3: body > .hint form > .hint #save
+  html-has-lang serious [wcag311] nodes=1: html
+  label critical [wcag412] nodes=2: input[value="today"] input[value="next-statement"]
+out/axe-good-empty.json: 0 violations, 17 rules passed
+out/axe-good-errors.json: 0 violations, 24 rules passed
+== proof: the inaccessible form after a failed submit (out/bad-errors.html): placeholders, a red class, a div for a button ==
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Form</title>
+</head>
+<body>
+<div class="title">Change your address</div>
+<div class="hint">We will send a confirmation letter to the new address.</div>
+<form action="/bad" method="post">
+<input type="text" placeholder="Address line 1" class="err" name="line1" value="">
+<input type="text" placeholder="Town or city" class="err" name="city" value="">
+<input type="text" placeholder="Postcode" class="err" name="postcode" value="">
+<input type="text" placeholder="Country" class="err" name="country" value="">
+<div class="hint err">Apply from</div>
+<input type="radio" name="when" value="today"> Today<input type="radio" name="when" value="next-statement"> Next statement<div>
+<div class="btn" id="save">Save</div>
+</div>
+</form>
+<script>document.getElementById('save').addEventListener('click', () => document.forms[0].submit())</script>
+</body>
+</html>
+== proof: the accessible form after a failed submit (out/good-errors.html): summary, labels, aria-describedby, aria-invalid, autocomplete ==
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Error: Change your address - Member portal</title>
+</head>
+<body>
+<main>
+<div id="error-summary" tabindex="-1" aria-labelledby="error-summary-title" role="alert">
+<h2 id="error-summary-title">There is a problem</h2>
+<ul>
+<li>
+<a href="#line1">Enter the first line of your address</a>
+</li>
+<li>
+<a href="#city">Enter your town or city</a>
+</li>
+<li>
+<a href="#postcode">Enter your postcode</a>
+</li>
+<li>
+<a href="#country">Enter your country</a>
+</li>
+<li>
+<a href="#when-today">Select when the change should apply</a>
+</li>
+</ul>
+</div>
+<h1>Change your address</h1>
+<p class="hint">We will send a confirmation letter to the new address.</p>
+<form novalidate="" action="/good" method="post">
+<fieldset>
+<legend>New address</legend>
+<div class="field-error">
+<label for="line1">Address line 1</label>
+<p id="line1-error" class="error">
+<span class="visually-hidden">Error: </span>Enter the first line of your address</p>
+<input type="text" id="line1" autocomplete="address-line1" aria-invalid="true" aria-describedby="line1-error" name="line1" value="">
+</div>
+<div class="field-error">
+<label for="city">Town or city</label>
+<p id="city-error" class="error">
+<span class="visually-hidden">Error: </span>Enter your town or city</p>
+<input type="text" id="city" autocomplete="address-level2" aria-invalid="true" aria-describedby="city-error" name="city" value="">
+</div>
+<div class="field-error">
+<label for="postcode">Postcode</label>
+<p id="postcode-hint" class="hint">For example, AB1 2CD</p>
+<p id="postcode-error" class="error">
+<span class="visually-hidden">Error: </span>Enter your postcode</p>
+<input type="text" id="postcode" autocomplete="postal-code" aria-invalid="true" aria-describedby="postcode-hint postcode-error" name="postcode" value="">
+</div>
+<div class="field-error">
+<label for="country">Country</label>
+<p id="country-error" class="error">
+<span class="visually-hidden">Error: </span>Enter your country</p>
+<input type="text" id="country" autocomplete="country-name" aria-invalid="true" aria-describedby="country-error" name="country" value="">
+</div>
+</fieldset>
+<fieldset class="field-error" aria-describedby="when-error">
+<legend>When should the change apply?</legend>
+<p id="when-error" class="error">
+<span class="visually-hidden">Error: </span>Select when the change should apply</p>
+<div class="radio">
+<input type="radio" id="when-today" name="when" value="today">
+<label for="when-today">From today</label>
+</div>
+<div class="radio">
+<input type="radio" id="when-next-statement" name="when" value="next-statement">
+<label for="when-next-statement">From the next annual statement</label>
+</div>
+</fieldset>
+<button type="submit">Save new address</button>
+</form>
+</main>
+<script>document.getElementById('error-summary')?.focus()</script>
+</body>
+</html>

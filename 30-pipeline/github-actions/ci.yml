@@ -1,0 +1,107 @@
+# The same pipeline as ../.gitlab-ci.yml, for GitHub Actions. Kept out of .github/workflows so it does not run in this repo;
+# to use it, copy it to .github/workflows/ci.yml at the root of the app's own repository.
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 2" # scheduled release: Tuesdays 06:00 UTC
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run lint
+
+  typecheck:
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+
+  unit:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npx vitest run --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: junit, path: reports/junit.xml }
+
+  a11y:
+    needs: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run a11y
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: a11y, path: reports/a11y.json }
+
+  audit:
+    needs: [unit, a11y]
+    runs-on: ubuntu-latest
+    # blocks a release, only warns on pushes and pull requests
+    continue-on-error: ${{ github.event_name != 'schedule' && !startsWith(github.ref, 'refs/tags/') }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run audit
+
+  build:
+    needs: audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci --no-audit --no-fund
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with: { name: dist, path: dist/, retention-days: 7 }
+
+  deploy:
+    needs: build
+    if: github.event_name == 'schedule' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: production
+    concurrency: production
+    env:
+      DEPLOY_DIR: /srv/statement-app
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { name: dist, path: dist }
+      - run: |
+          RELEASE="${{ github.ref_type == 'tag' && github.ref_name || format('scheduled-{0}-{1}', github.sha, github.run_id) }}"
+          mkdir -p "$DEPLOY_DIR/releases/$RELEASE"
+          cp -r dist/. "$DEPLOY_DIR/releases/$RELEASE/"
+          echo '{"type":"module"}' > "$DEPLOY_DIR/releases/$RELEASE/package.json"
+          ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
+          echo "deployed $RELEASE"

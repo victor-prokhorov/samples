@@ -1,0 +1,22 @@
+{
+  "name": "32-casebook",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "render": "tsx src/render.ts",
+    "trace": "tsx src/trace.ts",
+    "schema": "tsx src/schema.ts",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "@mermaid-js/mermaid-cli": "^12.0.0",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

@@ -1,0 +1,134 @@
+# 25-bilingual run 2026-10-02T15:44:27Z
+== the member page server (node:http on :53035), in the background ==
+server: member page on http://localhost:53035 (/, /naive; ?lang=en|fr|en-XA; ?member=alice|bob|carol)
+== demo: a client fetching the same page with different Accept-Language headers ==
+
+## 1. Locale negotiation
+   concept: Accept-Language ranges by q-value, exact tag then primary language, q=0 means never, fallback to English; ?lang= (an explicit choice) wins
+   GET /          Accept-Language: fr-CA,fr;q=0.9,en;q=0.8            -> Content-Language: fr, <html lang="fr">, Vary: Accept-Language
+   GET /          Accept-Language: en-GB,en;q=0.9                     -> Content-Language: en, <html lang="en">, Vary: Accept-Language
+   GET /          Accept-Language: de-DE,de;q=0.9,fr;q=0.5,en;q=0.3   -> Content-Language: fr, <html lang="fr">, Vary: Accept-Language
+   GET /          Accept-Language: fr;q=0,en;q=0.5                    -> Content-Language: en, <html lang="en">, Vary: Accept-Language
+   GET /          Accept-Language: de-CH                              -> Content-Language: en, <html lang="en">, Vary: Accept-Language
+   GET /          Accept-Language: *                                  -> Content-Language: en, <html lang="en">, Vary: Accept-Language
+   GET /          Accept-Language: (none)                             -> Content-Language: en, <html lang="en">, Vary: Accept-Language
+   GET /?lang=fr  Accept-Language: en-GB,en;q=0.9                     -> Content-Language: fr, <html lang="fr">, Vary: Accept-Language
+
+## 2. One page, two locales: numbers, money, dates
+   concept: Intl formats per locale: group and decimal separators, currency position, month names; concatenating '€' + toFixed(2) is English in every language
+   (⍽ is U+202F narrow no-break space, · is U+00A0 no-break space)
+   en              total: Total: €4,111.06       rate: Contribution rate: 7%          row: 31 Jan 2026 | €1,234.56    Last signed in on 28 September 2026
+   fr              total: Total·: 4⍽111,06·€     rate: Taux de cotisation·: 7·%       row: 31 janv. 2026 | 1⍽234,56·€ Dernière connexion le 28 septembre 2026
+   fr, naive page  total: Total: €4111.06        rate: (none)                         row: Sat Jan 31 2026 | €1234.56 
+
+## 3. Plural and select rules come from CLDR, not from the code
+   concept: French puts 0 in the 'one' category, English in 'other'; roles are a select with gender-free wording in French
+   alice  en: 0 pending requests   Hello Alice, Member                  fr: 0 demande en attente   Bonjour Alice, Membre
+   bob    en: 1 pending request    Hello Bob, Employer administrator    fr: 1 demande en attente   Bonjour Bob, Administration employeur
+   carol  en: 2 pending requests   Hello Carol, Portal staff            fr: 2 demandes en attente  Bonjour Carol, Équipe du portail
+
+## 4. Both catalogues must have the same keys and the same ICU arguments
+   concept: a translator renaming {count}, dropping a select case or a key, or breaking the syntax fails the build, not the page
+   fixtures/fr.broken.json: missing key "action.logout"
+   fixtures/fr.broken.json: unknown key "action.logoff" (not in the reference)
+   fixtures/fr.broken.json: "greeting" does not parse: EXPECT_ARGUMENT_CLOSING_BRACE
+   fixtures/fr.broken.json: "role" select {role} has cases [member,other], the reference [employer,member,other]
+   fixtures/fr.broken.json: "pending" lacks argument {count}
+   fixtures/fr.broken.json: "pending" uses argument {nombre} that the code never passes
+   fixtures/fr.broken.json: "contributions.total" formats {amount} as string, the reference as number
+   messages/fr.json against messages/en.json: 0 problems
+
+## 5. Pseudo-localisation finds hard-coded strings and fixed widths
+   concept: en-XA: every catalogue string accented, 40% longer, in ⟦⟧; anything readable without brackets skipped the catalogue
+   /naive?lang=en-XA: 9 hard-coded strings, 1 overflow
+     hard-coded: "You have 0 pending request(s)"
+     hard-coded: "Date"
+     hard-coded: "Employer"
+     hard-coded: "Amount"
+     hard-coded: "Sat Jan 31 2026"
+     hard-coded: "Sat Feb 28 2026"
+     hard-coded: "Tue Mar 31 2026"
+     hard-coded: "Total: €4111.06"
+     hard-coded: "Sign out"
+     overflow: <button> "⟦Ŕéqúéšţ á çĥáñğé·······⟧" is 25 characters in a 18ch box
+     overflow in real French too: <button> "Demander une modification" is 25 characters in a 18ch box
+   /?lang=en-XA: 0 hard-coded strings, 0 overflow
+     sample: ⟦Ýóúŕ mémƀéŕ áççóúñţ········⟧  ⟦0 péñðíñğ ŕéqúéšţš·······⟧  ⟦Ţóţáļ: €4,111.06···⟧
+
+## 6. The lang attribute
+   concept: <html lang> tells screen readers which voice and hyphenation to use (WCAG 3.1.1); a passage in another language carries its own lang (3.1.2)
+   / (en): <html lang="en">, switcher <a href="/?member=alice&amp;lang=fr" hreflang="fr" lang="fr">Français</a>
+   / (fr): <html lang="fr">, switcher <a href="/?member=alice&amp;lang=en" hreflang="en" lang="en">English</a>
+   /naive (fr): <html> without lang, so a screen reader reads the French page with the user's default voice
+
+== proof: catalogue check as CI runs it (npm run check, exit code) ==
+   fr matches en: same keys, same arguments
+   exit 0
+== proof: raw response for Accept-Language: fr-CA,fr;q=0.9,en;q=0.8 ==
+HTTP/1.1 200 OK
+content-type: text/html; charset=utf-8
+content-language: fr
+vary: Accept-Language
+Connection: keep-alive
+Keep-Alive: timeout=5
+Transfer-Encoding: chunked
+
+<!doctype html>
+<html lang="fr">
+<head><meta charset="utf-8"><title>Votre espace membre</title><style>body{font-family:system-ui;margin:2rem;max-width:48rem}button{padding:.5rem 1rem}td,th{padding:.25rem 1rem;text-align:left}</style></head>
+<body>
+<header>
+  <p>Bonjour Bob, Administration employeur</p>
+  <nav aria-label="Langue"><a href="/?member=bob&amp;lang=en" hreflang="en" lang="en">English</a></nav>
+</header>
+<main>
+  <h1>Votre espace membre</h1>
+  <p>Dernière connexion le 30 septembre 2026</p>
+  <p id="pending">1 demande en attente</p>
+  <h2>Cotisations de l’année</h2>
+  <table>
+    <thead><tr><th>Date</th><th>Employeur</th><th>Montant</th></tr></thead>
+    <tbody>
+      <tr><td>31 janv. 2026</td><td translate="no">Initech</td><td>98,50 €</td></tr>
+    </tbody>
+  </table>
+  <p id="total">Total : 98,50 €</p>
+  <p id="rate">Taux de cotisation : 5 %</p>
+  <button type="button" style="max-width:40ch" data-maxch="40">Demander une modification</button>
+</main>
+<footer><a href="/logout">Se déconnecter</a></footer>
+</body>
+</html>
+== proof: raw pseudo-localised page (/?lang=en-XA), main ==
+<main>
+  <h1>⟦Ýóúŕ mémƀéŕ áççóúñţ········⟧</h1>
+  <p>⟦Ļášţ šíğñéð íñ óñ 28 September 2026········⟧</p>
+  <p id="pending">⟦0 péñðíñğ ŕéqúéšţš·······⟧</p>
+  <h2>⟦Çóñţŕíƀúţíóñš ţĥíš ýéáŕ··········⟧</h2>
+  <table>
+    <thead><tr><th>⟦Ðáţé··⟧</th><th>⟦Émpļóýéŕ····⟧</th><th>⟦Ámóúñţ···⟧</th></tr></thead>
+    <tbody>
+      <tr><td>⟦31 Jan 2026⟧</td><td translate="no">Acme</td><td>⟦€1,234.56⟧</td></tr>
+      <tr><td>⟦28 Feb 2026⟧</td><td translate="no">Acme</td><td>⟦€1,234.56⟧</td></tr>
+      <tr><td>⟦31 Mar 2026⟧</td><td translate="no">Globex</td><td>⟦€1,641.94⟧</td></tr>
+    </tbody>
+  </table>
+  <p id="total">⟦Ţóţáļ: €4,111.06···⟧</p>
+  <p id="rate">⟦Çóñţŕíƀúţíóñ ŕáţé: 7%········⟧</p>
+  <button type="button" style="max-width:40ch" data-maxch="40">⟦Ŕéqúéšţ á çĥáñğé·······⟧</button>
+</main>
+== proof: raw naive page in French (/naive?lang=fr), main ==
+<main>
+  <h1>Votre espace membre</h1>
+  <p id="pending">You have 0 pending request(s)</p>
+  <table>
+    <thead><tr><th>Date</th><th>Employer</th><th>Amount</th></tr></thead>
+    <tbody>
+      <tr><td>Sat Jan 31 2026</td><td translate="no">Acme</td><td>€1234.56</td></tr>
+      <tr><td>Sat Feb 28 2026</td><td translate="no">Acme</td><td>€1234.56</td></tr>
+      <tr><td>Tue Mar 31 2026</td><td translate="no">Globex</td><td>€1641.94</td></tr>
+    </tbody>
+  </table>
+  <p id="total">Total: €4111.06</p>
+  <button type="button" style="width:18ch;overflow:hidden;white-space:nowrap" data-maxch="18">Demander une modification</button>
+</main>

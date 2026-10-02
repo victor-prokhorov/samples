@@ -1,0 +1,28 @@
+{
+  "name": "28-campaign",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "setup": "tsx src/setup.ts",
+    "worker": "tsx src/worker.ts",
+    "sink": "tsx src/sink.ts",
+    "campaign": "tsx src/campaign.ts",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "nodemailer": "^8.0.0",
+    "pdfkit": "^0.17.0",
+    "pg": "^8.13.0",
+    "smtp-server": "^3.14.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/nodemailer": "^8.0.0",
+    "@types/pdfkit": "^0.17.0",
+    "@types/pg": "^8.11.0",
+    "@types/smtp-server": "^3.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

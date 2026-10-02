@@ -1,0 +1,16 @@
+{
+  "page.title": "Votre espace membre",
+  "greeting": "Bonjour {name",
+  "role": "{role, select, member {Membre} other {Équipe du portail}}",
+  "lastLogin": "Dernière connexion le {date, date, long}",
+  "pending": "{nombre, plural, one {# demande en attente} other {# demandes en attente}}",
+  "contributions.title": "Cotisations de l’année",
+  "contributions.total": "Total : {amount} €",
+  "contributions.rate": "Taux de cotisation : {rate, number, ::percent}",
+  "table.date": "Date",
+  "table.employer": "Employeur",
+  "table.amount": "Montant",
+  "action.request": "Demander une modification",
+  "action.logoff": "Se déconnecter",
+  "language.label": "Langue"
+}

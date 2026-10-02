@@ -1,0 +1,31 @@
+{
+  "name": "30-pipeline",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node dist/server.js",
+    "lint": "eslint --max-warnings 0 .",
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "a11y": "tsx scripts/a11y.ts",
+    "audit": "npm audit --audit-level=high",
+    "build": "tsc -p tsconfig.build.json",
+    "pipeline": "gitlab-ci-local --shell-isolation",
+    "compare": "tsx scripts/compare.ts",
+    "demo": "tsx scripts/demo.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/jsdom": "^21.1.0",
+    "@types/node": "^22.0.0",
+    "axe-core": "^4.13.0",
+    "eslint": "^10.0.0",
+    "gitlab-ci-local": "^4.76.0",
+    "jsdom": "^27.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0",
+    "typescript-eslint": "^8.0.0",
+    "vitest": "^5.0.0",
+    "yaml": "^2.6.0"
+  }
+}

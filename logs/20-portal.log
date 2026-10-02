@@ -1,0 +1,108 @@
+# 20-portal run 2026-10-02T15:55:12Z
+== fresh Postgres for the portal (docker compose down -v && up) and no earlier build ==
+ Container 20-portal-postgres-1 Healthy 
+setup: employers, members (alice, bob, carol), addresses, contributions, change_requests (at most one pending address change per member)
+== build: next build. Pages that read the session cookie are dynamic (ƒ), rendered per request on the server ==
+▲ Next.js 16.3.8 (Turbopack)
+✓ Running next.config.ts took 62ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 6.2s
+  Running TypeScript ...
+  Finished TypeScript in 2.7s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/7) ...
+  Generating static pages using 3 workers (1/7) 
+  Generating static pages using 3 workers (3/7) 
+  Generating static pages using 3 workers (5/7) 
+✓ Generating static pages using 3 workers (7/7) in 197ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /address
+├ ƒ /contributions
+├ ƒ /login
+├ ƒ /profile
+└ ƒ /requests/[id]
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+== demo: a client with JavaScript off (HTTP and a cookie jar) against next start, a separate process it starts and stops ==
+▲ Next.js 16.3.8
+- Local:         http://localhost:53030
+- Network:       http://192.0.2.2:53030
+✓ Ready in 151ms
+✓ Running next.config.ts took 34ms
+client pid 11287 -> next start (pid 11331) on :53030; the client has no JavaScript engine for pages, only HTTP and a cookie jar
+
+## 1. A signed-out request to a server component
+   concept: the page is an async server component; requireMember() reads the cookie on the server and redirects before anything renders
+   GET /profile (no cookie)                     -> 307 Location: /login
+
+## 2. Sign in with JavaScript off: a server action behind a plain HTML form
+   concept: <form action={login}> renders as a normal POST form with a hidden $ACTION_ID_ field, so the browser posts it without JS; the action sets an HttpOnly cookie and redirect() answers 303 See Other
+   POST /login username=alice (no JS)           -> 303 Location: /profile Set-Cookie: sid=1.DyFq...; Path=/; HttpOnly; SameSite=lax
+   hidden fields the server rendered into the form: $ACTION_ID_<id>
+
+## 3. Server components read Postgres directly; the HTML arrives complete
+   concept: no API layer and no client-side fetch: the component awaits the query and React renders the rows into the response, so the page reads the same with JS off. Every query takes the member id from the session
+   GET /profile -> 200: Your profile | Name Alice Martin | Email alice@example.com | Employer Acme | Address 12 Old Road, Springfield, AB1 2CD | Request a change of address |
+   GET /contributions -> 200: Your contributions | Monthly contributions | Month You Employer | Jan 2026 125.00 175.00 | Feb 2026 125.00 175.00 | Mar 2026 125.00 175.00 | Apr 2026 125.00 175.00 | May 2026 125.00 175.00 | Jun 2026 125.00 175.00 | Total paid in: 1800.00 |
+
+## 4. An invalid address change, submitted without JS
+   concept: the form is a client component using useActionState, yet without JS it still posts (hidden $ACTION_REF/$ACTION_KEY fields). The server action validates with zod and returns field errors as state; Next renders the page again with them, with the typed values kept. Nothing is written
+   hidden fields: $ACTION_REF_1, $ACTION_1:0, $ACTION_1:1, $ACTION_KEY
+   POST /address (blank line 1, bad postcode, past date) -> 200
+     line1: Error: Enter the first line of the address
+     postcode: Error: Enter a real postcode, like AB1 2CD
+     effectiveFrom: Error: The date cannot be in the past
+     aria-invalid on: line1, postcode, effectiveFrom; city kept as typed: true
+
+## 5. A valid address change: POST, then redirect
+   concept: the action inserts the request and calls redirect(), which answers 303 to the new request's page (Post/Redirect/Get: a reload does not resubmit). A member_id field forged into the form is ignored: the action never reads one
+   POST /address (valid, plus member_id=2)      -> 303 Location: /requests/1
+   GET /requests/1 -> 200: Address change request 1 | Status: Pending | New address: 1 High Street, Springfield, AB1 2CD, from 2026-10-09. Requested 2026-10-02 15:55. |
+
+## 6. A second pending change is refused by the database
+   concept: a partial unique index (member_id, kind) WHERE status = 'pending' is the rule; the action turns the 23505 unique violation into a form-level error instead of a 500
+   POST /address (second change while one is pending) -> 200
+     role=alert: You already have a pending address change
+
+## 7. Scoped data access: another member, a forged cookie, a cross-site post
+   concept: bob asking for alice's request gets 404 (the query filters on bob's id, so the row does not exist for him); a cookie whose signature does not match is no session at all; a server action posted from another origin is refused (Origin must match Host)
+   POST /login username=bob (no JS)             -> 303 Location: /profile Set-Cookie: sid=2.uFvI...; Path=/; HttpOnly; SameSite=lax
+   GET /requests/1 as bob                       -> 404
+   GET /profile as bob -> 200: Your profile | Name Bob Smith | Email bob@example.com | Employer Globex | Address 3 Station Street, Shelbyville, EF3 4GH | Request a change of address |
+   GET /profile with sid=2.<alice's signature>  -> 307 Location: /login
+`x-forwarded-host` header with value `localhost:53030` does not match `origin` header with value `attacker.example` from a forwarded Server Actions request. Aborting the action.
+⨯ Error: Invalid Server Actions request.
+    at ignore-listed frames
+⨯ Error: Invalid Server Actions request.
+    at ignore-listed frames
+   POST /address with Origin: http://attacker.example -> 500
+   Next aborted the action before it ran (its log line above); change_requests rows: 1
+
+== proof: members with their employer and current address (each page above showed one member's row only) ==
+ id | username |  full_name   | employer |      line1       |    city     | postcode 
+----+----------+--------------+----------+------------------+-------------+----------
+  1 | alice    | Alice Martin | Acme     | 12 Old Road      | Springfield | AB1 2CD
+  2 | bob      | Bob Smith    | Globex   | 3 Station Street | Shelbyville | EF3 4GH
+  3 | carol    | Carol Jones  | Initech  | 9 Mill Lane      | Ogdenville  | JK5 6LM
+(3 rows)
+
+== proof: change_requests. One row: the invalid, duplicate and cross-origin posts wrote nothing; member_id is alice's despite the forged field ==
+ id | member_id |  kind   |                                 payload                                  | effective_from | status  
+----+-----------+---------+--------------------------------------------------------------------------+----------------+---------
+  1 |         1 | address | {"city": "Springfield", "line1": "1 High Street", "postcode": "AB1 2CD"} | 2026-10-09     | pending
+(1 row)
+
+== proof: the rule behind step 6 ==
+                                                                  indexdef                                                                  
+--------------------------------------------------------------------------------------------------------------------------------------------
+ CREATE UNIQUE INDEX one_pending_change_per_member ON public.change_requests USING btree (member_id, kind) WHERE (status = 'pending'::text)
+(1 row)
+
