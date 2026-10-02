@@ -10,10 +10,9 @@ export function show(r: Report) {
     for (const c of r.diff.changed) console.log(`       changed ${c}`);
   }
   if (r.amounts) {
-    const gap = (Number(r.amounts.declared) - Number(r.amounts.accepted) - Number(r.amounts.rejected)).toFixed(2);
-    console.log(
-      `     control total: declared ${r.amounts.declared} = accepted ${r.amounts.accepted} + rejected ${r.amounts.rejected} + ${gap} on ${r.amounts.unparsable} unparsable row(s)`,
-    );
+    const parsed = (Number(r.amounts.accepted) + Number(r.amounts.rejected)).toFixed(2);
+    const unparsable = r.amounts.unparsable ? `; ${r.amounts.unparsable} amount(s) not a number, counted on neither side` : "";
+    console.log(`     control total: declared ${r.amounts.declared}, amounts that parse ${parsed} (accepted ${r.amounts.accepted} + rejected ${r.amounts.rejected})${unparsable}`);
   }
   if (r.written) console.log(`     upsert: inserted ${r.written.inserted}, updated ${r.written.updated}`);
 }

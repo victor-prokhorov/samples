@@ -22,9 +22,10 @@ ops/service.sh stop
 ```
 
 - `runbooks/scheduled-release.md`, `rollback.md`, `monthly-data-update.md`, `user-request.md` the procedures.
-- `src/parse.ts` reads a runbook: title, `Owner:` and `Parameters:` lines, `##` sections, `###` steps, fenced blocks.
-- `src/runner.ts` runs it: parameters as environment variables, `bash -euo pipefail` per block, manual confirmation (terminal, or `--yes`), stop on failure, rollback printed or run, `ops.runs` and `ops.steps`.
+- `src/parse.ts` reads a runbook: title, `Owner:` and `Parameters:` lines, `##` sections, `###` steps, fenced blocks (a block before a section's first step is kept apart, for docs-lint to report).
+- `src/runner.ts` runs it: parameters as environment variables (SQL blocks pass them on as `psql -v` variables in a quoted heredoc, never as SQL text), `bash -euo pipefail` per block, manual confirmation (terminal, or `--yes`), stop on failure, rollback printed or run, `ops.runs` and `ops.steps`.
 - `src/docs-lint.ts` the documentation checks; `fixtures/broken-docs/` a runbook and an ADR it rejects.
+- `data/contributions-2026-09.csv` the monthly file; `data/contributions-2026-09-corrected.csv` a corrected re-send for the same period, which the runbook refuses until the loaded batch is rolled back.
 - `docs/adr/0001-0003` decision records in Nygard's format; `docs/onboarding.md` the checklist.
 - `ops/migrate.ts` numbered up and down migrations from `migrations/`, recorded in `schema_migrations`.
 - `ops/service.sh`, `ops/smoke.sh`, `ops/psql.sh` start and stop the service, the smoke test, psql inside the container.

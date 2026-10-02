@@ -106,7 +106,13 @@ export function createApp(o: Options) {
       const { rows } = await pool.query("SELECT kind FROM change_requests WHERE member_id = $1 AND status = 'pending'", [memberId]);
       const errors = checkRequest(values, { today: today(), pending: rows.map((r) => r.kind) });
       if (errors.length) return html(422, await requestForm(memberId, values, errors));
-      await pool.query("INSERT INTO change_requests (member_id, kind, value, effective_from) VALUES ($1, $2, $3, $4)", [memberId, values.kind, values.value.trim(), values.effectiveFrom]);
+      try {
+        await pool.query("INSERT INTO change_requests (member_id, kind, value, effective_from) VALUES ($1, $2, $3, $4)", [memberId, values.kind, values.value.trim(), values.effectiveFrom]);
+      } catch (err) {
+        // A concurrent submission got in between the check and the insert; the partial unique index refuses the second one.
+        if ((err as { code?: string }).code !== "23505") throw err;
+        return html(422, await requestForm(memberId, values, [`You already have a pending ${values.kind} change`]));
+      }
       return redirect("/requests");
     }
     if (key === "GET /requests") {

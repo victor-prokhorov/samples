@@ -34,6 +34,8 @@ await t.query(`
     status TEXT NOT NULL DEFAULT 'pending',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now()
   );
+  -- One pending change per kind, enforced by the database too: two concurrent submissions both pass the check in rules.ts.
+  CREATE UNIQUE INDEX one_pending_change_per_kind ON change_requests (member_id, kind) WHERE status = 'pending';
   INSERT INTO employers VALUES (1, 'Acme'), (2, 'Globex');
 `);
 await t.query("INSERT INTO members VALUES (1, 1, 'alice', 'Alice Martin', $1), (2, 2, 'bob', 'Bob Smith', $2)", [hash("alice-password"), hash("bob-password")]);

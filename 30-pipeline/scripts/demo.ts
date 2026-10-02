@@ -1,6 +1,7 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { existsSync, mkdtempSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { compare } from "./compare.js";
 
 function step(title: string, concept: string) {
@@ -51,15 +52,17 @@ async function main() {
     check(label === "tag rc-1" ? !deploy : !!deploy, `${label}: deploy ${label === "tag rc-1" ? "absent" : "present"}`);
   }
 
-  step("3. A lint error fails the pipeline", "stages run in order and a failed job stops the later stages; tsc accepts this file, eslint does not (any, unused variable, ==)");
-  writeFileSync("src/oops.ts", "export function isAdult(age: any) {\n  const unused = 1;\n  return age == 18 || age > 18;\n}\n");
+  step("3. A lint error fails the pipeline", "stages run in order and a failed job stops the later stages; tsc accepts this function, eslint does not (any, unused variable, ==)");
+  // appended to a tracked file: gitlab-ci-local copies tracked files only (it excludes what git ls-files -o lists), as a runner only sees what was pushed
+  const statement = readFileSync("src/statement.ts", "utf8");
+  writeFileSync("src/statement.ts", `${statement}\nexport function isAdult(age: any) {\n  const unused = 1;\n  return age == 18 || age > 18;\n}\n`);
   let failed;
   try {
     failed = gcl([]);
   } finally {
-    rmSync("src/oops.ts");
+    writeFileSync("src/statement.ts", statement);
   }
-  show(failed.lines, /^lint\s+(\$ npm run lint|>\s+\S*oops\.ts|>\s+\d+:\d+\s+error|> .*problems)|FAIL|pipeline finished/);
+  show(failed.lines, /^lint\s+(\$ npm run lint|>\s+\S*statement\.ts|>\s+\d+:\d+\s+error|> .*problems)|FAIL|pipeline finished/);
   check(failed.status !== 0, "gitlab-ci-local exits non-zero");
   check(failed.lines.some((l) => /FAIL\s+lint/.test(l)) && !failed.lines.some((l) => /^(typecheck|unit|a11y|audit|build) /.test(l)), "lint failed and no later job started");
 
@@ -87,13 +90,40 @@ async function main() {
   console.log(`   current -> ${current}, release.json ${JSON.stringify(release)}; previous ${first} still on disk: ${existsSync(`${DEPLOY_DIR}/${first}`)}`);
   check(tagged.status === 0 && current === "releases/v1.4.0" && release.source === "push", "tag v1.4.0 is live");
 
-  step("7. The same pipeline on GitHub Actions", "github-actions/ci.yml (not under .github/, so it does not run here) has the same jobs and commands; stages become needs, rules become if, resource_group becomes concurrency");
-  const { rows, gitlabDeploy, githubDeploy } = await compare();
-  console.log(`   ${"job".padEnd(10)} ${"gitlab stage".padEnd(13)} ${"github needs".padEnd(13)} commands`);
-  for (const r of rows) console.log(`   ${r.name.padEnd(10)} ${r.stage.padEnd(13)} ${r.needs.padEnd(13)} ${r.same ? r.gl : `DIFFERENT: ${r.gl} vs ${r.gh}`}`);
-  console.log(`   deploy when, gitlab: ${gitlabDeploy}`);
-  console.log(`   deploy when, github: ${githubDeploy}`);
-  check(rows.every((r) => r.same) && /schedule/.test(githubDeploy) && /tags/.test(githubDeploy), "both pipelines run the same commands and deploy on the same triggers");
+  step("7. The same pipeline on GitHub Actions", "github-actions/ci.yml (not under .github/, so it does not run here) has the same jobs, commands in the same order, runners and deploy triggers; stages become needs, rules become if and on:, resource_group becomes concurrency, runner tags become runs-on labels");
+  const printCompare = (c: Awaited<ReturnType<typeof compare>>) => {
+    console.log(`   ${"job".padEnd(10)} ${"gitlab stage".padEnd(13)} ${"github needs".padEnd(13)} ${"runner".padEnd(11)} commands`);
+    for (const r of c.rows) {
+      const runner = r.runner.gitlab === r.runner.github ? r.runner.gitlab : `${r.runner.gitlab} vs ${r.runner.github}`;
+      console.log(`   ${r.name.padEnd(10)} ${r.stage.padEnd(13)} ${r.needs.padEnd(13)} ${runner.padEnd(11)} ${r.same ? r.gl : `DIFFERENT: ${r.gl} vs ${r.gh}`}`);
+    }
+    console.log(`   deploys on: ${c.deploys.map((d) => `${d.trigger} ${d.gitlab === d.github ? (d.gitlab ? "yes" : "no") : `DIFFERENT (gitlab ${d.gitlab ? "yes" : "no"}, github ${d.github ? "yes" : "no"})`}`).join("; ")}`);
+  };
+  const same = await compare();
+  printCompare(same);
+  check(same.rows.every((r) => r.same) && same.deploys.every((d) => d.gitlab === d.github), "both pipelines run the same commands in the same order, on the same runners, and deploy on the same triggers");
+  const deploys = same.deploys.filter((d) => d.gitlab).map((d) => d.trigger);
+  check(deploys.join() === "schedule,tag v1.4.0", "only the schedule and a vX.Y.Z tag deploy");
+
+  console.log("   the comparison on a drifted copy (smoke test after the switch, release.json dropped, deploy on ubuntu-latest, a loose tag filter and tag check):");
+  const original = readFileSync("github-actions/ci.yml", "utf8");
+  const smoke = original.split("\n").find((l) => l.includes("node -e \"import("))!;
+  const drifted = original
+    .replace(`${smoke}\n`, "")
+    .replace(/^( +)(echo "deployed)/m, `${smoke.replace("releases/$RELEASE", "current")}\n$1$2`)
+    .replace(/^ +printf .*release\.json"\n/m, "")
+    .replace("runs-on: [self-hosted, production]", "runs-on: ubuntu-latest")
+    .replace(/tags: \["[^"]+"\]/, 'tags: ["v*.*.*"]')
+    .replace(/=~ \S+ \]\]/, "=~ ^v ]]");
+  const dir = mkdtempSync(join(tmpdir(), "pipeline-"));
+  try {
+    writeFileSync(join(dir, "ci.yml"), drifted);
+    const diff = await compare(join(dir, "ci.yml"));
+    printCompare({ ...diff, rows: diff.rows.filter((r) => !r.same) });
+    check(!diff.rows.find((r) => r.name === "deploy")!.same && diff.deploys.some((d) => d.gitlab !== d.github), "the drifted copy is caught: deploy commands, runner and tag rule differ");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
 }
 
 await main();

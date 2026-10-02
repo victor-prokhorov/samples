@@ -14,14 +14,17 @@ function check(cond: boolean, what: string) {
 function cucumber(impl: string, format: string) {
   const report = `reports/${impl}.ndjson`;
   const r = spawnSync("node_modules/.bin/cucumber-js", ["--format", format, "--format", `message:${report}`], {
-    stdio: "inherit",
+    encoding: "utf8",
     env: { ...process.env, IMPL: impl, NODE_OPTIONS: "--import tsx" },
   });
+  // Stack traces carry absolute paths; print them relative to this folder so the log does not depend on the checkout.
+  process.stdout.write((r.stdout + r.stderr).replaceAll(process.cwd() + "/", ""));
   console.log(`   cucumber-js exit code (IMPL=${impl}): ${r.status}`);
   return { exit: r.status, ...readRun(report) };
 }
 
 async function store(impl: string, rows: ReturnType<typeof matrix>) {
+  await pool.query("DELETE FROM spec_results WHERE implementation = $1", [impl]);
   for (const r of rows)
     for (const s of r.scenarios)
       await pool.query("INSERT INTO spec_results (implementation, requirement, scenario, status) VALUES ($1, $2, $3, $4)", [impl, r.id, s.scenario, s.status]);

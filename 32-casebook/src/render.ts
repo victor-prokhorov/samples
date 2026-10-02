@@ -9,7 +9,7 @@ const run = promisify(execFile);
 
 export type Rendered = { svg: string; source: string; kind: string; bytes: number; error?: string };
 
-// mermaid-cli drives a headless Chromium through puppeteer; puppeteer.json points it at the preinstalled one
+// mermaid-cli drives a headless Chromium through puppeteer, which takes its path from PUPPETEER_EXECUTABLE_PATH; puppeteer.json only adds flags
 export async function render(files: string[], outDir = "diagrams"): Promise<Rendered[]> {
   await mkdir("build", { recursive: true });
   await mkdir(outDir, { recursive: true });
@@ -25,7 +25,7 @@ export async function render(files: string[], outDir = "diagrams"): Promise<Rend
       out.push({ svg, source, kind: /aria-roledescription="([^"]+)"/.exec(text)?.[1] ?? "?", bytes: (await stat(svg)).size });
     } catch (err) {
       const msg = (err as { stderr?: string }).stderr ?? String(err);
-      out.push({ svg, source, kind: "-", bytes: 0, error: [/Parse error on line \d+/.exec(msg)?.[0], /got '[^']+'/.exec(msg)?.[0]].filter(Boolean).join(", ") || msg.split("\n")[0] });
+      out.push({ svg, source, kind: "-", bytes: 0, error: [/Parse error on line \d+/.exec(msg)?.[0], /got '[^']+'/.exec(msg)?.[0]].filter(Boolean).join(", ") || (msg.split("\n").find((l) => l.trim()) ?? "mmdc failed") });
     }
   }
   return out;

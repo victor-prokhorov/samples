@@ -170,15 +170,42 @@ CREATE TABLE audit_log (
 
 CREATE TABLE outbox (id bigserial PRIMARY KEY, topic text NOT NULL, payload jsonb NOT NULL, created_at timestamptz NOT NULL DEFAULT now(), published_at timestamptz);
 
--- REQ-10: an employer administrator only ever sees her employer's members, enforced by the database for the application's role
+-- REQ-10, REQ-16: who may see which rows, enforced by the database for the application's role, which owns no table, so the policies
+-- apply to it. Fail closed: a transaction that has not said who is signed in (app.role unset or unknown) matches no policy and
+-- sees nothing. The app sets the identity at the start of each transaction with set_config(..., true), so it ends with the
+-- transaction and never carries over to the next request on a pooled connection.
 DO $$ BEGIN CREATE ROLE portal_app; EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA public TO portal_app;
+GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO portal_app;
+REVOKE UPDATE ON audit_log FROM portal_app; -- REQ-12: the audit trail is append-only for the application
 ALTER TABLE members ENABLE ROW LEVEL SECURITY;
-CREATE POLICY employer_scope ON members
-  USING (current_setting('app.role', true) IS DISTINCT FROM 'employer_admin' OR employer_id = current_setting('app.employer_id', true));
+CREATE POLICY portal_scope ON members USING (
+  current_setting('app.role', true) = 'staff'
+  OR (current_setting('app.role', true) = 'employer_admin' AND employer_id = current_setting('app.employer_id', true))
+  OR (current_setting('app.role', true) = 'member' AND id::text = current_setting('app.member_id', true)));
+ALTER TABLE contributions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY portal_scope ON contributions USING (
+  current_setting('app.role', true) = 'staff'
+  OR (current_setting('app.role', true) = 'employer_admin' AND employer_id = current_setting('app.employer_id', true))
+  OR (current_setting('app.role', true) = 'member' AND member_id::text = current_setting('app.member_id', true)));
+ALTER TABLE statements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY portal_scope ON statements USING (
+  current_setting('app.role', true) = 'staff'
+  OR (current_setting('app.role', true) = 'member' AND member_id::text = current_setting('app.member_id', true)));
+ALTER TABLE change_requests ENABLE ROW LEVEL SECURITY;
+CREATE POLICY portal_scope ON change_requests USING (
+  current_setting('app.role', true) = 'staff'
+  OR (current_setting('app.role', true) = 'member' AND member_id::text = current_setting('app.member_id', true)));
+ALTER TABLE upload_batches ENABLE ROW LEVEL SECURITY;
+CREATE POLICY portal_scope ON upload_batches USING (
+  current_setting('app.role', true) = 'staff'
+  OR (current_setting('app.role', true) = 'employer_admin' AND employer_id = current_setting('app.employer_id', true)));
+ALTER TABLE upload_rejects ENABLE ROW LEVEL SECURITY;
+-- the subquery runs under upload_batches' own policy, so a reject is visible exactly when its batch is
+CREATE POLICY portal_scope ON upload_rejects USING (batch_id IN (SELECT id FROM upload_batches));
 ```
 
-## Seed (three of the 26 employers)
+## Seed (three of the employers)
 
 <!-- sql: seed -->
 ```sql
@@ -202,7 +229,7 @@ INSERT INTO change_requests (member_id, type, payload, status, first_approver, s
 
 ## Queries the journeys need
 
-Each block runs in document order against the seeded database, on one connection; a block with several statements runs as one transaction and the last statement's rows count. `expect` is the number of rows, or `error` when the database must refuse. J4.2 walks the lifecycle: in review, approved, then applied because its effective date is today.
+Each block runs in document order against the seeded database, on one connection; a block with several statements runs as one transaction and the last statement's rows count (`COMMIT` aside). `expect` is the number of rows, or `error` and the name of the constraint that must refuse it. A block that acts for a signed-in user runs as the application does: in a transaction, as `portal_app` (`SET LOCAL ROLE`), with the user's identity set by `set_config(..., true)`, so row-level security decides what the user sees and a missing grant fails the block. J4.2 walks the lifecycle: in review, approved, then applied because its effective date is today.
 
 <!-- sql: J1.2 expect 1 -->
 ```sql
@@ -229,10 +256,14 @@ SELECT address FROM members WHERE id = 2;
 
 <!-- sql: J2.4 expect 1 -->
 ```sql
+BEGIN;
+SET LOCAL ROLE portal_app;
+SELECT set_config('app.role', 'member', true), set_config('app.member_id', '2', true);
 WITH cr AS (
   INSERT INTO change_requests (member_id, type, payload, submitted_at) VALUES (2, 'address', '{"address": "12 rue Garibaldi, 69003 Lyon"}', '2026-09-30') RETURNING *
 ), event AS (INSERT INTO outbox (topic, payload) SELECT 'change_request.submitted', jsonb_build_object('reference', reference) FROM cr)
 SELECT reference, status FROM cr;
+COMMIT;
 ```
 
 <!-- sql: J2.5 expect 1 -->
@@ -248,20 +279,34 @@ WHERE b.employer_id = 'globex' AND b.id = (SELECT max(id) FROM upload_batches WH
 
 <!-- sql: J3.4 expect 2 -->
 ```sql
-SET ROLE portal_app;
-SELECT set_config('app.role', 'employer_admin', false), set_config('app.employer_id', 'globex', false);
+BEGIN;
+SET LOCAL ROLE portal_app;
+SELECT set_config('app.role', 'employer_admin', true), set_config('app.employer_id', 'globex', true);
 SELECT id, name, employer_id FROM members ORDER BY id;
+COMMIT;
+```
+
+The same look-up in a transaction that did not set who is signed in (the identity above ended with its transaction) sees no member at all: the policies fail closed.
+
+<!-- sql: J3.4 expect 0 -->
+```sql
+BEGIN;
+SET LOCAL ROLE portal_app;
+SELECT id, name, employer_id FROM members ORDER BY id;
+COMMIT;
 ```
 
 <!-- sql: J4.1 expect 2 -->
 ```sql
-RESET ROLE;
 SELECT reference, type, status, submitted_at::date, (submitted_at + interval '3 days')::date AS sla_due
 FROM change_requests WHERE status IN ('submitted', 'in_review', 'awaiting_second_approval') ORDER BY submitted_at;
 ```
 
 <!-- sql: J4.2 expect 1 -->
 ```sql
+BEGIN;
+SET LOCAL ROLE portal_app;
+SELECT set_config('app.role', 'staff', true);
 UPDATE change_requests SET status = 'in_review' WHERE reference = 'CR-1002' AND status = 'submitted';
 UPDATE change_requests SET status = 'approved', first_approver = 20 WHERE reference = 'CR-1002' AND status = 'in_review';
 WITH cr AS (
@@ -273,11 +318,16 @@ audit AS (
   SELECT upd.id, cr.id, 'idp|dan', jsonb_build_object('address', old.address), jsonb_build_object('address', upd.address) FROM upd, cr, old
 ), event AS (INSERT INTO outbox (topic, payload) SELECT 'change_request.applied', jsonb_build_object('reference', reference) FROM cr)
 SELECT cr.reference, cr.status, upd.address FROM cr, upd;
+COMMIT;
 ```
 
-<!-- sql: J4.3 expect error -->
+<!-- sql: J4.3 expect error four_eyes -->
 ```sql
+BEGIN;
+SET LOCAL ROLE portal_app;
+SELECT set_config('app.role', 'staff', true);
 UPDATE change_requests SET second_approver = 20, status = 'approved' WHERE reference = 'CR-1001';
+COMMIT;
 ```
 
 <!-- sql: J4.4 expect 1 -->

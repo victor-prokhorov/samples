@@ -1,11 +1,11 @@
-# 26-sso run 2026-10-02T15:51:39Z
+# 26-sso run 2026-10-02T17:05:34Z
 == fresh Postgres for the app (docker compose down -v && up) ==
  Container 26-sso-postgres-1 Healthy 
 setup: members, role_mappings (IdP group -> app role), users (key issuer + sub), login_transactions, sessions (sha256 of the cookie)
 == demo: browsers simulated with fetch and a cookie jar; the IdP and the app are separate processes ==
 oidc-provider WARNING: a quick start development-only in-memory adapter is used, you MUST change it in order to not lose all stateful provider data upon restart and to be able to share these between processes
-   [idp pid 1001] OpenID Provider (oidc-provider) at http://127.0.0.1:53036
-   [app pid 1212] member portal (openid-client relying party) at http://localhost:53037
+   [idp pid 5162] OpenID Provider (oidc-provider) at http://127.0.0.1:53036
+   [app pid 5316] member portal (openid-client relying party) at http://localhost:53037
 
 ## 1. Discovery
    concept: the app configures itself from the IdP's metadata: endpoints, signing keys (jwks_uri), supported PKCE methods; nothing about the IdP is hard-coded but its issuer URL
@@ -23,12 +23,12 @@ oidc-provider WARNING: a quick start development-only in-memory adapter is used,
 
 ## 3. Alice signs in: authorization code flow with PKCE
    concept: the app stores state, nonce and a PKCE code_verifier server-side and sends only the state, the nonce and the S256 code_challenge; the IdP authenticates alice and redirects back with a one-time code; the app redeems the code with its client secret and the verifier, validates the ID token, and opens its own session
-   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=K3a1LVrG3C...&nonce=4pmSf8OHLm...&code_challenge=r3rPDQY6JE...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
-   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=K3a1LVrG3C...&nonce=4pmSf8OHLm...&code_challenge=r3rPDQY6JE...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> 127.0.0.1:53036/interaction/<uid> [set-cookie: _interaction (HttpOnly), _interaction.sig (HttpOnly), _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly)]
+   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=cojUcQbnDK...&nonce=5rmgg2e4xB...&code_challenge=rkipKjgzec...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
+   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=cojUcQbnDK...&nonce=5rmgg2e4xB...&code_challenge=rkipKjgzec...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> 127.0.0.1:53036/interaction/<uid> [set-cookie: _interaction (HttpOnly), _interaction.sig (HttpOnly), _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly)]
    alice: GET 127.0.0.1:53036/interaction/<uid> -> 200
    alice: POST 127.0.0.1:53036/interaction/<uid>/login -> 303 -> 127.0.0.1:53036/auth/<uid>
-   alice: GET 127.0.0.1:53036/auth/<uid> -> 303 -> localhost:53037/callback?code=DpqFGX0q8z...&state=K3a1LVrG3C...&iss=http://127... [set-cookie: _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly), _session (HttpOnly), _session.sig (HttpOnly)]
-   alice: GET localhost:53037/callback?code=DpqFGX0q8z...&state=K3a1LVrG3C...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
+   alice: GET 127.0.0.1:53036/auth/<uid> -> 303 -> localhost:53037/callback?code=99ikucdi_f...&state=cojUcQbnDK...&iss=http://127... [set-cookie: _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly), _session (HttpOnly), _session.sig (HttpOnly)]
+   alice: GET localhost:53037/callback?code=99ikucdi_f...&state=cojUcQbnDK...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
    alice: GET localhost:53037/me -> 200
    alice /me -> 200 {"member_no":"M0001","employer":"acme","name":"Alice Martin","address":"1 rue des Lilas, Lyon"}
    app cookie sid is opaque (43 chars), HttpOnly, SameSite=Lax; Postgres stores only its sha256. Login transactions left: 0
@@ -36,7 +36,7 @@ oidc-provider WARNING: a quick start development-only in-memory adapter is used,
 ## 4. The ID token and what validating it means
    concept: a JWT signed by the IdP (RS256, key from jwks_uri); the app accepts it only if the signature verifies and iss, aud, exp and nonce match. Here the same checks are replayed on modified copies
    header: {"alg":"RS256","kid":"idp-key-1"}
-   claims: {"iss":"http://127.0.0.1:53036","aud":"member-portal","sub":"alice","nonce":"4pmSf8OHLm...","groups":["portal-members"],"member_no":"M0001","lifetime_s":300}
+   claims: {"iss":"http://127.0.0.1:53036","aud":"member-portal","sub":"alice","nonce":"5rmgg2e4xB...","groups":["portal-members"],"member_no":"M0001","lifetime_s":300}
    the token as issued                                        -> valid
    groups changed to it-staff, original signature             -> rejected: signature verification failed
    presented to another app (audience other-app)              -> rejected: unexpected "aud" claim value
@@ -44,9 +44,9 @@ oidc-provider WARNING: a quick start development-only in-memory adapter is used,
 
 ## 5. Single sign-on
    concept: the app session is gone (cookie expired, or another app on the same IdP), but alice still has a session at the IdP: the IdP answers the authorization request with a code at once, no password asked
-   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=ksuBGu3pa9...&nonce=7fMXuGjBdq...&code_challenge=KhzAltKXHb...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
-   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=ksuBGu3pa9...&nonce=7fMXuGjBdq...&code_challenge=KhzAltKXHb...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> localhost:53037/callback?code=Q6z_VMFUWS...&state=ksuBGu3pa9...&iss=http://127... [set-cookie: _session (HttpOnly), _session.sig (HttpOnly)]
-   alice: GET localhost:53037/callback?code=Q6z_VMFUWS...&state=ksuBGu3pa9...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
+   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=6sZ8IF3PU5...&nonce=5xJiFFzz_h...&code_challenge=4rsrAQYJD5...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
+   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=6sZ8IF3PU5...&nonce=5xJiFFzz_h...&code_challenge=4rsrAQYJD5...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> localhost:53037/callback?code=HeyCV6rWBT...&state=6sZ8IF3PU5...&iss=http://127... [set-cookie: _session (HttpOnly), _session.sig (HttpOnly)]
+   alice: GET localhost:53037/callback?code=HeyCV6rWBT...&state=6sZ8IF3PU5...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
    alice: GET localhost:53037/me -> 200
    password asked: false
 
@@ -70,26 +70,30 @@ oidc-provider WARNING: a quick start development-only in-memory adapter is used,
    dave  GET /admin/users               -> 403 {"error":"forbidden","need":["staff"],"have":[],"groups":["marketing"]}
 
 ## 7. Rejected logins
-   concept: each check stops a specific attack: state binds the callback to the browser that started the login (login CSRF), the login transaction and the code are single-use (replay), PKCE makes an intercepted code useless without the verifier, the nonce binds the ID token to this login (token injection)
+   concept: each check stops a specific attack: state binds the callback to the browser that started the login (login CSRF), the login transaction and the code are single-use (replay), PKCE makes an intercepted code useless without the verifier, the nonce binds the ID token to this login (token injection), returnTo must resolve to this app (open redirect)
    a) the callback carries a state the app did not issue (an attacker's callback link)
-   alice-2: GET localhost:53037/callback?code=veBg6PIvKx...&state=forged-state&iss=http://127... -> 400 [set-cookie: login_tx]
+   alice-2: GET localhost:53037/callback?code=_NibomFqv5...&state=forged-state&iss=http://127... -> 400 [set-cookie: login_tx]
      state -> {"error":"login rejected","detail":"invalid response encountered: unexpected \"state\" response parameter value"}
    b) the genuine callback, then the same URL again (a replay from history or a log)
-   alice-2: GET localhost:53037/callback?code=nAaMOlqcG6...&state=wC1SB8IhU9...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
+   alice-2: GET localhost:53037/callback?code=Q6-8t_bt9e...&state=fx2HkKQmDJ...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
    alice-2: GET localhost:53037/me -> 200
-   alice-2: GET localhost:53037/callback?code=nAaMOlqcG6...&state=wC1SB8IhU9...&iss=http://127... -> 400 [set-cookie: login_tx]
+   alice-2: GET localhost:53037/callback?code=Q6-8t_bt9e...&state=fx2HkKQmDJ...&iss=http://127... -> 400 [set-cookie: login_tx]
      replay -> {"error":"no login in progress in this browser (expired, already used, or started elsewhere)"}
      the same code redeemed again at the token endpoint, with the client secret and the right verifier -> 400 {"error":"invalid_grant","error_description":"grant request is invalid"}
    c) an intercepted code, redeemed by someone who has the client secret but not the verifier
      without code_verifier -> 400 {"error":"invalid_grant","error_description":"grant request is invalid"}
      with a guessed code_verifier -> 400 {"error":"invalid_grant","error_description":"grant request is invalid"}
-   alice-2: GET localhost:53037/callback?code=AfJA9_b2RY...&state=n4lUIbK40A...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
+   alice-2: GET localhost:53037/callback?code=XlZAJ3LwGo...&state=GNOI3rbnQ-...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
    alice-2: GET localhost:53037/me -> 200
    d) the authorization request is altered to carry another nonce (an ID token minted for another login)
-   alice-2: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=-6HbI63Ntj...&nonce=MhoBqY3v_s...&code_challenge=f4RyzG43RS...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
-   alice-2: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=-6HbI63Ntj...&nonce=attacker-nonce&code_challenge=f4RyzG43RS...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> localhost:53037/callback?code=Zc7CoNBvTS...&state=-6HbI63Ntj...&iss=http://127... [set-cookie: _session (HttpOnly), _session.sig (HttpOnly)]
-   alice-2: GET localhost:53037/callback?code=Zc7CoNBvTS...&state=-6HbI63Ntj...&iss=http://127... -> 400 [set-cookie: login_tx]
+   alice-2: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=w2fHLGHa_K...&nonce=PV-0FhnTvc...&code_challenge=1E-6-4AjAn...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
+   alice-2: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=w2fHLGHa_K...&nonce=attacker-nonce&code_challenge=1E-6-4AjAn...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> localhost:53037/callback?code=dai9nTAsOG...&state=w2fHLGHa_K...&iss=http://127... [set-cookie: _session (HttpOnly), _session.sig (HttpOnly)]
+   alice-2: GET localhost:53037/callback?code=dai9nTAsOG...&state=w2fHLGHa_K...&iss=http://127... -> 400 [set-cookie: login_tx]
      nonce -> {"error":"login rejected","detail":"unexpected JWT claim value encountered: unexpected ID Token \"nonce\" claim value"}
+   e) a login link whose returnTo points to another site (the login used as an open redirect); alice's browser, already signed in at the IdP
+     returnTo=/\evil.example    -> signed in, lands on http://localhost:53037/
+     returnTo=//evil.example    -> signed in, lands on http://localhost:53037/
+     returnTo=/.//evil.example  -> signed in, lands on http://localhost:53037/
 
 ## 8. Logout
    concept: the app deletes its session row and sends the browser to the IdP's end_session_endpoint with id_token_hint; the IdP ends its own session (after a confirmation form) and returns to post_logout_redirect_uri
@@ -121,12 +125,12 @@ oidc-provider WARNING: a quick start development-only in-memory adapter is used,
 == proof: sessions. Only the sha256 of each cookie. alice has three: step 3's (her browser dropped the cookie in step 5; the row expires on its own), the alice-2 browser's, and the one after signing in again; the one she logged out of is gone ==
      id_hash      |  sub  | lifetime | id_token_bytes 
 ------------------+-------+----------+----------------
- cfedfa8f8f72e9d3 | alice | 08:00:00 |            728
- 255a4dcd321767a4 | bob   | 08:00:00 |            684
- 769a9388e974a586 | carol | 08:00:00 |            695
- 4eed5cb9e76d2035 | dave  | 08:00:00 |            691
- 288d50eeb7f38538 | alice | 08:00:00 |            728
- 91983d21367472ba | alice | 08:00:00 |            728
+ 9ca1b1a1ecfc2288 | alice | 08:00:00 |            728
+ 51802077f812cee1 | bob   | 08:00:00 |            684
+ 0344136de66707be | carol | 08:00:00 |            695
+ ae8ec7f2d613af5e | dave  | 08:00:00 |            691
+ 55e2a4705eb8d095 | alice | 08:00:00 |            728
+ 35f55bfdbcdf82e2 | alice | 08:00:00 |            728
 (6 rows)
 
 == proof: login_transactions. Every one was consumed by its callback (none left behind) ==

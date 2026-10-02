@@ -45,7 +45,7 @@ Feature: Request a change of bank details
       And the request is "awaiting second approval"
 
   @REQ-03
-  Rule: Nobody can approve a request they made themselves
+  Rule: Nobody can approve a request they made, or one that changes their own account
 
     Scenario: Staff entering a request on a member's behalf cannot approve it
       Given "carol" requests on behalf of "alice" to be paid into "FR7600000000000000033333333" from 2026-04-01
@@ -57,6 +57,12 @@ Feature: Request a change of bank details
       Given "alice" requests to be paid into "FR7600000000000000033333333" from 2026-04-01
       When "alice" approves the request
       Then the approval is refused with "cannot approve your own request"
+
+    Scenario: A member cannot approve a request staff entered for them
+      Given "carol" requests on behalf of "alice" to be paid into "FR7600000000000000033333333" from 2026-04-01
+      When "alice" approves the request
+      Then the approval is refused with "cannot approve your own request"
+      And the request is "pending"
 
   @REQ-04
   Rule: The effective date cannot be in the past

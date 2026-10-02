@@ -1,21 +1,21 @@
-# 20-portal run 2026-10-02T15:55:12Z
+# 20-portal run 2026-10-02T17:09:32Z
 == fresh Postgres for the portal (docker compose down -v && up) and no earlier build ==
  Container 20-portal-postgres-1 Healthy 
 setup: employers, members (alice, bob, carol), addresses, contributions, change_requests (at most one pending address change per member)
 == build: next build. Pages that read the session cookie are dynamic (ƒ), rendered per request on the server ==
 ▲ Next.js 16.3.8 (Turbopack)
-✓ Running next.config.ts took 62ms
+✓ Running next.config.ts took 53ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 6.2s
+✓ Compiled successfully in 18.1s
   Running TypeScript ...
-  Finished TypeScript in 2.7s ...
+  Finished TypeScript in 3.0s ...
   Collecting page data using 3 workers ...
   Generating static pages using 3 workers (0/7) ...
   Generating static pages using 3 workers (1/7) 
   Generating static pages using 3 workers (3/7) 
   Generating static pages using 3 workers (5/7) 
-✓ Generating static pages using 3 workers (7/7) in 197ms
+✓ Generating static pages using 3 workers (7/7) in 230ms
   Finalizing page optimization ...
 
 Route (app)
@@ -35,9 +35,9 @@ Route (app)
 ▲ Next.js 16.3.8
 - Local:         http://localhost:53030
 - Network:       http://192.0.2.2:53030
-✓ Ready in 151ms
-✓ Running next.config.ts took 34ms
-client pid 11287 -> next start (pid 11331) on :53030; the client has no JavaScript engine for pages, only HTTP and a cookie jar
+✓ Ready in 217ms
+✓ Running next.config.ts took 52ms
+client pid 28648 -> next start (pid 28784) on :53030; the client has no JavaScript engine for pages, only HTTP and a cookie jar
 
 ## 1. A signed-out request to a server component
    concept: the page is an async server component; requireMember() reads the cookie on the server and redirects before anything renders
@@ -65,7 +65,7 @@ client pid 11287 -> next start (pid 11331) on :53030; the client has no JavaScri
 ## 5. A valid address change: POST, then redirect
    concept: the action inserts the request and calls redirect(), which answers 303 to the new request's page (Post/Redirect/Get: a reload does not resubmit). A member_id field forged into the form is ignored: the action never reads one
    POST /address (valid, plus member_id=2)      -> 303 Location: /requests/1
-   GET /requests/1 -> 200: Address change request 1 | Status: Pending | New address: 1 High Street, Springfield, AB1 2CD, from 2026-10-09. Requested 2026-10-02 15:55. |
+   GET /requests/1 -> 200: Address change request 1 | Status: Pending | New address: 1 High Street, Springfield, AB1 2CD, from 2026-10-09. Requested 2026-10-02 17:10. |
 
 ## 6. A second pending change is refused by the database
    concept: a partial unique index (member_id, kind) WHERE status = 'pending' is the rule; the action turns the 23505 unique violation into a form-level error instead of a 500
@@ -73,17 +73,19 @@ client pid 11287 -> next start (pid 11331) on :53030; the client has no JavaScri
      role=alert: You already have a pending address change
 
 ## 7. Scoped data access: another member, a forged cookie, a cross-site post
-   concept: bob asking for alice's request gets 404 (the query filters on bob's id, so the row does not exist for him); a cookie whose signature does not match is no session at all; a server action posted from another origin is refused (Origin must match Host)
+   concept: bob asking for alice's request gets 404 (the query filters on bob's id, so the row does not exist for him), and so does an id beyond the INT range; a cookie whose signature does not match is no session at all; a server action posted from another origin is refused (Origin must match Host): carol has no pending request, yet no row is written
    POST /login username=bob (no JS)             -> 303 Location: /profile Set-Cookie: sid=2.uFvI...; Path=/; HttpOnly; SameSite=lax
    GET /requests/1 as bob                       -> 404
    GET /profile as bob -> 200: Your profile | Name Bob Smith | Email bob@example.com | Employer Globex | Address 3 Station Street, Shelbyville, EF3 4GH | Request a change of address |
+   GET /requests/99999999999 as bob             -> 404
    GET /profile with sid=2.<alice's signature>  -> 307 Location: /login
+   POST /login username=carol (no JS)           -> 303 Location: /profile Set-Cookie: sid=3.iQj5...; Path=/; HttpOnly; SameSite=lax
 `x-forwarded-host` header with value `localhost:53030` does not match `origin` header with value `attacker.example` from a forwarded Server Actions request. Aborting the action.
 ⨯ Error: Invalid Server Actions request.
     at ignore-listed frames
 ⨯ Error: Invalid Server Actions request.
     at ignore-listed frames
-   POST /address with Origin: http://attacker.example -> 500
+   POST /address as carol, Origin: http://attacker.example -> 500
    Next aborted the action before it ran (its log line above); change_requests rows: 1
 
 == proof: members with their employer and current address (each page above showed one member's row only) ==

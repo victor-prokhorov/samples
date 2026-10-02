@@ -130,7 +130,7 @@ try {
   console.log(`     role=alert: ${alert}`);
   check(again.reply.status === 200 && alert === "You already have a pending address change" && (await count()) === 1, "refused, still one request");
 
-  step("7. Scoped data access: another member, a forged cookie, a cross-site post", "bob asking for alice's request gets 404 (the query filters on bob's id, so the row does not exist for him); a cookie whose signature does not match is no session at all; a server action posted from another origin is refused (Origin must match Host)");
+  step("7. Scoped data access: another member, a forged cookie, a cross-site post", "bob asking for alice's request gets 404 (the query filters on bob's id, so the row does not exist for him), and so does an id beyond the INT range; a cookie whose signature does not match is no session at all; a server action posted from another origin is refused (Origin must match Host): carol has no pending request, yet no row is written");
   const bob = new Browser();
   await signIn(bob, "bob");
   const peek = await bob.get(good.reply.location);
@@ -138,13 +138,19 @@ try {
   const bobProfile = await bob.get("/profile");
   console.log(`   GET /profile as bob -> ${bobProfile.status}: ${text(bobProfile.html)}`);
   check(peek.status === 404 && bobProfile.html.includes("Bob Smith") && !bobProfile.html.includes("Alice"), "bob sees only his own data");
+  const huge = await bob.get("/requests/99999999999");
+  show("GET /requests/99999999999 as bob", huge);
+  check(huge.status === 404, "an id beyond the INT range is a 404, not a database error");
   const forger = new Browser();
   forger.cookies.set("sid", `2.${alice.cookies.get("sid")!.split(".")[1]}`);
   const forged = await forger.get("/profile");
   show("GET /profile with sid=2.<alice's signature>", forged);
   check(forged.status === 307 && forged.location === "/login", "a forged cookie is not a session");
-  const csrf = await alice.submit("/address", await alice.get("/address"), { line1: "6 Evil Way", city: "Elsewhere", postcode: "ZZ1 1ZZ", effectiveFrom: inDays(7) }, "http://attacker.example");
-  show("POST /address with Origin: http://attacker.example", csrf.reply);
+  // As carol, who has no pending request: had the action run, it would have written a second row.
+  const carol = new Browser();
+  await signIn(carol, "carol");
+  const csrf = await carol.submit("/address", await carol.get("/address"), { line1: "6 Evil Way", city: "Elsewhere", postcode: "ZZ1 1ZZ", effectiveFrom: inDays(7) }, "http://attacker.example");
+  show("POST /address as carol, Origin: http://attacker.example", csrf.reply);
   console.log(`   Next aborted the action before it ran (its log line above); change_requests rows: ${await count()}`);
   check(csrf.reply.status >= 400 && (await count()) === 1, "a cross-origin action is rejected and writes nothing");
 } finally {

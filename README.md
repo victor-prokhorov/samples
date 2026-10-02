@@ -77,6 +77,7 @@ Ports (chosen to avoid clashing with other local services):
 | 27 | 55457 | | | |
 | 28 | 55458 | | | 52528 SMTP sink |
 | 29 | 55459 | | | 53039 portal |
+| 30 | | | | 53040 app (npm start, hand run) |
 | 31 | 55461 | | | 53041 member service |
 | 32 | 55462 | | | |
 
@@ -1761,7 +1762,7 @@ A Next.js 16 App Router app on Postgres: profile, contributions, a change-of-add
 - **Dynamic rendering**: a page that reads `cookies()` cannot be built ahead of time, so `next build` marks it `ƒ` and renders it per request. `/` only redirects, so it is prerendered (`○`).
 - **Server action**: a function marked `"use server"` that a `<form action={fn}>` calls. Next gives it an id and renders the form as an ordinary `POST` form with hidden `$ACTION_*` fields, so the browser can submit it with no JavaScript at all. When JS is present, React submits it with `fetch` instead and updates the page in place.
 - **Progressive enhancement**: the page works as plain HTML first and JavaScript improves it. The change-of-address form is a client component using `useActionState`; without JS the browser posts it, Next runs the action, and renders the page again with the state the action returned (field errors, the values typed). The demo's client proves it: it never runs a script.
-- **Server-side validation**: the action validates with a zod schema (`src/lib/address.ts`) whatever the client did. `z.flattenError` turns the issues into `{ field: [messages] }`, rendered next to each field with `aria-invalid` and `aria-describedby` (21 explains why). The schema also normalises: `ab1 2cd` is stored as `AB1 2CD`.
+- **Server-side validation**: the action validates with a zod schema (`src/lib/address.ts`) whatever the client did. `z.flattenError` turns the issues into `{ field: [messages] }`, rendered next to each field with `aria-invalid` and `aria-describedby` (21 explains why). The schema also normalises: `ab1 2cd` is stored as `AB1 2CD`. "Not in the past" compares with today's date in UTC (`src/lib/address.ts`); a portal used across time zones would compare in one configured service time zone instead.
 - **Post/Redirect/Get**: a successful action calls `redirect()`, which answers `303 See Other` to the new request's page. The browser follows with a GET, so a reload or Back does not post the form again. An invalid submission answers `200` with the form, because there is nothing to redirect to.
 - **Session cookie stub**: the cookie holds `memberId.signature`, an HMAC-SHA256 of the id with a server secret, `HttpOnly` (scripts cannot read it) and `SameSite=Lax` (not sent on cross-site POSTs). A changed id without the matching signature is no session. A real portal gets the member from its identity provider (26); everything after `requireMember()` stays the same.
 - **Data access scoped to the member**: every function in `src/lib/members.ts` takes the member id from the session and filters on it, including the lookup by request id (`WHERE id = $1 AND member_id = $2`). So bob asking for alice's request gets 404, not 403: the row does not exist for him, and the answer does not reveal that the id exists. The action never reads a member id from the form, so a forged `member_id` field changes nothing. This closes the insecure direct object reference (IDOR) hole.
@@ -1806,20 +1807,21 @@ A valid one redirects to the new request (Post/Redirect/Get); the forged `member
 
 ```
    POST /address (valid, plus member_id=2)      -> 303 Location: /requests/1
-   GET /requests/1 -> 200: Address change request 1 | Status: Pending | New address: 1 High Street, Springfield, AB1 2CD, from 2026-10-09. Requested 2026-10-02 15:55. |
+   GET /requests/1 -> 200: Address change request 1 | Status: Pending | New address: 1 High Street, Springfield, AB1 2CD, from 2026-10-09. Requested 2026-10-02 17:10. |
 ```
 
-Scoping: bob cannot see alice's request, a cookie with a borrowed signature is no session, and Next refuses an action posted from another origin:
+Scoping: bob cannot see alice's request (nor an id too large for the column), a cookie with a borrowed signature is no session, and Next refuses an action posted from another origin, here for carol, who has no pending request, so a write would have shown:
 
 ```
    GET /requests/1 as bob                       -> 404
+   GET /requests/99999999999 as bob             -> 404
    GET /profile with sid=2.<alice's signature>  -> 307 Location: /login
 `x-forwarded-host` header with value `localhost:53030` does not match `origin` header with value `attacker.example` from a forwarded Server Actions request. Aborting the action.
-   POST /address with Origin: http://attacker.example -> 500
+   POST /address as carol, Origin: http://attacker.example -> 500
    Next aborted the action before it ran (its log line above); change_requests rows: 1
 ```
 
-One row survives five submissions, owned by alice, postcode normalised:
+One row survives four address submissions (invalid, valid, duplicate, cross-origin), owned by alice, postcode normalised:
 
 ```
  id | member_id |  kind   |                                 payload                                  | effective_from | status
@@ -1845,7 +1847,7 @@ One row survives five submissions, owned by alice, postcode normalised:
 
 **Pain: a form that some members cannot use at all.** A placeholder that disappears once you type, a "button" the keyboard never reaches, an error shown only as a red border, focus left at the top of the page after a failed submit. Nobody on the team notices, because they all use a mouse and see colour, and the members who cannot complete the form call the help desk or give up.
 
-**Reach for it when** you build forms for the public or for members, which in many countries must meet WCAG 2.1 or 2.2 level AA by law (RGAA in France, EN 301 549 in the EU, Section 508 in the US). Put an automated scan and a keyboard journey in the test suite so regressions fail the build.
+**Reach for it when** you build forms for the public or for members, which in many countries must meet WCAG 2.1 or 2.2 level AA by law (RGAA in France, EN 301 549 in the EU, Section 508 in the US, which references WCAG 2.0 AA). Put an automated scan and a keyboard journey in the test suite so regressions fail the build.
 
 **Do not reach for it when** you expect it to replace an audit. Automated rules find a minority of failures; testing with screen readers and real users, and a conformance audit against WCAG-EM or the RGAA checklist, are still needed before you claim conformance.
 
@@ -1855,12 +1857,12 @@ The same "change of address" form in two versions, rendered with `react-dom/serv
 
 - **WCAG 2.2 and RGAA**: WCAG (W3C) states testable success criteria grouped under four principles (perceivable, operable, understandable, robust), at levels A, AA and AAA; AA is what laws and contracts ask for. RGAA 4.1, the French public-sector standard, turns WCAG 2.1 AA into 106 criteria with test procedures; the demo prints the closest RGAA criterion next to each finding. WCAG 2.2 adds criteria RGAA 4.1 does not have yet, such as 2.5.8 target size.
 - **Automated scan (axe-core)**: axe runs inside the real page and reports each failed rule with its WCAG tags (`wcag143` is success criterion 1.4.3). It found the missing `lang` (3.1.1), the low-contrast grey text (1.4.3) and the unlabelled radios (4.1.2). Scan every state a user can reach: the form after a failed submit is a different page. While this sample was being written, the scan of the accessible form's error state failed 2.5.8 (the error summary links were 17 px tall); padding fixed it.
-- **What axe cannot see**: Chromium uses a placeholder as the accessible name when there is no label, so axe's `label` rule passes the placeholder-only inputs, although the placeholder disappears as soon as you type. An error shown only as a red border is invisible to axe and to a screen reader: the accessibility tree shows no description and `invalid=false` (1.4.1 use of colour, 3.3.1 error identification). A `div` with a click handler is no failure to axe here; the keyboard journey shows it can never be reached.
+- **What axe cannot see**: axe's `label` rule accepts a non-empty `placeholder` as a label (its `non-empty-placeholder` check; Chromium also uses the placeholder as the accessible name), so the placeholder-only inputs pass, although the placeholder disappears as soon as you type. An error shown only as a red border is invisible to axe and to a screen reader: the accessibility tree shows no description and `invalid=false` (1.4.1 use of colour, 3.3.1 error identification). A `div` with a click handler is no failure to axe here; the keyboard journey shows it can never be reached.
 - **Accessible name and description**: what a screen reader announces for a field. The name comes from the `<label for>`; the description joins, in order, the elements listed in `aria-describedby` (the hint "For example, AB1 2CD", then the error); `aria-invalid="true"` adds "invalid entry". The visually hidden `Error:` prefix makes the message an error for listeners too, not just red text.
 - **Keyboard operability**: Tab must reach every control in reading order (2.1.1, 2.4.3). A radio group is one tab stop; arrows move inside it, Space selects. A real `<button>` is focusable and submits on Enter; a form with several text inputs and no submit button cannot be submitted by Enter at all (HTML implicit submission).
 - **Error summary with focus**: after a failed submit the page starts with a box titled "There is a problem", listing each error as a link to its field, and the page moves focus to it (`tabindex="-1"` plus one line of script; `role="alert"` also announces it). Following a link focuses the field. The page `<title>` starts with `Error:` so the first thing announced on reload says what happened. This is the GOV.UK Design System pattern.
 - **Grouping and autocomplete**: `fieldset` and `legend` name a group of fields (the address, the radios' question) so each radio is announced with its question (1.3.1). `autocomplete="address-line1"`, `postal-code`, ... let browsers and assistive tools fill and identify fields (1.3.5).
-- **Trade-offs**: the scripted checks prove only what they assert: no tool judges whether an error message is helpful, whether reading order makes sense, or how the form behaves at 400% zoom or with a screen reader's virtual cursor. The accessibility tree read here is Chromium's; other browsers and screen readers differ. Keep the scan in CI (22 shows how to run it in a Playwright suite) and schedule manual audits.
+- **Trade-offs**: the scripted checks prove only what they assert: no tool judges whether an error message is helpful, whether reading order makes sense, or how the form behaves at 400% zoom or with a screen reader's virtual cursor. The accessibility tree read here is Chromium's; other browsers and screen readers differ. Keep the scan in CI (30 runs axe as a pipeline gate; this sample's demo shows the in-browser scan, which also covers contrast and focus) and schedule manual audits.
 
 ### Proof (`logs/21-accessibility.log`)
 
@@ -1943,10 +1945,10 @@ A small member portal (`node:http`, server-rendered HTML, Postgres) with two tes
 
 ### Concepts
 
-- **Unit tests for the rule, browser tests for the journey**: `checkRequest()` (no date in the past, at most 90 days ahead, one pending change per kind, email format) is a pure function, tested with Vitest at its boundaries (the 90th day passes, the 91st fails). The browser suite checks only that the journey reaches each outcome once: a request goes through and shows Pending, a duplicate is refused with a message.
+- **Unit tests for the rule, browser tests for the journey**: `checkRequest()` (a real calendar date, none in the past, at most 90 days ahead, one pending change per kind, email format) is a pure function, tested with Vitest at its boundaries (the 90th day passes, the 91st fails; 2026-02-30 is refused, not rolled over to March). Two concurrent submissions can both pass the check, so a partial unique index (`member_id, kind WHERE status = 'pending'`) backs the one-pending-per-kind rule and its violation gets the same message. The browser suite checks only that the journey reaches each outcome once: a request goes through and shows Pending, a duplicate is refused with a message.
 - **Role and label locators**: `getByRole("button", { name: "Sign in" })`, `getByLabel("Username")`, `getByRole("table", { name: "Change requests" })` find elements the way a user and a screen reader do (21). They survive restyling and restructuring, and fail when the page really changed for users, for example when a label is lost. CSS paths like `#login-form > div:nth-child(1) > input` encode the DOM structure; the demo's `MARKUP=v2` refactor keeps every label and button text, and only the CSS test breaks.
 - **Auto-waiting and web-first assertions**: Playwright actions wait for their element to be attached, visible, stable and enabled; `expect(locator).toHaveText()` retries until the text matches or the timeout passes. `page.waitForTimeout(500)` followed by reading `textContent()` checks once at an arbitrary moment. Whether it passes depends on how fast the server answers. The demo makes that deterministic: the total is loaded by a `fetch` delayed by `API_DELAY_MS`, and the sleep passes at 100 ms and fails at 1500 ms, while the web-first assertion passes at both.
-- **Test isolation, a database per worker**: a worker-scoped fixture clones `portal_template` (`CREATE DATABASE ... TEMPLATE`, fast because it copies files) and starts the app in the worker on a free port, so parallel workers never share rows. Workers are separate processes that live across many tests; the fixture drops the database when the worker ends.
+- **Test isolation, a database per worker**: a worker-scoped fixture clones `portal_template` (`CREATE DATABASE ... TEMPLATE`, which copies the template's pages instead of replaying the schema and seed) and starts the app in the worker on a free port, so parallel workers never share rows. Workers are separate processes that live across many tests; the fixture drops the database when the worker ends.
 - **Reset without a transaction**: wrapping each test in a transaction that rolls back does not work for browser tests: the app serves the browser's requests on its own connections, which cannot see an uncommitted transaction. An automatic test-scoped fixture truncates the tables tests write instead. Without it (`NO_RESET=1`) the address test counts the email test's leftover row and fails, but only in that order: an order-dependent failure is the signature of a leaking fixture.
 - **Login once, `storageState`**: a `setup` project signs in through the real form once and saves the cookies to `.auth/alice.json`; the `chromium` project depends on it and starts every test with that state. The session is a signed cookie any worker's server can verify. Tests about signing in override it with an empty state.
 - **Traces on failure**: `trace: "retain-on-failure"` records every action, a DOM snapshot before and after it, network, console and source, and keeps the file only when the test fails. `npx playwright show-trace` replays it; the log lists its actions and shows the total's request had no response yet when the assertion ran.
@@ -1955,16 +1957,16 @@ A small member portal (`node:http`, server-rendered HTML, Postgres) with two tes
 
 ### Proof (`logs/22-playwright.log`)
 
-Six journeys on two workers, each with its own database and app server, all signed in from the saved state:
+Six tests (setup plus five journeys) on two workers, each worker with its own database and app server; the setup signs in once and the journeys start from the saved state:
 
 ```
-   [worker 0] database portal_w0, app on http://localhost:42817
-  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (488ms)
-   [worker 2] database portal_w2, app on http://localhost:44839
-   [worker 1] database portal_w1, app on http://localhost:41829
-  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (568ms)
-  ✓  2 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (829ms)
-  ✓  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (289ms)
+   [worker 0] database portal_w0, app on http://localhost:41979
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (1.5s)
+   [worker 1] database portal_w1, app on http://localhost:44313
+   [worker 2] database portal_w2, app on http://localhost:43769
+  ✓  2 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (1.1s)
+  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (2.0s)
+  ✓  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (1.1s)
 ...
    storageState .auth/alice.json: cookie sid=1.DyFqWL... httpOnly=true sameSite=Lax; journeys ran on workers 1, 2
 ```
@@ -1972,10 +1974,10 @@ Six journeys on two workers, each with its own database and app server, all sign
 Without the reset, on one worker, the second writer sees the first one's row; the worker that replaces it starts clean:
 
 ```
-  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (360ms)
+  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (482ms)
   ✘  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (5.3s)
-   [worker 2] database portal_w2, app on http://localhost:37429
-  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (742ms)
+   [worker 2] database portal_w2, app on http://localhost:34135
+  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (691ms)
 ...
     Error: expect(locator).toHaveCount(expected) failed
 
@@ -1987,8 +1989,8 @@ Without the reset, on one worker, the second writer sees the first one's row; th
 The fixed sleep fails once the API takes 1500 ms; the web-first assertion waits and passes:
 
 ```
-  ✘  2 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (934ms)
-  ✓  3 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (2.2s)
+  ✘  2 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (1.1s)
+  ✓  3 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (2.4s)
 ...
     Expected: "Total: 1,350.00"
     Received: "Loading total..."
@@ -1997,8 +1999,8 @@ The fixed sleep fails once the API takes 1500 ms; the web-first assertion waits 
 After the markup refactor, the CSS test cannot find its input; the role and label test still passes:
 
 ```
-  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (560ms)
-  ✘  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (5.4s)
+  ✓  2 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (825ms)
+  ✘  3 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (5.5s)
     TimeoutError: locator.fill: Timeout 5000ms exceeded.
     Call log:
       - waiting for locator('#login-form > div:nth-child(1) > input')
@@ -2016,7 +2018,7 @@ test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trac
   step: Get text content getByRole('status')
   step: Expect "toBe"
 ...
-  GET /contributions -> 200 in 31 ms
+  GET /contributions -> 200 in 68 ms
   GET /api/contributions/total -> no response yet when the test ended
 ```
 
@@ -2061,7 +2063,7 @@ The per-worker databases are gone after the runs; only the template and the hand
 - **Gherkin `Rule`**: Gherkin 6 added `Rule:` between `Feature` and `Scenario`, one per business rule. A tag on the rule (`@REQ-02`) is inherited by every scenario and every outline example under it, so a requirement id is written once.
 - **Scenario outline**: one scenario, one row per example. Each row runs as its own test case (a pickle), so a failure names the row, here `[1000.01, awaiting second approval]`.
 - **Step definitions**: Cucumber expressions (`{string}`, `{float}`, `{word}`) map each sentence to code that drives the domain. The World holds per-scenario state: a fixed "today" (the clock is a step, not `new Date()`), the last request, the last refusal. `Before` truncates the tables, so scenarios do not share data and can run in any order.
-- **Same specs, two implementations**: the feature file does not change between the runs; only `IMPL` does. The naive code fails 5 of 12 scenarios for three reasons a reviewer could easily miss: one approval always applies the change, nothing stops self-approval, and the effective date is compared as a timestamp (`new Date("2026-03-10") < now` at 09:30), so today counts as the past.
+- **Same specs, two implementations**: the feature file does not change between the runs; only `IMPL` does. The naive code fails 6 of 13 scenarios for three reasons a reviewer could easily miss: one approval always applies the change, nothing stops self-approval (neither by whoever entered the request nor by the member whose account it changes, when staff entered it for them), and the effective date is compared as a timestamp (`new Date("2026-03-10") < now` at 09:30), so today counts as the past.
 - **Traceability matrix**: `--format message` writes Cucumber messages (ndjson): the parsed feature, pickles with their tags and AST node ids, test cases, and every step result. `src/trace.ts` joins them into requirement, scenario, worst step status. A requirement is done when it has at least one scenario and all pass; one without scenarios shows as `NOT COVERED`. The results go to `spec_results` so the matrix is queryable.
 - **Trade-offs**: every step is a regular-expression-like contract between prose and code, and a large suite turns into a maintenance job of its own (step reuse, ambiguous steps, slow end-to-end steps). Keep scenarios at the business-rule level against the domain, as here, and test the UI elsewhere (22). The value comes from the conversation that produces the examples (example mapping, three amigos); feature files written by developers alone are just verbose tests.
 
@@ -2070,12 +2072,12 @@ The per-worker databases are gone after the runs; only the template and the hand
 The naive implementation, written from the one-line ticket, fails the agreed examples. Cucumber names the scenario, the example row and the step (abridged):
 
 ```
-5) Scenario: Yesterday is refused, today and later are accepted # features/change-bank-details.feature:71
+6) Scenario: Yesterday is refused, today and later are accepted # features/change-bank-details.feature:77
    ✔ When "alice" requests to be paid into "FR7600000000000000033333333" from 2026-03-10 # src/steps.ts:52
    ✖ Then the request is "pending" # src/steps.ts:68
        Error: no request was recorded: refused with "effective date is in the past"
 
-12 scenarios (5 failed, 7 passed)
+13 scenarios (6 failed, 7 passed)
    cucumber-js exit code (IMPL=naive): 1
 ```
 
@@ -2086,7 +2088,8 @@ The traceability report rolls those failures up to requirements (abridged):
           | One approval is enough up to the threshold, not above it [1000.00, approved]                                  | passed
           | One approval is enough up to the threshold, not above it [1000.01, awaiting second approval]                  | failed
           | The same staff member cannot give both approvals                                                              | failed
-   REQ-03 | Nobody can approve a request they made themselves  => FAILING (2/2)
+   REQ-03 | Nobody can approve a request they made, or one that changes their own account  => FAILING (3/3)
+          | A member cannot approve a request staff entered for them                                                      | failed
    REQ-04 | The effective date cannot be in the past  => FAILING (1/3)
           | Yesterday is refused, today and later are accepted [2026-03-10, "pending"]                                    | failed
    REQ-05 | Once approved, the new account is used from the effective date, and the old one before it  => passing (1)
@@ -2095,10 +2098,10 @@ The traceability report rolls those failures up to requirements (abridged):
 The same feature file against the domain implementation passes, and every requirement is covered:
 
 ```
-12 scenarios (12 passed)
-77 steps (77 passed)
+13 scenarios (13 passed)
+84 steps (84 passed)
    cucumber-js exit code (IMPL=domain): 0
-   5 requirements, 12 scenarios, all passing
+   5 requirements, 13 scenarios, all passing
 ```
 
 The matrix in Postgres, both runs side by side:
@@ -2108,7 +2111,7 @@ The matrix in Postgres, both runs side by side:
 -------------+-----------+--------------+---------------
  REQ-01      |         1 |            1 |             1
  REQ-02      |         5 |            3 |             5
- REQ-03      |         2 |            0 |             2
+ REQ-03      |         3 |            0 |             3
  REQ-04      |         3 |            2 |             3
  REQ-05      |         1 |            1 |             1
 ```
@@ -2234,7 +2237,7 @@ A `node:http` server renders the same member page in English and French: message
 - **CLDR plural rules**: categories differ by language. English puts 0 in `other` (`0 pending requests`), French in `one` (`0 demande en attente`). Hand-written `count === 1 ? "" : "s"` is wrong in French and in most other languages (Polish has four categories, Arabic six).
 - **Gender-free wording**: French adjectives and many nouns agree with the person's gender, which the portal does not know and should not ask. The French catalogue names functions instead of people (`Administration employeur` rather than administrateur/administratrice), uses epicene nouns (`Membre`), and rephrases verbs (`Dernière connexion le ...` rather than "vous vous êtes connecté(e)"). A `select` on gender would also work but needs data the portal does not keep.
 - **`Intl` formatting**: `Intl.NumberFormat` and `Intl.DateTimeFormat` know the separators, currency position and month names: `€1,234.56` in `en-GB`, `1 234,56 €` in `fr-FR`, where the group separator is U+202F (narrow no-break space) and the space before `€` is U+00A0, so the amount never wraps. French typography also puts a no-break space before `:` (the catalogue carries it) and `%` (`Intl` adds it). The language decides the catalogue; the formatting locale (`en` formats as `en-GB`) decides the formats.
-- **Locale negotiation**: `Accept-Language` lists ranges with q-values (RFC 9110). Sort by q, drop `q=0` ("not this one"), match the exact tag then the primary language (`fr-CA` gets `fr`, RFC 4647 lookup), and fall back to a default. An explicit choice (`?lang=`, a link, a saved preference) wins over the header, because people often browse with a browser set to a language they do not prefer. The response says `Content-Language` and `Vary: Accept-Language`, so caches keep one copy per language.
+- **Locale negotiation**: `Accept-Language` lists ranges with q-values (RFC 9110). Sort by q, drop `q=0` ("not this one"), match the exact tag then the primary language (`fr-CA` gets `fr`, RFC 4647 lookup), and fall back to a default. A language refused with `q=0` is never chosen, also not through `*` ("anything else"): `en;q=0, *` gets French, not the English default. An explicit choice (`?lang=`, a link, a saved preference) wins over the header, because people often browse with a browser set to a language they do not prefer. The response says `Content-Language` and `Vary: Accept-Language`, so caches keep one copy per language.
 - **Catalogue check**: the reference catalogue (English) defines the keys and the arguments. Every other catalogue must have exactly the same keys, every message must parse, use the same arguments with the same types (a `{amount}` that lost `number` prints `1234.56`), and the same `select` cases. Run as `npm run check` in CI, so a broken translation fails the build instead of the page.
 - **Pseudo-localisation**: a generated locale (`en-XA`) where every catalogue string is accented, 40% longer and wrapped in `⟦ ⟧`, with ICU arguments, plurals and `#` kept (parse, transform the literal nodes, print the AST back). It is readable, so anyone can click through the app in it before any translation exists; any readable text without brackets skipped the catalogue, and anything that overflows will overflow in French or German. The scanner skips text marked `translate="no"` (employer names, data) and text in another declared language.
 - **`lang` attribute**: `<html lang>` selects the screen reader voice, hyphenation and quotes (WCAG 3.1.1). A passage in another language carries its own `lang` (3.1.2): the language switcher shows `Français` with `lang="fr"` on the English page.
@@ -2242,13 +2245,14 @@ A `node:http` server renders the same member page in English and French: message
 
 ### Proof (`logs/25-bilingual.log`)
 
-Locale negotiation: the best supported range wins, `q=0` excludes, unknown languages fall back to English, an explicit choice overrides the header (abridged):
+Locale negotiation: the best supported range wins, `q=0` excludes (also from `*`), unknown languages fall back to English, an explicit choice overrides the header (abridged):
 
 ```
    GET /          Accept-Language: fr-CA,fr;q=0.9,en;q=0.8            -> Content-Language: fr, <html lang="fr">, Vary: Accept-Language
    GET /          Accept-Language: de-DE,de;q=0.9,fr;q=0.5,en;q=0.3   -> Content-Language: fr, <html lang="fr">, Vary: Accept-Language
    GET /          Accept-Language: fr;q=0,en;q=0.5                    -> Content-Language: en, <html lang="en">, Vary: Accept-Language
    GET /          Accept-Language: de-CH                              -> Content-Language: en, <html lang="en">, Vary: Accept-Language
+   GET /          Accept-Language: en;q=0, *                          -> Content-Language: fr, <html lang="fr">, Vary: Accept-Language
    GET /?lang=fr  Accept-Language: en-GB,en;q=0.9                     -> Content-Language: fr, <html lang="fr">, Vary: Accept-Language
 ```
 
@@ -2257,7 +2261,7 @@ The same data in both locales, and the naive page in French (⍽ is U+202F, · i
 ```
    en              total: Total: €4,111.06       rate: Contribution rate: 7%          row: 31 Jan 2026 | €1,234.56    Last signed in on 28 September 2026
    fr              total: Total·: 4⍽111,06·€     rate: Taux de cotisation·: 7·%       row: 31 janv. 2026 | 1⍽234,56·€ Dernière connexion le 28 septembre 2026
-   fr, naive page  total: Total: €4111.06        rate: (none)                         row: Sat Jan 31 2026 | €1234.56
+   fr, naive page  total: Total: €4111.06        rate: (none)                         row: Sat Jan 31 2026 | €1234.56 
 ```
 
 Plural categories from CLDR, and the role `select` with gender-free French:
@@ -2326,9 +2330,9 @@ An OpenID Provider (`oidc-provider`, its own process on :53036, reached as `127.
 - **Authorization code flow with PKCE**: before redirecting, the app makes a random `code_verifier`, keeps it server-side and sends only its SHA-256 (`code_challenge`, `S256`). Redeeming the code requires the verifier, so a code that leaks (from a log, a proxy, a browser history, a malicious app registered on the same redirect) is useless on its own. The IdP here requires PKCE even from this confidential client, as OAuth 2.1 and the OAuth security BCP (RFC 9700) recommend.
 - **State**: a random value the app stores with the login and the IdP echoes back. A callback whose state the app did not issue is rejected, so an attacker cannot make a victim's browser complete the attacker's login (login CSRF).
 - **Nonce**: a random value sent in the authorization request that the IdP copies into the ID token. The app accepts the ID token only if it carries the nonce of this login, so a token minted for another login cannot be injected.
-- **Login transaction**: state, nonce, verifier and `returnTo` are a row in `login_transactions`, found through an HttpOnly `login_tx` cookie scoped to `/callback` and deleted as it is read (`DELETE ... RETURNING`). A callback is therefore usable once, and only in the browser that started it; `returnTo` only accepts a local path, so the login cannot be turned into an open redirect.
+- **Login transaction**: state, nonce, verifier and `returnTo` are a row in `login_transactions`, found through an HttpOnly `login_tx` cookie scoped to `/callback` and deleted as it is read (`DELETE ... RETURNING`). A callback is therefore usable once, and only in the browser that started it. A login abandoned at the IdP never reaches the callback; its row expires after 10 minutes and the next `/login` deletes it. `returnTo` is resolved against the app's origin the way the browser will resolve the redirect (`/\evil.example` and `//evil.example` both name another host) and kept, as path and query, only if it stays on the app; anything else becomes `/`, so the login cannot be turned into an open redirect.
 - **ID token validation**: a JWT signed by the IdP. The app checks the signature against the key from `jwks_uri` (`kid`), `iss` (this IdP), `aud` (this client), `exp` and `iat`, and the nonce. Over TLS from the token endpoint the signature check is optional (the TLS connection authenticates the IdP); the demo runs over plain HTTP, so `enableNonRepudiationChecks` turns it on.
-- **Session cookie**: after the callback the app creates its own session: a random 256-bit id in an `HttpOnly; SameSite=Lax` cookie (add `Secure` over HTTPS), with only its SHA-256 stored in Postgres, so a database leak does not leak live sessions. A new id is issued at every login (no session fixation). The ID token is kept with the session for logout; it is not sent to the browser.
+- **Session cookie**: after the callback the app creates its own session: a random 256-bit id in an `HttpOnly; SameSite=Lax` cookie (add `Secure` over HTTPS), with only its SHA-256 stored in Postgres, so a database leak does not leak live sessions. A new id is issued at every login (no session fixation). The ID token is kept with the session for logout and is never in a cookie, but it does reach the browser once: as `id_token_hint` in the logout redirect to the IdP, so it appears in that URL and in the browser history (it identifies the user to the IdP, it does not grant access to the app).
 - **Single sign-on**: the IdP has its own session cookie. When an app (or a second app) sends the browser to the IdP again, the IdP answers at once with a new code, without asking for the password.
 - **Roles from a claim**: the IdP sends `groups` (and `member_no` for members) in a custom `portal` scope. `role_mappings` in Postgres turns groups into app roles: `member`, `employer-admin` of one employer, `staff`. The mapping is evaluated on every request, so changing it takes effect without a new login. Authenticated without a mapped role is 403, not a redirect to login, and an `employer-admin` is checked against the employer in the URL as well as the role.
 - **Just-in-time provisioning**: a user row is upserted at each login, keyed by `(issuer, sub)`, never by email: `sub` is the IdP's stable id, an email can change or be reused.
@@ -2340,12 +2344,12 @@ An OpenID Provider (`oidc-provider`, its own process on :53036, reached as `127.
 Alice signs in. The authorization request carries state, nonce and the S256 code challenge, never the verifier; the IdP asks for her password, then redirects back with a code; the app sets its own HttpOnly session cookie:
 
 ```
-   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=K3a1LVrG3C...&nonce=4pmSf8OHLm...&code_challenge=r3rPDQY6JE...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
-   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=K3a1LVrG3C...&nonce=4pmSf8OHLm...&code_challenge=r3rPDQY6JE...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> 127.0.0.1:53036/interaction/<uid> [set-cookie: _interaction (HttpOnly), _interaction.sig (HttpOnly), _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly)]
+   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=cojUcQbnDK...&nonce=5rmgg2e4xB...&code_challenge=rkipKjgzec...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
+   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=cojUcQbnDK...&nonce=5rmgg2e4xB...&code_challenge=rkipKjgzec...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> 127.0.0.1:53036/interaction/<uid> [set-cookie: _interaction (HttpOnly), _interaction.sig (HttpOnly), _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly)]
    alice: GET 127.0.0.1:53036/interaction/<uid> -> 200
    alice: POST 127.0.0.1:53036/interaction/<uid>/login -> 303 -> 127.0.0.1:53036/auth/<uid>
-   alice: GET 127.0.0.1:53036/auth/<uid> -> 303 -> localhost:53037/callback?code=DpqFGX0q8z...&state=K3a1LVrG3C...&iss=http://127... [set-cookie: _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly), _session (HttpOnly), _session.sig (HttpOnly)]
-   alice: GET localhost:53037/callback?code=DpqFGX0q8z...&state=K3a1LVrG3C...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
+   alice: GET 127.0.0.1:53036/auth/<uid> -> 303 -> localhost:53037/callback?code=99ikucdi_f...&state=cojUcQbnDK...&iss=http://127... [set-cookie: _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly), _session (HttpOnly), _session.sig (HttpOnly)]
+   alice: GET localhost:53037/callback?code=99ikucdi_f...&state=cojUcQbnDK...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
    alice: GET localhost:53037/me -> 200
    alice /me -> 200 {"member_no":"M0001","employer":"acme","name":"Alice Martin","address":"1 rue des Lilas, Lyon"}
    app cookie sid is opaque (43 chars), HttpOnly, SameSite=Lax; Postgres stores only its sha256. Login transactions left: 0
@@ -2355,7 +2359,7 @@ The ID token, and the same validation run on modified copies: changing the group
 
 ```
    header: {"alg":"RS256","kid":"idp-key-1"}
-   claims: {"iss":"http://127.0.0.1:53036","aud":"member-portal","sub":"alice","nonce":"4pmSf8OHLm...","groups":["portal-members"],"member_no":"M0001","lifetime_s":300}
+   claims: {"iss":"http://127.0.0.1:53036","aud":"member-portal","sub":"alice","nonce":"5rmgg2e4xB...","groups":["portal-members"],"member_no":"M0001","lifetime_s":300}
    the token as issued                                        -> valid
    groups changed to it-staff, original signature             -> rejected: signature verification failed
    presented to another app (audience other-app)              -> rejected: unexpected "aud" claim value
@@ -2365,9 +2369,9 @@ The ID token, and the same validation run on modified copies: changing the group
 Single sign-on: with the app session gone but the IdP session alive, the IdP answers with a code at once:
 
 ```
-   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=ksuBGu3pa9...&nonce=7fMXuGjBdq...&code_challenge=KhzAltKXHb...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
-   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=ksuBGu3pa9...&nonce=7fMXuGjBdq...&code_challenge=KhzAltKXHb...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> localhost:53037/callback?code=Q6z_VMFUWS...&state=ksuBGu3pa9...&iss=http://127... [set-cookie: _session (HttpOnly), _session.sig (HttpOnly)]
-   alice: GET localhost:53037/callback?code=Q6z_VMFUWS...&state=ksuBGu3pa9...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
+   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=6sZ8IF3PU5...&nonce=5xJiFFzz_h...&code_challenge=4rsrAQYJD5...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
+   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=6sZ8IF3PU5...&nonce=5xJiFFzz_h...&code_challenge=4rsrAQYJD5...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> localhost:53037/callback?code=HeyCV6rWBT...&state=6sZ8IF3PU5...&iss=http://127... [set-cookie: _session (HttpOnly), _session.sig (HttpOnly)]
+   alice: GET localhost:53037/callback?code=HeyCV6rWBT...&state=6sZ8IF3PU5...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
    alice: GET localhost:53037/me -> 200
    password asked: false
 ```
@@ -2392,7 +2396,7 @@ Roles from the `groups` claim: each user sees only the routes their mapped role 
    dave  GET /admin/users               -> 403 {"error":"forbidden","need":["staff"],"have":[],"groups":["marketing"]}
 ```
 
-The rejected cases: a forged state, a replayed callback and a replayed code, an intercepted code without the verifier (the real browser can still use it afterwards), and an ID token minted for another nonce:
+The rejected cases: a forged state, a replayed callback and a replayed code, an intercepted code without the verifier (the real browser can still use it afterwards), an ID token minted for another nonce, and a `returnTo` that the browser would resolve to another host (the login succeeds but lands on `/`):
 
 ```
    a) the callback carries a state the app did not issue (an attacker's callback link)
@@ -2405,6 +2409,10 @@ The rejected cases: a forged state, a replayed callback and a replayed code, an 
      with a guessed code_verifier -> 400 {"error":"invalid_grant","error_description":"grant request is invalid"}
    d) the authorization request is altered to carry another nonce (an ID token minted for another login)
      nonce -> {"error":"login rejected","detail":"unexpected JWT claim value encountered: unexpected ID Token \"nonce\" claim value"}
+   e) a login link whose returnTo points to another site (the login used as an open redirect); alice's browser, already signed in at the IdP
+     returnTo=/\evil.example    -> signed in, lands on http://localhost:53037/
+     returnTo=//evil.example    -> signed in, lands on http://localhost:53037/
+     returnTo=/.//evil.example  -> signed in, lands on http://localhost:53037/
 ```
 
 Logout: the app session row is deleted, the IdP ends its session after a confirmation form, and the next login asks for the password again:
@@ -2452,9 +2460,9 @@ A loader for files named `<employer>-<YYYY-MM>-<members|contributions>[-suffix].
 - **Diff**: valid rows compared to the target on the natural key: new (no row yet), changed (with the old and new value of each changed column), unchanged, and missing (in the target for this employer and month, absent from the file). A missing member is reported, not deleted: absence can mean a leaver or a forgotten line; a leaver is an explicit status the employer sends.
 - **Upsert, idempotent**: `INSERT ... ON CONFLICT (natural key) DO UPDATE ... WHERE ROW(columns) IS DISTINCT FROM ROW(EXCLUDED.columns)`. Unchanged rows are not rewritten (no new row version, no dead tuple, no update trigger, and `last_batch_id` keeps pointing at the batch that last changed them), and `RETURNING (xmax = 0)` counts inserts against updates.
 - **One transaction per file**: the batch row, the rejects and the upsert commit together, so a crash or a refused file leaves nothing half-applied. `pg_advisory_xact_lock` on the employer and file kind serialises two imports of the same feed.
-- **Batch record and file hash**: every file gets an `import_batches` row with its sha256 and counts. A partial unique index (`UNIQUE (sha256) WHERE status = 'applied'`) allows one applied batch per content, so the same file again, even renamed, is a no-op (`INSERT ... ON CONFLICT DO NOTHING`). A refused file is recorded with its reason and can be sent again once fixed.
-- **Control totals and reconciliation**: the sender declares the row count and the amount total in a control file. A count that differs means a truncated or padded file and refuses it whole. The amount must equal accepted + rejected; the difference is allowed only when it sits on lines whose amount could not be parsed, and is printed. After the load, the target is reconciled with the batch log: rows and sum per employer and month equal what the last applied batch accepted.
-- **Whole-file refusal**: valid rows are applied and rejects reported, unless the file's shape is wrong: wrong header, row count mismatch, or more than half the rows rejected (here: Globex sent contributions before its members file). Applying 0 of 3 rows would only hide the real problem.
+- **Batch record and file hash**: every file gets an `import_batches` row with its sha256 and counts. A partial unique index (`UNIQUE (sha256) WHERE status = 'applied'`) allows one applied batch per content, so the same file again, even renamed, is a no-op (`INSERT ... ON CONFLICT DO NOTHING`). A refused file is recorded with its reason and its rejects, and can be sent again once fixed.
+- **Control totals and reconciliation**: the sender declares the row count and the amount total in a control file. A count that differs means a truncated or padded file and refuses it whole. A contributions file whose `.ctl` has no `amount=` is refused: its total cannot be verified. The declared amount must equal the sum of every amount that parses, accepted or rejected; an amount that does not parse (`18O.00`) cannot be counted, so a file with one passes only if the sender's total left it out too, and is otherwise refused with a control-total mismatch. After the load, the target is reconciled with the batch log without assuming each file replaces the month: only batches write contributions, by insert or update and never delete, so per employer and month the rows equal the sum of what each applied batch inserted, and the amount total equals the sum of each batch's net change (`amount_net`: new minus old amount over the rows it wrote). Each row's `last_batch_id` must also point at an applied batch of its employer and month.
+- **Whole-file refusal**: valid rows are applied and rejects reported, unless the file's shape is wrong: wrong header, row count mismatch, more than half the rows rejected (here: Globex sent contributions before its members file), or a control total that does not add up. Applying 0 of 3 rows would only hide the real problem. The refused batch keeps its rejects: the transaction that wrote them is rolled back, so they are written again under the refused batch's id, and the employer gets every reason.
 - **Trade-offs**: rules in SQL are fast and set-based but harder to unit-test than code; keep them in one declarative list. Applying valid rows while rejecting others means a month can be partly loaded until the corrected file arrives; when that is not acceptable (a payroll run), refuse any file with a reject. A big file in one transaction holds row locks on the rows it touches until commit; load into a new table and swap it in, or apply per employer and month. Batch ids have gaps: a rolled-back or skipped `INSERT` still uses a sequence value.
 
 ### Proof (`logs/27-import.log`)
@@ -2481,7 +2489,7 @@ The dry run of September's members file: one reject with its reason, the diff wi
    members after the dry run: 6 rows, M0001 email still alice@acme.example; batches applied: 2
 ```
 
-September's contributions: five valid rows applied, line 8 rejected for three reasons at once, and the control total explained by the unparsable line:
+September's contributions: five valid rows applied, line 8 rejected for three reasons at once, and the control total matching the amounts that parse (the employer's total, 1075.50, left out the unreadable `18O.00` too):
 
 ```
    acme-2026-09-contributions.csv [sha256 add34e1f776c] -> APPLIED batch 5
@@ -2492,7 +2500,7 @@ September's contributions: five valid rows applied, line 8 rejected for three re
      reject line 8 [period] period '2026-08' is not the file period 2026-09
      reject line 9 [duplicate] duplicate key, first seen on line 6
      diff: new 5 ["M0001/2026-09","M0002/2026-09","M0005/2026-09","M0006/2026-09","M0007/2026-09"], changed 0, unchanged 0, missing 0 []
-     control total: declared 1255.50 = accepted 995.50 + rejected 80.00 + 180.00 on 1 unparsable row(s)
+     control total: declared 1075.50, amounts that parse 1075.50 (accepted 995.50 + rejected 80.00); 1 amount(s) not a number, counted on neither side
      upsert: inserted 5, updated 0
 ```
 
@@ -2504,11 +2512,11 @@ The same file again, and the same bytes under another name, then the corrected f
    acme-2026-09-contributions-v2.csv [sha256 80ebe2eca757] -> APPLIED batch 8
      rows: declared 6, received 6, rejected 0
      diff: new 1 ["M0003/2026-09"], changed 0, unchanged 5, missing 0 []
-     control total: declared 1175.50 = accepted 1175.50 + rejected 0 + 0.00 on 0 unparsable row(s)
+     control total: declared 1175.50, amounts that parse 1175.50 (accepted 1175.50 + rejected 0)
      upsert: inserted 1, updated 0
 ```
 
-Files refused as a whole: wrong columns, a truncated file, and contributions for members not yet loaded:
+Files refused as a whole: wrong columns, a truncated file, contributions for members not yet loaded, and an October file whose control total counts an amount that does not parse; the refused batches keep their rejects:
 
 ```
    initech-2026-09-contributions.csv [sha256 c932638267eb] -> REFUSED batch 10: COPY refused the file: column name mismatch in header line field 3: got "amount", expected "period"
@@ -2519,26 +2527,34 @@ Files refused as a whole: wrong columns, a truncated file, and contributions for
      reject line 2 [member] member M1001 is unknown for globex: send the members file first
      reject line 3 [member] member M1002 is unknown for globex: send the members file first
      reject line 4 [member] member M1003 is unknown for globex: send the members file first
+   acme-2026-10-contributions.csv [sha256 a2e669c007ff] -> REFUSED batch 16: control total: the .ctl declares 1175.50, the amounts that parse add up to 1035.50 (1 amount(s) not a number: the total cannot be verified)
+     rows: declared 6, received 6, rejected 1
+     reject line 5 [amount_type] amount '14O.00' is not a number
+     diff: new 5 ["M0001/2026-10","M0002/2026-10","M0003/2026-10","M0006/2026-10","M0007/2026-10"], changed 0, unchanged 0, missing 0 []
+     control total: declared 1175.50, amounts that parse 1035.50 (accepted 1035.50 + rejected 0); 1 amount(s) not a number, counted on neither side
+   rejects stored for the refused batches: batch 14: 3, batch 16: 1
 ```
 
-Reconciliation, and the batch log it is checked against:
+Reconciliation, from every applied batch of the month (September is the first file plus the corrected one), and the batch log it is checked against:
 
 ```
-   acme 2026-08: batch 2 accepted 6 rows / 1500.75; contributions has 6 rows / 1500.75 -> reconciled
-   acme 2026-09: batch 8 accepted 6 rows / 1175.50; contributions has 6 rows / 1175.50 -> reconciled
+   acme 2026-08: batch 2 inserted 6 = 6 rows, net 1500.75 = 1500.75; contributions has 6 rows / 1500.75 -> reconciled
+   acme 2026-09: batch 5 + 8 inserted 5 + 1 = 6 rows, net 995.50 + 180.00 = 1175.50; contributions has 6 rows / 1175.50 -> reconciled
+   every contribution: last_batch_id is an applied contributions batch of the same employer and month
    every applied batch: rows received = accepted + rejected
 
- id |             file_name             |    sha256    | status  | declared | received | accepted | rejected | inserted | updated | unchanged | missing | amount_declared | amount_accepted | amount_rejected 
-----+-----------------------------------+--------------+---------+----------+----------+----------+----------+----------+---------+-----------+---------+-----------------+-----------------+-----------------
-  1 | acme-2026-08-members.csv          | 9c01b120571a | applied |        6 |        6 |        6 |        0 |        6 |       0 |         0 |       0 |                 |                 |                
-  2 | acme-2026-08-contributions.csv    | 0e8f87ee05b7 | applied |        6 |        6 |        6 |        0 |        6 |       0 |         0 |       0 |         1500.75 |         1500.75 |            0.00
-  4 | acme-2026-09-members.csv          | c1f47ccd29c0 | applied |        6 |        6 |        5 |        1 |        1 |       1 |         3 |       1 |                 |                 |                
-  5 | acme-2026-09-contributions.csv    | add34e1f776c | applied |        8 |        8 |        5 |        3 |        5 |       0 |         0 |       0 |         1255.50 |          995.50 |           80.00
-  8 | acme-2026-09-contributions-v2.csv | 80ebe2eca757 | applied |        6 |        6 |        6 |        0 |        1 |       0 |         5 |       0 |         1175.50 |         1175.50 |            0.00
- 10 | initech-2026-09-contributions.csv | c932638267eb | refused |        1 |          |          |        0 |          |         |           |         |          150.00 |                 |                
- 12 | initech-2026-09-members.csv       | 9fc5704c1045 | refused |        5 |        3 |          |        0 |          |         |           |         |                 |                 |                
- 14 | globex-2026-09-contributions.csv  | 59add450c029 | refused |        3 |        3 |          |        3 |          |         |           |         |          985.00 |                 |                
-(8 rows)
+ id |             file_name             |    sha256    | status  | declared | received | accepted | rejected | inserted | updated | unchanged | missing | amount_declared | amount_accepted | amount_rejected | amount_net 
+----+-----------------------------------+--------------+---------+----------+----------+----------+----------+----------+---------+-----------+---------+-----------------+-----------------+-----------------+------------
+  1 | acme-2026-08-members.csv          | 9c01b120571a | applied |        6 |        6 |        6 |        0 |        6 |       0 |         0 |       0 |                 |                 |                 |           
+  2 | acme-2026-08-contributions.csv    | 0e8f87ee05b7 | applied |        6 |        6 |        6 |        0 |        6 |       0 |         0 |       0 |         1500.75 |         1500.75 |            0.00 |    1500.75
+  4 | acme-2026-09-members.csv          | c1f47ccd29c0 | applied |        6 |        6 |        5 |        1 |        1 |       1 |         3 |       1 |                 |                 |                 |           
+  5 | acme-2026-09-contributions.csv    | add34e1f776c | applied |        8 |        8 |        5 |        3 |        5 |       0 |         0 |       0 |         1075.50 |          995.50 |           80.00 |     995.50
+  8 | acme-2026-09-contributions-v2.csv | 80ebe2eca757 | applied |        6 |        6 |        6 |        0 |        1 |       0 |         5 |       0 |         1175.50 |         1175.50 |            0.00 |     180.00
+ 10 | initech-2026-09-contributions.csv | c932638267eb | refused |        1 |          |          |        0 |          |         |           |         |          150.00 |                 |                 |           
+ 12 | initech-2026-09-members.csv       | 9fc5704c1045 | refused |        5 |        3 |          |        0 |          |         |           |         |                 |                 |                 |           
+ 14 | globex-2026-09-contributions.csv  | 59add450c029 | refused |        3 |        3 |          |        3 |          |         |           |         |          985.00 |                 |                 |           
+ 16 | acme-2026-10-contributions.csv    | a2e669c007ff | refused |        6 |        6 |          |        1 |          |         |           |         |         1175.50 |                 |                 |           
+(9 rows)
 ```
 
 ### Origins and further reading
@@ -2576,7 +2592,7 @@ A campaign table `statement_jobs` with one row per (year, member) and workers, e
 - **Dry run on a sample**: renders the PDFs of three members chosen by `md5(member_no || year)` (a stable sample, the same each run), writes them to `out/` and prints what would be sent, with no SMTP connection and no job touched. A person checks them before starting the batch.
 - **Deterministic documents**: the PDF has a fixed creation date and uncompressed streams, so the same data gives the same bytes. The sha256 stored on the job identifies exactly what was sent, and matches the sample rendered in the dry run (carol's `706d110ececb`). The demo reads the text back from the PDF to check the total.
 - **Campaign report**: per status and employer, first-try versus retried, in-doubt resends, and each dead letter with its reason: what the business asks the day after.
-- **Trade-offs**: polling the table costs a query per idle worker every few hundred ms; `LISTEN/NOTIFY` or a queue removes that at scale. The lease must be longer than the slowest send, or a live worker loses its job and the work is done twice (fenced, so only the first outcome counts, but the mail is sent twice). The in-doubt resend can still produce a duplicate; only the receiving side or the provider can remove it. Attachments mean personal data in transit and in mailboxes: many portals send a notification with a link to the statement behind the login instead.
+- **Trade-offs**: polling the table costs a query per idle worker every few hundred ms; `LISTEN/NOTIFY` or a queue removes that at scale. The lease must be longer than the slowest send, or a live worker loses its job and the work is done twice (fenced, so the current lease holder's outcome counts and the slow worker logs its lost lease and moves on, but the mail is sent twice). The in-doubt resend can still produce a duplicate; only the receiving side or the provider can remove it. Attachments mean personal data in transit and in mailboxes: many portals send a notification with a link to the statement behind the login instead.
 
 ### Proof (`logs/28-campaign.log`)
 
@@ -2616,9 +2632,9 @@ Worker A crashes after SMTP accepted M0007, before recording it; M0007 is left `
 ```
    [worker A] started: 10 msg/s, lease 2000 ms, max 4 attempts, will crash after sending M0007
    [worker A] M0001 alice@acme.example   attempt 1: sent <statement-2025-M0001@portal.example>
-   [worker A] M0002 bob@acme.example     attempt 1: 451 4.7.1 greylisted, try again later -> retry in 177 ms
+   [worker A] M0002 bob@acme.example     attempt 1: 451 4.7.1 greylisted, try again later -> retry in 137 ms
    [worker A] M0003 carol@acme.example   attempt 1: 550 5.1.1 mailbox unknown -> dead letter (permanent)
-   [worker A] M0004 dan@acme.example     attempt 1: 451 4.3.0 mailbox temporarily unavailable -> retry in 194 ms
+   [worker A] M0004 dan@acme.example     attempt 1: 451 4.3.0 mailbox temporarily unavailable -> retry in 149 ms
    [worker A] M0005 erin@acme.example    attempt 1: sent <statement-2025-M0005@portal.example>
    [worker A] M0006 frank@acme.example   attempt 1: sent <statement-2025-M0006@portal.example>
    [worker A] M0007 grace@globex.example attempt 1: 250 accepted by SMTP, now crashing (SIGKILL) before recording it
@@ -2642,18 +2658,18 @@ Two workers resume in parallel: nothing already sent is sent again, M0007 is tak
    [worker C] M0011 ken@globex.example   attempt 1: sent <statement-2025-M0011@portal.example>
    [worker B] M0012 lena@initech.example attempt 1: sent <statement-2025-M0012@portal.example>
    [worker C] M0013 mike@initech.example attempt 1: sent <statement-2025-M0013@portal.example>
-   [worker C] M0007 attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
    [worker B] M0014 nina@initech.example attempt 1: sent <statement-2025-M0014@portal.example>
-   [worker C] M0007 grace@globex.example attempt 2: sent <statement-2025-M0007@portal.example>
-   [worker B] M0015 oscar@initech.example attempt 1: sent <statement-2025-M0015@portal.example>
-   [worker C] M0016 paula@initech.example attempt 1: sent <statement-2025-M0016@portal.example>
-   [worker B] M0002 bob@acme.example     attempt 2: 451 4.7.1 greylisted, try again later -> retry in 452 ms
-   [worker C] M0004 dan@acme.example     attempt 2: 451 4.3.0 mailbox temporarily unavailable -> retry in 372 ms
-   [worker C] M0004 dan@acme.example     attempt 3: 451 4.3.0 mailbox temporarily unavailable -> retry in 624 ms
+   [worker C] M0015 oscar@initech.example attempt 1: sent <statement-2025-M0015@portal.example>
+   [worker C] M0002 bob@acme.example     attempt 2: 451 4.7.1 greylisted, try again later -> retry in 409 ms
+   [worker B] M0016 paula@initech.example attempt 1: sent <statement-2025-M0016@portal.example>
+   [worker B] M0007 attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
+   [worker C] M0004 dan@acme.example     attempt 2: 451 4.3.0 mailbox temporarily unavailable -> retry in 446 ms
+   [worker B] M0007 grace@globex.example attempt 2: sent <statement-2025-M0007@portal.example>
    [worker B] M0002 bob@acme.example     attempt 3: sent <statement-2025-M0002@portal.example>
-   [worker B] M0004 dan@acme.example     attempt 4: 451 4.3.0 mailbox temporarily unavailable -> dead letter (4 attempts used)
-   [worker B] done: 6 sent, 1 retries scheduled, 1 dead letters
-   [worker C] done: 5 sent, 2 retries scheduled, 0 dead letters
+   [worker B] M0004 dan@acme.example     attempt 3: 451 4.3.0 mailbox temporarily unavailable -> retry in 756 ms
+   [worker C] M0004 dan@acme.example     attempt 4: 451 4.3.0 mailbox temporarily unavailable -> dead letter (4 attempts used)
+   [worker C] done: 4 sent, 2 retries scheduled, 1 dead letters
+   [worker B] done: 7 sent, 1 retries scheduled, 0 dead letters
    workers B -> exit 0, C -> exit 0
    SMTP sink received 15 messages: alice x1, erin x1, frank x1, grace x2, heidi x1, ivan x1, judy x1, ken x1, lena x1, mike x1, nina x1, oscar x1, paula x1, bob x1
    grace: 2 copies, Message-IDs ["<statement-2025-M0007@portal.example>"]
@@ -2685,16 +2701,16 @@ Every attempt, by worker, for the members with a story (from the `statement_atte
  id | member_no | attempt | worker | outcome  |                                                           detail                                                            
 ----+-----------+---------+--------+----------+-----------------------------------------------------------------------------------------------------------------------------
   2 | M0002     |       1 | A      | retry    | 451 4.7.1 greylisted, try again later
- 18 | M0002     |       2 | B      | retry    | 451 4.7.1 greylisted, try again later
- 21 | M0002     |       3 | B      | sent     | 250 OK: message queued
+ 15 | M0002     |       2 | C      | retry    | 451 4.7.1 greylisted, try again later
+ 20 | M0002     |       3 | B      | sent     | 250 OK: message queued
   3 | M0003     |       1 | A      | dead     | 550 5.1.1 mailbox unknown
  23 | M0003     |       1 | D      | sent     | 250 OK: message queued
   4 | M0004     |       1 | A      | retry    | 451 4.3.0 mailbox temporarily unavailable
- 19 | M0004     |       2 | C      | retry    | 451 4.3.0 mailbox temporarily unavailable
- 20 | M0004     |       3 | C      | retry    | 451 4.3.0 mailbox temporarily unavailable
- 22 | M0004     |       4 | B      | dead     | 451 4.3.0 mailbox temporarily unavailable
- 13 | M0007     |       1 | C      | in_doubt | attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
- 15 | M0007     |       2 | C      | sent     | 250 OK: message queued
+ 18 | M0004     |       2 | C      | retry    | 451 4.3.0 mailbox temporarily unavailable
+ 21 | M0004     |       3 | B      | retry    | 451 4.3.0 mailbox temporarily unavailable
+ 22 | M0004     |       4 | C      | dead     | 451 4.3.0 mailbox temporarily unavailable
+ 17 | M0007     |       1 | B      | in_doubt | attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
+ 19 | M0007     |       2 | B      | sent     | 250 OK: message queued
 ```
 
 ### Origins and further reading
@@ -2713,7 +2729,7 @@ Every attempt, by worker, for the members with a story (from the `statement_atte
 
 ## 29. Product and service KPIs (`29-kpis/`)
 
-**Pain: numbers that look good while members fail.** "712 logins this month" says nothing about the 58 eligible members who never came. A mean latency of 50 ms hides the long-serving members who wait 354 ms for their contribution history. A health check answers 200 all through an outage that failed member requests for four hours. Each team counts "active" or "resolved" its own way, nobody owns the number, and nobody knows what it should be.
+**Pain: numbers that look good while members fail.** "712 logins this month" says nothing about the 58 eligible members who never came. A mean latency of 51 ms hides the long-serving members who wait 356 ms for their contribution history. A health check answers 200 all through an outage that failed member requests for four hours. Each team counts "active" or "resolved" its own way, nobody owns the number, and nobody knows what it should be.
 
 **Reach for it when** a service needs to show whether it is used, whether members get their task done, and whether it is reliable enough: a product review, a service level agreed with partner organisations, a monthly report to whoever funds the team.
 
@@ -2729,7 +2745,7 @@ A member portal (node:http, a separate process) writes a usage event per member 
 - **Task success and completion time**: a task is a session that opened the change form; it succeeded if the same session submitted a valid request. Completion time is first submit minus first open, reported as a median with the p90 beside it, because times are skewed.
 - **Funnel**: sessions reaching each step (login, profile, form opened, submitted). The drop between two steps locates the problem; the form error rate (422s over submissions) explains part of the last drop.
 - **Percentiles, not means**: the mean blends many fast requests with a few slow ones. The p95 is what one request in twenty waits. Over all routes together the fast pages still drown the slow one, so the latency KPI takes the p95 of the slowest member route.
-- **Availability, SLO and error budget**: availability is member requests answered without a 5xx over all member requests, measured where members are, not by a probe on `/health` that never touches the database. The SLO (99.5%) is the target; the error budget is what it allows, `(1 - SLO) x requests` failed requests (10.5 here). The burn rate is the error rate divided by the budget rate: 28x during the incident, which spent the month's budget in four hours. A spent budget is the agreed signal to put reliability work before features.
+- **Availability, SLO and error budget**: availability is member requests answered without a 5xx over all member requests, measured where members are, not by a probe on `/health` that never touches the database. The SLO (99.5%) is the target; the error budget is what it allows, `(1 - SLO) x requests` failed requests (10.5 here). The burn rate is the error rate divided by the budget rate: 28x over the day of the incident (11 of 78 member requests failed) and about 85x during its four hours (11 of 26), which spent the month's budget in one morning. A spent budget is the agreed signal to put reliability work before features.
 - **SLA**: an agreement with the partner organisations, here "change requests resolved within 3 days". It is measured on requests whose deadline fell in the window; a request still open past its deadline counts as missed.
 - **Static dashboard**: one HTML file, no script and no external library, so it can be mailed, archived or attached to a report. Tiles show the value, the target, met or missed as text with an icon (not colour alone), the detail behind the ratio and the owner; inline SVG bars carry `<title>` tooltips; the definitions table sits under the charts.
 - **Trade-offs**: KPIs computed from the transactional database compete with members' queries and only cover what the app emits; a missing event is a silent zero. Simulated time makes the run reproducible; in production `at` is `now()` and the window is a calendar month. A target is a negotiated number: set it from a baseline, revisit it, and never let a KPI become the goal itself (Goodhart's law).
@@ -2746,27 +2762,32 @@ The app emitted 712 logins, but only 52 of 110 eligible members logged in at all
    Initech  4/18 eligible members active (22%)
 ```
 
-The contributions page has a 50 ms mean and a 354 ms p95; all routes together have a p95 of 13 ms, which is why the KPI takes the slowest route:
+The contributions page has a 51 ms mean and a 356 ms p95; all routes together have a p95 of 20 ms, which is why the KPI takes the slowest route:
 
 ```
-   GET /contributions       397 requests  mean   50 ms  p95  354 ms
-   GET /profile             639 requests  mean    5 ms  p95   11 ms
-   POST /changes            179 requests  mean    5 ms  p95   11 ms
-   all member routes together: mean 13 ms, p95 13 ms (the fast pages drown the slow one, so the KPI takes the slowest route)
+   GET /contributions       397 requests  mean   51 ms  p95  356 ms
+   GET /profile             639 requests  mean    6 ms  p95   17 ms
+   POST /changes            179 requests  mean    7 ms  p95   16 ms
+   all member routes together: mean 14 ms, p95 20 ms (the fast pages drown the slow one, so the KPI takes the slowest route)
 ```
 
-The health probe saw no outage; member requests did, and the incident spent the whole error budget:
+The health probe saw no outage; member requests did, and the incident spent the whole error budget, burning it 28x faster than allowed over the day and about 85x during the four hours:
 
 ```
    health probes: 672, 100.0% answered 200
    availability:  99.48% (11 of 2102 requests failed), SLO 99.5%
    error budget:  11 failed of 10.5 allowed, remaining -5%
-   09-17: 11 of 78 member requests failed (burn rate 28.2x the budget rate)
+   09-17: 11 of 78 member requests failed (burn rate 28.2x the budget rate over the day)
+     09:00: 0 of 2 failed (burn rate 0.0x)
+     10:00: 3 of 8 failed (burn rate 75.0x)
+     11:00: 5 of 11 failed (burn rate 90.9x)
+     12:00: 3 of 5 failed (burn rate 120.0x)
+   incident 09:00-13:00 (4 hours): 11 of 26 member requests failed (burn rate 84.6x the budget rate)
 
           hour          | probes | probes_ok | member_requests | failed
 ------------------------+--------+-----------+-----------------+--------
  2026-09-17 10:00:00+00 |      1 |         1 |               8 |      3
- 2026-09-17 11:00:00+00 |      1 |         1 |              12 |      5
+ 2026-09-17 11:00:00+00 |      1 |         1 |              11 |      5
  2026-09-17 12:00:00+00 |      1 |         1 |               5 |      3
 ```
 
@@ -2792,7 +2813,7 @@ The report, every row from a definition's SQL:
    Change request task success                   85.1%  >= 85.0%   met     product owner  149 of 175 tasks
    Change request completion time (median)       169 s  <= 240 s   met     UX lead        p90 398 s
    Form error rate                               13.4%  <= 10.0%   MISSED  UX lead        23 of 172 submissions
-   Latency p95, slowest route                   354 ms  <= 300 ms  MISSED  tech lead      GET /contributions, all routes together 13 ms
+   Latency p95, slowest route                   356 ms  <= 300 ms  MISSED  tech lead      GET /contributions, all routes together 20 ms
    Availability                                 99.48%  >= 99.50%  MISSED  service owner  11 of 2102 requests failed
    Error budget remaining                        -4.7%  >= 0.0%    MISSED  service owner  11 failed of 10.5 allowed
    Requests resolved within 3 days               86.9%  >= 90.0%   MISSED  support lead   113 of 130 due
@@ -2817,7 +2838,7 @@ The report, every row from a definition's SQL:
 
 **Do not reach for it when** the project is a throwaway script. You deploy many times a day behind feature flags: deploy every green main build (continuous deployment) instead of waiting for a schedule. The jobs need services (Postgres, a browser): use a runner with the Docker executor and `services:`, which `gitlab-ci-local` also runs.
 
-A tiny TypeScript app (an annual statement page) with a `.gitlab-ci.yml`: stages lint (eslint), typecheck (tsc), test (vitest with a JUnit report, and axe-core on the rendered page), audit (npm audit), build, and a deploy that only exists in scheduled or tagged pipelines. `gitlab-ci-local` runs the file on this machine with the shell executor, each job in its own copy of the project, no container images. `github-actions/ci.yml` is the same pipeline for GitHub Actions, kept outside `.github/` so it does not run; a script parses both files and checks they run the same commands.
+A tiny TypeScript app (an annual statement page) with a `.gitlab-ci.yml`: stages lint (eslint), typecheck (tsc), test (vitest with a JUnit report, and axe-core on the rendered page), audit (npm audit), build, and a deploy that only exists in scheduled or tagged pipelines. `gitlab-ci-local` runs the file on this machine with the shell executor, each job in its own copy of the project, no container images. `github-actions/ci.yml` is the same pipeline for GitHub Actions, kept outside `.github/` so it does not run; a script parses both files and checks that each job runs the same commands in the same order on the same kind of runner, and that both deploy on exactly the same triggers.
 
 ### Concepts
 
@@ -2828,8 +2849,8 @@ A tiny TypeScript app (an annual statement page) with a `.gitlab-ci.yml`: stages
 - **A gate that only blocks releases**: the audit is `allow_failure: true` on pushes, so an advisory published overnight does not block unrelated work, and `allow_failure: false` on schedules and tags, so a known high-severity vulnerability never ships.
 - **Cache versus artifacts**: the cache (`.npm/`, keyed on the hash of `package-lock.json`) is a speed-up that may be missing: every job still runs `npm ci`, which only reads it. Artifacts are outputs a later job or a person needs and must be there: `reports/junit.xml` (GitLab shows test results in the merge request), `reports/a11y.json`, and `dist/`, which `deploy` downloads from `build` (`needs: [build]`) instead of rebuilding, so what was tested is what ships.
 - **Job isolation**: with `--shell-isolation` each job runs in its own copy of the project, as on a real runner, so one job cannot pass by reusing another job's `node_modules` or leftover files.
-- **Deploy job**: `environment: production` records each deployment in GitLab's environment history; `resource_group: production` lets only one deploy run at a time; `interruptible: false` keeps a newer pipeline from cancelling it halfway. The release goes into its own directory and a symlink is renamed over `current`, an atomic switch: a reader sees the old release or the new one, never half of each. The previous release stays on disk, so rolling back is pointing `current` back (31 does it with a runbook).
-- **GitHub Actions equivalent**: stages become `needs:` between jobs, `rules` become `if:` and `on:` triggers (`schedule: cron`, tags), `resource_group` becomes `concurrency`, `allow_failure` becomes `continue-on-error`, artifacts go through `upload-artifact`/`download-artifact`, and `setup-node` caches npm.
+- **Deploy job**: `environment: production` records each deployment in GitLab's environment history; `resource_group: production` lets only one deploy run at a time; `interruptible: false` keeps a newer pipeline from cancelling it halfway. The job runs on a runner on the production host (`tags: [production]`), since it writes there. The release goes into its own directory and is smoke-tested there (its page renders) before anything points at it; only then is a symlink renamed over `current`, an atomic switch: a reader sees the old release or the new one, never half of each. A failed smoke test stops the job with `current` still on the previous release. The previous release stays on disk, so rolling back is pointing `current` back (31 does it with a runbook).
+- **GitHub Actions equivalent**: stages become `needs:` between jobs, `rules` become `if:` and `on:` triggers (`schedule: cron`, tags), `resource_group` becomes `concurrency`, `allow_failure` becomes `continue-on-error`, artifacts go through `upload-artifact`/`download-artifact`, and `setup-node` caches npm. Runner tags become `runs-on` labels: the checks run on `ubuntu-latest`, a fresh VM thrown away after each job, so the deploy runs on `[self-hosted, production]`, a runner installed on the production host. GitLab's tag rule `/^v\d+\.\d+\.\d+$/` becomes a push filter `v[0-9]+.[0-9]+.[0-9]+` (filter patterns are globs, not regexes) and a first deploy step that checks the exact regex, so `v1.4.0-rc1` never deploys. `scripts/compare.ts` reads both files and compares, per job, the commands in order (including `release.json`, the smoke test and its target), the runner, and whether each trigger (schedule, a push to main, tags `v1.4.0`, `v1.4.0-rc1`, `v1.4`, `rc-1`) deploys; run on a drifted copy, it names each difference.
 - **Trade-offs**: every job reinstalls dependencies (correct and isolated, but it is most of the run time; a job image with dependencies baked in is faster). The accessibility check runs axe in jsdom, which has no layout, so contrast and focus are not covered: run axe in a browser (21) for those. A scheduled release batches a week of changes, so a failure has more suspects than with continuous deployment. `gitlab-ci-local` imitates GitLab closely but not exactly (protected variables, runner tags and environments' approvals only exist on the server).
 
 ### Proof (`logs/30-pipeline.log`)
@@ -2849,53 +2870,68 @@ The jobs a pipeline gets depend on what started it:
    tag rc-1    jobs: lint, typecheck, unit, a11y, audit, build; audit allow_failure false
 ```
 
-A file that type-checks but breaks three lint rules stops the pipeline at its first stage; no later job starts:
+A function that type-checks but breaks three lint rules, appended to `src/statement.ts` (gitlab-ci-local, like a runner, only sees tracked files), stops the pipeline at its first stage; no later job starts:
 
 ```
    lint      $ npm run lint
-   lint      > .gitlab-ci-local/builds/lint/src/oops.ts
-   lint      >   1:30  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
-   lint      >   2:9   error  'unused' is assigned a value but never used  @typescript-eslint/no-unused-vars
-   lint      >   3:14  error  Expected '===' and instead saw '=='          eqeqeq
+   lint      > .gitlab-ci-local/builds/lint/src/statement.ts
+   lint      >   11:30  error  Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+   lint      >   12:9   error  'unused' is assigned a value but never used  @typescript-eslint/no-unused-vars
+   lint      >   13:14  error  Expected '===' and instead saw '=='          eqeqeq
    lint      > ✖ 3 problems (3 errors, 0 warnings)
     FAIL  lint
-   pipeline finished in 7.51 s
+   lint      finished in 6.6 s  FAIL 1
+   pipeline finished in 7.14 s
 ```
 
-Without the file, the same pipeline passes; from the second job on, each restores the npm cache the previous jobs saved:
+Without the function, the same pipeline passes; from the second job on, each restores the npm cache the previous jobs saved:
 
 ```
-   typecheck imported cache '0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 186 ms
+   typecheck imported cache '0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 471 ms
     PASS  lint
     PASS  typecheck
     PASS  unit
     PASS  a11y
     PASS  audit
     PASS  build
-   pipeline finished in 32 s
+   pipeline finished in 33 s
 ```
 
-A scheduled pipeline, then a release tag, each deploy into their own directory; `current` points at the last one and the previous one is kept:
+A scheduled pipeline, then a release tag, each deploy into their own directory, smoke-tested there before `current` is switched to it; `current` points at the last one and the previous one is kept:
 
 ```
-   .deploy/current -> releases/scheduled-297ddab1-1002
-   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"297ddab1b3b52766b565af7d1bf1ec344a175371","source":"push"}; previous releases/scheduled-297ddab1-1002 still on disk: true
+   deploy    $ mkdir -p "$DEPLOY_DIR/releases/$RELEASE"
+   deploy    $ cp -r dist/. "$DEPLOY_DIR/releases/$RELEASE/"
+   deploy    $ echo '{"type":"module"}' > "$DEPLOY_DIR/releases/$RELEASE/package.json"
+   deploy    $ printf '{"release":"%s","commit":"%s","source":"%s"}\n' "$RELEASE" "$CI_COMMIT_SHA" "$CI_PIPELINE_SOURCE" > "$DEPLOY_DIR/releases/$RELEASE/release.json"
+   deploy    $ node -e "import('$DEPLOY_DIR/releases/$RELEASE/page.js').then((m) => { if (!m.statementPage('smoke', 2026, []).includes('<html lang=\"en\">')) process.exit(1); console.log('smoke ok') })"
+   deploy    > smoke ok
+   deploy    $ ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
+   deploy    $ echo "deployed $RELEASE to $DEPLOY_DIR/current"
+   deploy    > deployed scheduled-c0c37da4-1002 to .deploy/current
+   .deploy/current -> releases/scheduled-c0c37da4-1002
+   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"c0c37da4c4b5b22752072cda0e1c87f115fa5c10","source":"push"}; previous releases/scheduled-c0c37da4-1002 still on disk: true
 
-.deploy/releases/scheduled-297ddab1-1002: {"release":"scheduled-297ddab1-1002","commit":"297ddab1b3b52766b565af7d1bf1ec344a175371","source":"schedule"}
-.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"297ddab1b3b52766b565af7d1bf1ec344a175371","source":"push"}
+.deploy/releases/scheduled-c0c37da4-1002: {"release":"scheduled-c0c37da4-1002","commit":"c0c37da4c4b5b22752072cda0e1c87f115fa5c10","source":"schedule"}
+.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"c0c37da4c4b5b22752072cda0e1c87f115fa5c10","source":"push"}
 ```
 
-Both pipeline files run the same commands per job:
+Both pipeline files run the same commands in the same order, on the same kind of runner, and deploy on the same triggers; a drifted copy of the GitHub file is caught:
 
 ```
-   job        gitlab stage  github needs  commands
-   lint       lint                        npm run lint
-   typecheck  typecheck     lint          npm run typecheck
-   unit       test          typecheck     npx vitest run
-   a11y       test          typecheck     npm run a11y
-   audit      audit         unit, a11y    npm run audit
-   build      build         audit         npm run build
-   deploy     deploy        build         cp -r dist, ln -sfn
+   job        gitlab stage  github needs  runner      commands
+   lint       lint                        any         npm run lint
+   typecheck  typecheck     lint          any         npm run typecheck
+   unit       test          typecheck     any         npx vitest run
+   a11y       test          typecheck     any         npm run a11y
+   audit      audit         unit, a11y    any         npm run audit
+   build      build         audit         any         npm run build
+   deploy     deploy        build         production  mkdir, cp dist, package.json, release.json, smoke releases/$RELEASE, ln -sfn, mv -T
+   deploys on: schedule yes; push main no; tag v1.4.0 yes; tag v1.4.0-rc1 no; tag v1.4 no; tag rc-1 no
+   the comparison on a drifted copy (smoke test after the switch, release.json dropped, deploy on ubuntu-latest, a loose tag filter and tag check):
+   job        gitlab stage  github needs  runner      commands
+   deploy     deploy        build         production vs any DIFFERENT: mkdir, cp dist, package.json, release.json, smoke releases/$RELEASE, ln -sfn, mv -T vs mkdir, cp dist, package.json, ln -sfn, mv -T, smoke current
+   deploys on: schedule yes; push main no; tag v1.4.0 yes; tag v1.4.0-rc1 DIFFERENT (gitlab no, github yes); tag v1.4 no; tag rc-1 no
 ```
 
 ### Origins and further reading
@@ -2925,23 +2961,24 @@ Four runbooks in Markdown (scheduled release, rollback, monthly data update, a m
 - **Runbook**: a written procedure for a recurring operational task, with an owner and parameters. The four sections answer the operator's questions in order: may I start (Preconditions), what do I do (Steps), did it work (Verification), how do I undo it (Rollback).
 - **Executable documentation**: steps are fenced `sh` blocks in the Markdown, so the document a person reads and the commands the runner executes are the same text and cannot drift apart. Parameters (`--set VERSION=v3`) become environment variables; each block runs under `bash -euo pipefail`, so any failing command fails the step.
 - **Manual steps and do-nothing scripting**: a `manual` block is a step only a person can do (call the member back to verify their identity). The runner shows it and waits for a confirmation, from a terminal or `--yes`; with no operator it stops there and nothing after it runs. Manual steps stay visible in the same flow and are automated one at a time, which is how a procedure moves from a document to a script without a big rewrite.
-- **Preconditions guard, rollback undoes**: a failed precondition means nothing changed (exit 2, no rollback needed): the second load of the same file stops at "not loaded before" because its sha256 is already in `import_batches`. A failed step or verification stops the runbook, prints its Rollback section, and with `--rollback auto` runs it.
+- **Preconditions guard, rollback undoes**: a failed precondition means nothing changed (exit 2, no rollback needed): the second load of the same file stops at "not loaded before" because its sha256 is already in `import_batches`, and a corrected file for a period already loaded stops at "no batch for this period yet": replacing a verified load is a deliberate rollback of that batch first, never a side effect. A failed step or verification stops the runbook, prints its Rollback section, and with `--rollback auto` runs it. Verification and rollback are scoped to the batch (found by the file's sha256), so a rollback never deletes rows another load put there.
 - **One rollback procedure**: the release's Rollback section calls `runbooks/rollback.md` through the runner, so the automatic rollback and the one an engineer runs by hand the next morning are the same tested procedure, recorded as a child run (`parent` in `ops.runs`).
 - **Release steps in a safe order**: record the running release (so rollback knows where to return), back up, migrate (additive, expand/contract as in 02, so the old version keeps working on the new schema), restart, smoke-test the few requests that prove members are served, and only then record the new release. Each migration has a `.down.sql` that removes exactly what its `.up.sql` added.
 - **Run log**: `ops.runs` and `ops.steps` keep who ran what, with which parameters, how each step ended and the tail of its output: an audit trail of operations, and the place to look first after an incident.
 - **ADR (Architecture Decision Record)**: a short numbered file per decision that is expensive to reverse, in Michael Nygard's format: title, date, status, context, decision, consequences. Records are not edited once accepted; a new one supersedes the old, whose status links to it.
 - **Onboarding checklist**: what a new team member reads and does in the first two weeks, linked to the ADRs and runbooks, ending with running each runbook under supervision and improving one.
-- **docs-lint**: documentation is checked like code. Every runbook needs an owner, a parameters line, the four sections in order, and steps that each hold an `sh` or `manual` block; every ADR needs a number matching its file name, a date, a status from a fixed list (a "Superseded by" must link to an existing record) and the three other sections; relative links must resolve. Run it in the pipeline (30).
-- **Trade-offs**: shell in Markdown is harder to test than a script, so long logic belongs in `ops/`. Parameters are interpolated into SQL text, which is fine for trusted operators and wrong for anything else: use `psql -v` variables or move the step into a script. Down migrations drop columns, so data written to them since the release is lost on rollback; past that point, restore the backup instead (the rollback runbook says so). The run log lives in the database it operates on; in production keep it elsewhere, or a failed restore also loses its record.
+- **docs-lint**: documentation is checked like code. Every runbook needs an owner, a parameters line, the four sections in order, and steps that each hold an `sh` or `manual` block, with no block between a section heading and its first step (the runner would never run it); every ADR needs a number matching its file name, a date, a status from a fixed list (a "Superseded by" must link to an existing record) and the three other sections; relative links must resolve. Run it in the pipeline (30).
+- **Trade-offs**: shell in Markdown is harder to test than a script, so long logic belongs in `ops/`. Parameters never become SQL text: each SQL block is a quoted heredoc (`<<'SQL'`, so bash expands nothing in it) and gets its values as `psql -v` variables, read as `:'email'` (quoted by psql) or `:'id'::int` (anything but a number fails), so `bob.o'brien@example.org` is stored as typed. `psql -c` does not expand variables, which is why those statements go through stdin. Down migrations drop columns, so data written to them since the release is lost on rollback; past that point, restore the backup instead (the rollback runbook says so). The run log lives in the database it operates on; in production keep it elsewhere, or a failed restore also loses its record.
 
 ### Proof (`logs/31-runbook.log`)
 
-docs-lint rejects a runbook with missing sections and an ADR without a status, and passes the real documents:
+docs-lint rejects a runbook with missing sections and a block outside any step, and an ADR without a status, and passes the real documents:
 
 ```
    fixtures/broken-docs/runbooks/restore-backup.md: no 'Parameters:' line (write 'Parameters: none')
    fixtures/broken-docs/runbooks/restore-backup.md: no '## Preconditions' section
    fixtures/broken-docs/runbooks/restore-backup.md: '## Verification' has no '### step'
+   fixtures/broken-docs/runbooks/restore-backup.md: '## Verification' has a sh block outside any '### step' (it never runs)
    fixtures/broken-docs/runbooks/restore-backup.md: no '## Rollback' section
    fixtures/broken-docs/docs/adr/0004-use-a-message-queue.md: no '# N. Title' heading
    fixtures/broken-docs/docs/adr/0004-use-a-message-queue.md: no 'Date: YYYY-MM-DD' line
@@ -2956,38 +2993,46 @@ Release v3 migrates and restarts, the smoke test gets a 500, and the rollback ru
     3. Migrate the schema
       | migrate up 003_statement_preference
       | schema version 3
-      [ok] 0.8s
+      [ok] 1.1s
     4. Restart the service on the new version
-      | stopped pid 22208
-      | started v3 (pid 25072)
-      [ok] 1.7s
+      | stopped pid 6495
+      | started v3 (pid 10592)
+      [ok] 1.9s
     5. Smoke test
       | GET /health -> {"status":"ok","version":"v3"}
       | GET /members/1 -> {"error":"column \"statement_pref\" does not exist"} 500
       | member page is broken
-      [FAILED (exit 1)] 0.0s
+      [FAILED (exit 1)] 0.1s
   stopped at "5. Smoke test". Rollback (runbooks/scheduled-release.md):
     1. Roll back to the recorded release
       $ npx tsx src/runner.ts runbooks/rollback.md --operator "$RUNBOOK_OPERATOR" --parent "$RUNBOOK_RUN_ID"
   rollback
     1. Roll back to the recorded release
-      | runbook #8: Roll back a release (runbooks/rollback.md), operator alice
+      | runbook #10: Roll back a release (runbooks/rollback.md), operator alice
       |     2. Migrate the schema down to the previous release
       |       | migrate down 003_statement_preference
       |       | schema version 2
       |       | GET /health -> {"status":"ok","version":"v2"}
       |       | GET /members/1 -> {"id":1,"name":"alice","email":"alice@new.example","preferred_name":null} 200
-      | runbook #8: succeeded
-      [ok] 4.3s
-runbook #7: failed, rolled back
+      | runbook #10: succeeded
+      [ok] 4.6s
+runbook #9: failed, rolled back
 ```
 
-The same file a second time: the precondition finds its batch and the run stops before anything changes:
+The same file a second time, then a corrected file for the same period: a precondition stops each run before anything changes, and the verified load stays as it was (abridged):
 
 ```
     1. The file is there and has not been loaded before
       | sha256 92e7a1ad1c61, batches already loaded from this file: 1
-      [FAILED (exit 1)] 0.2s
+      [FAILED (exit 1)] 0.3s
+runbook #4: precondition failed: nothing was changed
+runbook #5: Monthly data update (runbooks/monthly-data-update.md) FILE=data/contributions-2026-09-corrected.csv PERIOD=2026-09, operator alice
+    3. No batch is loaded for this period yet
+      | already loaded for 2026-09: batch 1 from data/contributions-2026-09.csv
+      [FAILED (exit 1)] 0.3s
+runbook #5: precondition failed: nothing was changed
+   => exit 2
+   contributions: 3 rows, total 1102.75, 1 batch
 ```
 
 Without an operator, the member request stops at its first manual step and prints its rollback; nothing ran after it:
@@ -2997,22 +3042,31 @@ Without an operator, the member request stops at its first manual step and print
       | MANUAL: Call the member back on the phone number their employer holds (not the one in the email) and confirm the request.
       [not confirmed] 0.0s
   stopped at "1. Verify the member's identity". Rollback (runbooks/user-request.md):
-runbook #5: failed, rollback printed for the operator
+runbook #6: failed, rollback printed for the operator
 ```
 
-Every run is recorded; the second load of the same file was stopped by a precondition, and run 8 is the rollback run 7 started:
+Parameters reach SQL as psql variables, so a quote in an address is data: the verification reads it back and the audit row has it as typed:
 
 ```
- id |             runbook             |                                   params                                   | operator | parent |                  outcome                  | seconds
-----+---------------------------------+----------------------------------------------------------------------------+----------+--------+-------------------------------------------+---------
-  1 | runbooks/scheduled-release.md   | {"VERSION": "v1", "MIGRATION": "1"}                                        | alice    |        | succeeded                                 |     1.9
-  2 | runbooks/scheduled-release.md   | {"VERSION": "v2", "MIGRATION": "2"}                                        | alice    |        | succeeded                                 |     3.6
-  3 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}            | alice    |        | succeeded                                 |     1.5
-  4 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}            | alice    |        | precondition failed: nothing was changed  |     0.2
-  5 | runbooks/user-request.md        | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"} | alice    |        | failed, rollback printed for the operator |     0.2
-  6 | runbooks/user-request.md        | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"} | alice    |        | succeeded                                 |     0.9
-  7 | runbooks/scheduled-release.md   | {"VERSION": "v3", "MIGRATION": "3"}                                        | alice    |        | failed, rolled back                       |     7.4
-  8 | runbooks/rollback.md            | {}                                                                         | alice    |      7 | succeeded                                 |     3.4
+      | stored bob.o'brien@example.org, changes on SUP-1043: 1
+   member 2: {"email":"bob.o'brien@example.org","old_value":"bob@example.org","new_value":"bob.o'brien@example.org"}
+```
+
+Every run is recorded; the second load of the same file and the corrected file were stopped by a precondition, and run 10 is the rollback run 9 started:
+
+```
+ id |             runbook             |                                      params                                      | operator | parent |                  outcome                  | seconds
+----+---------------------------------+----------------------------------------------------------------------------------+----------+--------+-------------------------------------------+---------
+  1 | runbooks/scheduled-release.md   | {"VERSION": "v1", "MIGRATION": "1"}                                              | alice    |        | succeeded                                 |     2.6
+  2 | runbooks/scheduled-release.md   | {"VERSION": "v2", "MIGRATION": "2"}                                              | alice    |        | succeeded                                 |     5.4
+  3 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}                  | alice    |        | succeeded                                 |     2.2
+  4 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}                  | alice    |        | precondition failed: nothing was changed  |     0.3
+  5 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09-corrected.csv", "PERIOD": "2026-09"}        | alice    |        | precondition failed: nothing was changed  |     1.1
+  6 | runbooks/user-request.md        | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"}       | alice    |        | failed, rollback printed for the operator |     0.3
+  7 | runbooks/user-request.md        | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"}       | alice    |        | succeeded                                 |     1.1
+  8 | runbooks/user-request.md        | {"TICKET": "SUP-1043", "MEMBER_ID": "2", "NEW_EMAIL": "bob.o'brien@example.org"} | alice    |        | succeeded                                 |     1.1
+  9 | runbooks/scheduled-release.md   | {"VERSION": "v3", "MIGRATION": "3"}                                              | alice    |        | failed, rolled back                       |     8.4
+ 10 | runbooks/rollback.md            | {}                                                                               | alice    |      9 | succeeded                                 |     3.6
 ```
 
 ### Origins and further reading
@@ -3034,7 +3088,7 @@ Every run is recorded; the second load of the same file was stopped by a precond
 
 **Do not reach for it when** the requirements live in a tracker with its own links: use its traceability report. The design fits on one page. Code exists: the acceptance criteria become executable specifications (23), which check the system rather than the plan.
 
-A worked design case, time-boxed to three hours: rebuild a legacy member portal used by 26 partner organisations. Eleven Markdown documents: the brief with a time plan and assumptions, a discovery plan and stakeholder map, personas and journeys, a functional specification with acceptance criteria, the architecture (C4 context and containers, sign-in and change request sequences), the ER data model with its DDL and the journeys' queries, the change request state machine, the accessibility and security approach, a strangler migration plan with a gantt, a risk register and KPIs. The demo first checks a flawed draft of the same documents, then the real ones: traceability, every Mermaid diagram rendered to SVG (committed), the DDL applied to Postgres and each journey's query run against it.
+A worked design case, a self-set exercise on a fictional organisation, time-boxed to three hours: rebuild a legacy member portal used by about forty partner organisations. Eleven Markdown documents: the scenario with a time plan and assumptions, a discovery plan and stakeholder map, personas and journeys, a functional specification with acceptance criteria, the architecture (C4 context and containers, sign-in and change request sequences), the ER data model with its DDL and the journeys' queries, the change request state machine, the accessibility and security approach, a strangler migration plan with a gantt, a risk register and KPIs. The demo first checks a flawed draft of the same documents, then the real ones: traceability, every Mermaid diagram rendered to SVG (committed), the DDL applied to Postgres and each journey's query run against it.
 
 ### Concepts
 
@@ -3045,10 +3099,10 @@ A worked design case, time-boxed to three hours: rebuild a legacy member portal 
 - **Traceability**: a check, not a spreadsheet. Every requirement has criteria and is used by a step or applies to all; every step maps to requirements that exist; every journey query belongs to a step. A criterion without Given, when and then ("should get an email") is reported as untestable.
 - **Diagrams as code**: Mermaid in the Markdown, so diagrams are reviewed in the same diff as the text. Context as C4, containers as a flowchart (Mermaid's C4 layout cannot place external systems around a boundary), sequences for OIDC sign-in and the change request with its outbox, an ER diagram, a state machine, a gantt. mermaid-cli renders each one in headless Chromium, so a syntax error fails the build (a `;` ends a sequence message, which a reviewer reading the source does not see).
 - **Consistency between views**: the ER diagram and the DDL must name the same tables, and the state machine must allow exactly the states the `status` CHECK allows. Two views of one thing drift unless something compares them.
-- **The data model answers the journeys**: the DDL and a seed are applied to an empty database and each journey step's query runs in order, with an expected row count, or an expected error where the database must refuse: J4.3 proves that the `four_eyes` constraint stops one person giving both approvals of a bank details change, and J3.4 that row-level security limits an employer administrator to her employer's members.
+- **The data model answers the journeys**: the DDL and a seed are applied to an empty database and each journey step's query runs in order, with an expected row count, or the named constraint that must refuse (any other error is a mismatch): J4.3 proves that the `four_eyes` constraint stops one person giving both approvals of a bank details change. The steps a signed-in user takes run as the application would: in a transaction, as the `portal_app` role, with the user's identity set by `set_config(..., true)` so it ends with the transaction. Row-level security on members, contributions, statements, change requests and uploads lets staff see everything, an employer administrator her employer's rows and a member his own; J3.4 shows the employer scope, and the same query with no identity set sees nothing, because the policies fail closed. A missing grant fails a journey too: without USAGE on the sequences, J2.4 cannot insert a change request.
 - **Strangler migration plan**: phases by capability behind a routing facade (05), one data owner per capability, sync through an outbox (09) or CDC (10), parallel run on reads (04), uploads moved with a pilot of three employers then waves, and decommission when the old portal gets no traffic for 30 days.
 - **Risk register and KPIs**: risks scored likelihood x impact with a mitigation, an owner and a link to the requirement or phase; KPIs with formula, baseline from the old portal, target and owner (computed as in 29).
-- **Trade-offs**: the checks prove the documents agree with each other, not that they are right: only research and real use do that. Markers (`<!-- diagram: name -->`, `<!-- sql: J1.2 expect 1 -->`) and table formats are conventions the authors must follow. A time-boxed plan is a starting point for discovery, not a commitment; the brief says what would be done with more time.
+- **Trade-offs**: the checks prove the documents agree with each other, not that they are right: only research and real use do that. Markers (`<!-- diagram: name -->`, `<!-- sql: J1.2 expect 1 -->`) and table formats are conventions the authors must follow. A time-boxed plan is a starting point for discovery, not a commitment; the scenario says what would be done with more time.
 
 ### Proof (`logs/32-casebook.log`)
 
@@ -3064,7 +3118,7 @@ The draft: each defect a review missed, found by the checks:
    PROBLEM state on_hold is not allowed by the status CHECK
 
    fixtures/draft/04-architecture.md:86       FAILED Parse error on line 13, got 'NEWLINE'
-   J4.3 expected error, got 0 row(s)
+   J4.3 expected error four_eyes, got 0 row(s)
 ```
 
 The real documents: every requirement has criteria and is used by a journey, or applies to all of them:
@@ -3094,31 +3148,33 @@ Nine diagrams rendered:
 ```
    casebook/01-discovery.md:32                -> diagrams/01-stakeholder-map.svg          quadrantChart, 7831 bytes
    casebook/02-personas-journeys.md:38        -> diagrams/02-journey-change-address.svg   journey, 18262 bytes
-   casebook/04-architecture.md:8              -> diagrams/04-c4-context.svg               c4, 38389 bytes
-   casebook/04-architecture.md:33             -> diagrams/04-c4-container.svg             flowchart-v2, 132422 bytes
+   casebook/04-architecture.md:8              -> diagrams/04-c4-context.svg               c4, 38546 bytes
+   casebook/04-architecture.md:33             -> diagrams/04-c4-container.svg             flowchart-v2, 132395 bytes
    casebook/04-architecture.md:62             -> diagrams/04-sequence-login.svg           sequence, 32895 bytes
    casebook/04-architecture.md:86             -> diagrams/04-sequence-change-request.svg  sequence, 34893 bytes
-   casebook/05-data-model.md:6                -> diagrams/05-er-model.svg                 er, 195250 bytes
+   casebook/05-data-model.md:6                -> diagrams/05-er-model.svg                 er, 195267 bytes
    casebook/06-change-request-lifecycle.md:6  -> diagrams/06-state-change-request.svg     stateDiagram, 50176 bytes
    casebook/08-migration-plan.md:16           -> diagrams/08-gantt-migration.svg          gantt, 13100 bytes
 ```
 
-The journeys' queries against the DDL; the second approval by the first approver is refused by the database:
+The journeys' queries against the DDL, the user's steps as `portal_app` under row-level security; the second approval by the first approver is refused by the `four_eyes` constraint, and the same model without the sequence grant fails the first write journey:
 
 ```
    10 tables created
-   J1.2 expect 1     ok  1 row(s), first: name=alice employer=Acme status=active
-   J1.3 expect 12    ok  12 row(s), first: period=2025-01 employer=Acme amount=412.50 year_total=4950.00
-   J1.4 expect 1     ok  1 row(s), first: year=2025 total=4950.00 matches_history=true
-   J2.2 expect 1     ok  1 row(s), first: address=8 avenue Foch, 69006 Lyon
-   J2.4 expect 1     ok  1 row(s), first: reference=CR-1002 status=submitted
-   J2.5 expect 1     ok  1 row(s), first: reference=CR-1002 type=address status=submitted submitted_at=2026-09-30
-   J3.3 expect 2     ok  2 row(s), first: period=2026-09 line=4 reason=unknown member 999
-   J3.4 expect 2     ok  2 row(s), first: id=2 name=bob employer_id=globex
-   J4.1 expect 2     ok  2 row(s), first: reference=CR-1001 type=bank_details status=awaiting_second_approval submitted_at=2026-09-29 sla_due=2026-10-02
-   J4.2 expect 1     ok  1 row(s), first: reference=CR-1002 status=applied address=12 rue Garibaldi, 69003 Lyon
-   J4.3 expect error ok  new row for relation "change_requests" violates check constraint "four_eyes"
-   J4.4 expect 1     ok  1 row(s), first: at=2026-10-02 actor=idp|dan reference=CR-1002 before=8 avenue Foch, 69006 Lyon after=12 rue Garibaldi, 69003 Lyon
+   J1.2 expect 1               ok  1 row(s), first: name=alice employer=Acme status=active
+   J1.3 expect 12              ok  12 row(s), first: period=2025-01 employer=Acme amount=412.50 year_total=4950.00
+   J1.4 expect 1               ok  1 row(s), first: year=2025 total=4950.00 matches_history=true
+   J2.2 expect 1               ok  1 row(s), first: address=8 avenue Foch, 69006 Lyon
+   J2.4 expect 1               ok  1 row(s), first: reference=CR-1002 status=submitted
+   J2.5 expect 1               ok  1 row(s), first: reference=CR-1002 type=address status=submitted submitted_at=2026-09-30
+   J3.3 expect 2               ok  2 row(s), first: period=2026-09 line=4 reason=unknown member 999
+   J3.4 expect 2               ok  2 row(s), first: id=2 name=bob employer_id=globex
+   J3.4 expect 0               ok  0 row(s)
+   J4.1 expect 2               ok  2 row(s), first: reference=CR-1001 type=bank_details status=awaiting_second_approval submitted_at=2026-09-29 sla_due=2026-10-02
+   J4.2 expect 1               ok  1 row(s), first: reference=CR-1002 status=applied address=12 rue Garibaldi, 69003 Lyon
+   J4.3 expect error four_eyes ok  new row for relation "change_requests" violates check constraint "four_eyes"
+   J4.4 expect 1               ok  1 row(s), first: at=2026-10-02 actor=idp|dan reference=CR-1002 before=8 avenue Foch, 69006 Lyon after=12 rue Garibaldi, 69003 Lyon
+   the same model without "GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO portal_app;": J2.4 expected 1, got permission denied for sequence change_requests_id_seq
 ```
 
 ### Origins and further reading

@@ -45,6 +45,7 @@ const cases: [string, string | undefined, string][] = [
   ["/", "fr;q=0,en;q=0.5", "en"],
   ["/", "de-CH", "en"],
   ["/", "*", "en"],
+  ["/", "en;q=0, *", "fr"],
   ["/", undefined, "en"],
   ["/?lang=fr", "en-GB,en;q=0.9", "fr"],
 ];

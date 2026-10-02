@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { setTimeout as sleep } from "node:timers/promises";
 import { PORT, db } from "./db.js";
 import { type Kpi, SLO, kpis, validate } from "./kpis.js";
@@ -34,7 +35,9 @@ async function main() {
   const server = await startServer();
   const started = Date.now();
   const sim = await simulate();
-  server.kill();
+  server.kill("SIGTERM");
+  const [code] = await once(server, "exit");
+  check(code === 0, "the portal stopped cleanly after its last request was logged");
   console.log(`   simulated ${WINDOW.from.toISOString().slice(0, 10)} .. ${WINDOW.to.toISOString().slice(0, 10)}: ${sim.visits} member visits, ${sim.probes} hourly health probes, ${sim.requests} change requests (${sim.resolved} resolved by staff); incident ${INCIDENT}; took ${Date.now() - started}ms`);
   const counts = await db.query("SELECT name, count(*)::int AS n FROM events GROUP BY name ORDER BY n DESC");
   console.log(`   events: ${counts.rows.map((r) => `${r.name}=${r.n}`).join(", ")}`);
@@ -73,7 +76,19 @@ async function main() {
   console.log(`   health probes: ${probes.n}, ${Number(probes.up).toFixed(1)}% answered 200`);
   console.log(`   availability:  ${availability.value.toFixed(2)}% (${availability.detail}), SLO ${SLO}%`);
   console.log(`   error budget:  ${budget.detail}, remaining ${budget.value.toFixed(0)}%`);
-  for (const d of (await daily()).filter((d) => d.failed > 0)) console.log(`   ${d.day}: ${d.failed} of ${d.requests} member requests failed (burn rate ${(d.failed / d.requests / (1 - SLO / 100)).toFixed(1)}x the budget rate)`);
+  const burn = (failed: number, requests: number) => (failed / requests / (1 - SLO / 100)).toFixed(1);
+  for (const d of (await daily()).filter((d) => d.failed > 0)) console.log(`   ${d.day}: ${d.failed} of ${d.requests} member requests failed (burn rate ${burn(d.failed, d.requests)}x the budget rate over the day)`);
+  const [incidentFrom, incidentTo] = INCIDENT.split("/");
+  const hours = await db.query(
+    `SELECT to_char(h, 'HH24:MI') AS hour, count(r.id)::int AS requests, count(r.id) FILTER (WHERE r.status >= 500)::int AS failed
+     FROM generate_series($1::timestamptz, $2::timestamptz - interval '1 hour', interval '1 hour') h
+     LEFT JOIN request_log r ON r.at >= h AND r.at < h + interval '1 hour' AND r.route NOT IN ('/health', '/staff/changes/:id/resolve')
+     GROUP BY h ORDER BY h`,
+    [incidentFrom, incidentTo],
+  );
+  for (const h of hours.rows) console.log(`     ${h.hour}: ${h.failed} of ${h.requests} failed (burn rate ${burn(h.failed, h.requests)}x)`);
+  const incident = hours.rows.reduce((t, h) => ({ failed: t.failed + h.failed, requests: t.requests + h.requests }), { failed: 0, requests: 0 });
+  console.log(`   incident ${incidentFrom.slice(11, 16)}-${incidentTo.slice(11, 16)} (${hours.rows.length} hours): ${incident.failed} of ${incident.requests} member requests failed (burn rate ${burn(incident.failed, incident.requests)}x the budget rate)`);
   check(Number(probes.up) === 100 && availability.value < SLO && budget.value < 0, "probes say 100% while member requests miss the SLO and the budget is spent");
 
   step("5. Change request funnel", "each step counts sessions that reached it; the drop between steps shows where members give up (validation errors, the outage, abandoning the form)");

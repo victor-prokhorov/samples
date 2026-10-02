@@ -18,13 +18,20 @@ export async function schema(files: string[], database = "postgres") {
   const tables = (await client.query("SELECT count(*)::int AS n FROM pg_tables WHERE schemaname = 'public'")).rows[0].n as number;
   const results: QueryResult[] = [];
   for (const q of all.filter((b) => /^sql: J/.test(b.marker))) {
-    const [, step, , expect] = q.marker.split(" ");
+    // "sql: J4.3 expect error four_eyes": an expected error names the constraint that must refuse, so any other error is a mismatch
+    const [, step, , count, constraint] = q.marker.split(" ");
+    const expect = count === "error" ? `error ${constraint ?? "(no constraint named)"}` : count;
     try {
       const res = await client.query(q.code);
-      const last = Array.isArray(res) ? res[res.length - 1] : res;
-      results.push({ step, expect, ok: expect !== "error" && last.rows.length === Number(expect), rows: last.rows });
+      // the rows of the last statement, transaction control aside (a block may end with COMMIT)
+      const last = ([res].flat() as pg.QueryResult[]).reverse().find((r) => !["BEGIN", "COMMIT", "SET"].includes(r.command)) ?? { rows: [] };
+      results.push({ step, expect, ok: count !== "error" && last.rows.length === Number(count), rows: last.rows });
     } catch (err) {
-      results.push({ step, expect, ok: expect === "error", rows: [], error: err instanceof Error ? err.message : String(err) });
+      // a block that failed inside BEGIN leaves the transaction aborted: end it before the next block
+      await client.query("ROLLBACK");
+      const name = (err as { constraint?: string }).constraint;
+      const message = err instanceof Error ? err.message : String(err);
+      results.push({ step, expect, ok: count === "error" && !!constraint && name === constraint, rows: [], error: message });
     }
   }
   await client.end();

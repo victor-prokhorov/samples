@@ -20,12 +20,12 @@ const one = async (sql: string) => (await db.query(sql)).rows[0];
 const health = async () => (await (await fetch("http://localhost:53041/health")).json()).version as string;
 
 async function main() {
-  step("1. docs-lint", "every runbook has Owner, Parameters and the four sections in order, each with steps that hold an sh or manual block; every ADR has a number, a date, a valid status and Context/Decision/Consequences; links resolve");
+  step("1. docs-lint", "every runbook has Owner, Parameters and the four sections in order, each with steps that hold an sh or manual block and no block outside a step; every ADR has a number, a date, a valid status and Context/Decision/Consequences; links resolve");
   const broken = await lint("fixtures/broken-docs");
   for (const r of broken) for (const p of r.problems) console.log(`   ${r.file}: ${p}`);
   const real = await lint(".");
   console.log(`   real docs: ${real.map((r) => r.file).join(", ")}: ${real.reduce((n, r) => n + r.problems.length, 0)} problem(s)`);
-  check(broken.flatMap((r) => r.problems).length === 9 && real.every((r) => r.problems.length === 0), "the broken fixtures fail, the real docs pass");
+  check(broken.flatMap((r) => r.problems).length === 10 && real.every((r) => r.problems.length === 0), "the broken fixtures fail, the real docs pass");
 
   step("2. First scheduled release: v1", "the runner parses the Markdown and runs Preconditions, Steps and Verification in order; every step and its outcome is stored in ops.runs / ops.steps");
   check(runbook("scheduled-release.md", "--set", "VERSION=v1", "--set", "MIGRATION=1", "--rollback", "auto") === 0 && (await health()) === "v1", "v1 released");
@@ -33,17 +33,23 @@ async function main() {
   step("3. Scheduled release v2", "the backup, the migration, the restart and the smoke test are the same every time, whoever is on call");
   check(runbook("scheduled-release.md", "--set", "VERSION=v2", "--set", "MIGRATION=2", "--rollback", "auto") === 0 && (await health()) === "v2", "v2 released");
 
-  step("4. Monthly data update, then the same file again", "preconditions guard what must be true before anything changes: the second run stops at 'not loaded before', exit 2, and nothing is touched");
+  step("4. Monthly data update, the same file again, then a corrected file", "preconditions guard what must be true before anything changes: the same file stops at 'not loaded before', a corrected file for a loaded period at 'no batch for this period yet', both with exit 2 and nothing touched; the rollback only ever removes its own batch");
   check(runbook("monthly-data-update.md", "--set", "FILE=data/contributions-2026-09.csv", "--set", "PERIOD=2026-09") === 0, "file loaded");
   check(runbook("monthly-data-update.md", "--set", "FILE=data/contributions-2026-09.csv", "--set", "PERIOD=2026-09") === 2, "rerun stopped by a precondition");
+  check(runbook("monthly-data-update.md", "--set", "FILE=data/contributions-2026-09-corrected.csv", "--set", "PERIOD=2026-09") === 2, "corrected file stopped by a precondition");
   const loaded = await one("SELECT count(*)::int AS rows, sum(amount)::text AS total, (SELECT count(*)::int FROM import_batches) AS batches FROM contributions");
   console.log(`   contributions: ${loaded.rows} rows, total ${loaded.total}, ${loaded.batches} batch`);
-  check(loaded.rows === 3 && loaded.batches === 1, "loaded once");
+  check(loaded.rows === 3 && loaded.total === "1102.75" && loaded.batches === 1, "loaded once, the verified load untouched");
 
   step("5. A member request with manual steps", "a manual block is a step only a person can do; without an operator (no terminal, no --yes) the runner stops there and prints the rollback, and nothing after it runs");
   check(runbook("user-request.md", "--set", "MEMBER_ID=1", "--set", "NEW_EMAIL=alice@new.example", "--set", "TICKET=SUP-1042") === 1, "stopped at the manual step");
   check((await one("SELECT email FROM members WHERE id = 1")).email === "alice@old.example", "email unchanged");
   check(runbook("user-request.md", "--set", "MEMBER_ID=1", "--set", "NEW_EMAIL=alice@new.example", "--set", "TICKET=SUP-1042", "--yes") === 0, "done once confirmed");
+  console.log("   parameters reach SQL as psql variables, so a quote in an address is data, not SQL:");
+  check(runbook("user-request.md", "--set", "MEMBER_ID=2", "--set", "NEW_EMAIL=bob.o'brien@example.org", "--set", "TICKET=SUP-1043", "--yes") === 0, "o'brien done");
+  const bob = await one("SELECT m.email, c.old_value, c.new_value FROM members m JOIN member_changes c ON c.member_id = m.id WHERE m.id = 2");
+  console.log(`   member 2: ${JSON.stringify(bob)}`);
+  check(bob.email === "bob.o'brien@example.org" && bob.new_value === bob.email, "the address is stored as typed");
 
   step("6. Release v3 fails its smoke test and rolls back", "a failed step stops the runbook, prints its Rollback section and, with --rollback auto, runs it: here that is rollback.md, the same procedure an engineer runs by hand");
   check(runbook("scheduled-release.md", "--set", "VERSION=v3", "--set", "MIGRATION=3", "--rollback", "auto") === 1, "v3 failed");

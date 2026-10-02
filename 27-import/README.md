@@ -17,7 +17,7 @@ npm run import -- --dry-run data/acme-2026-09-members.csv   # rejects and diff, 
 npm run demo                                                # the whole scenario (on a fresh database)
 ```
 
-- `src/importer.ts` hash and batch row, `COPY ... HEADER match` into a TEMP stage, control count, rules into `import_rejects`, reject threshold, diff (new / changed / unchanged / missing), control total, upsert with `IS DISTINCT FROM`, batch counts.
+- `src/importer.ts` hash and batch row, `COPY ... HEADER match` into a TEMP stage, control count, rules into `import_rejects`, reject threshold, diff (new / changed / unchanged / missing), control total (the amounts that parse must add up to the declared one), upsert with `IS DISTINCT FROM`, batch counts and net amount change; a refused batch keeps its rejects.
 - `src/kinds.ts` per file kind: columns, natural key, compared values, typed casts and the validation rules as SQL.
 - `src/naive.ts` the row-by-row loader.
 - `src/show.ts` prints a report; `src/cli.ts` imports files given on the command line.

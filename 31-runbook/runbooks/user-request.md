@@ -9,7 +9,9 @@ Parameters: MEMBER_ID, NEW_EMAIL, TICKET
 
 ### 1. The member exists
 ```sh
-ops/psql.sh -c "SELECT id || ' ' || name || ' ' || email FROM members WHERE id = $MEMBER_ID" | grep .
+ops/psql.sh -v id="$MEMBER_ID" <<'SQL' | grep .
+SELECT id || ' ' || name || ' ' || email FROM members WHERE id = :'id'::int
+SQL
 ```
 
 ## Steps
@@ -20,12 +22,13 @@ Call the member back on the phone number their employer holds (not the one in th
 ```
 
 ### 2. Change the email, keeping the old value
+The parameters reach SQL as psql variables (`:'email'` is quoted by psql, `:'id'::int` must be a number), never pasted into the SQL text, so an address like o'brien@example.org is stored as typed.
 ```sh
-ops/psql.sh <<SQL
+ops/psql.sh -v id="$MEMBER_ID" -v email="$NEW_EMAIL" -v ticket="$TICKET" -v operator="$RUNBOOK_OPERATOR" <<'SQL'
 BEGIN;
 INSERT INTO member_changes (member_id, field, old_value, new_value, ticket, operator)
-  SELECT id, 'email', email, '$NEW_EMAIL', '$TICKET', '$RUNBOOK_OPERATOR' FROM members WHERE id = $MEMBER_ID;
-UPDATE members SET email = '$NEW_EMAIL' WHERE id = $MEMBER_ID;
+  SELECT id, 'email', email, :'email', :'ticket', :'operator' FROM members WHERE id = :'id'::int;
+UPDATE members SET email = :'email' WHERE id = :'id'::int;
 COMMIT;
 SQL
 ```
@@ -39,13 +42,24 @@ Reply on the ticket: the change is done, and the next statement will go to the n
 
 ### 1. The new email is stored and audited
 ```sh
-test "$(ops/psql.sh -c "SELECT email FROM members WHERE id = $MEMBER_ID")" = "$NEW_EMAIL"
-test "$(ops/psql.sh -c "SELECT count(*) FROM member_changes WHERE ticket = '$TICKET'")" = 1
+email=$(ops/psql.sh -v id="$MEMBER_ID" <<'SQL'
+SELECT email FROM members WHERE id = :'id'::int
+SQL
+)
+changes=$(ops/psql.sh -v ticket="$TICKET" <<'SQL'
+SELECT count(*) FROM member_changes WHERE ticket = :'ticket'
+SQL
+)
+echo "stored $email, changes on $TICKET: $changes"
+test "$email" = "$NEW_EMAIL"
+test "$changes" = 1
 ```
 
 ## Rollback
 
 ### 1. Restore the previous email
 ```sh
-ops/psql.sh -c "UPDATE members m SET email = c.old_value FROM member_changes c WHERE c.ticket = '$TICKET' AND m.id = c.member_id"
+ops/psql.sh -v ticket="$TICKET" <<'SQL'
+UPDATE members m SET email = c.old_value FROM member_changes c WHERE c.ticket = :'ticket' AND m.id = c.member_id
+SQL
 ```

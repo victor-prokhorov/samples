@@ -1,4 +1,4 @@
-# 25-bilingual run 2026-10-02T15:44:27Z
+# 25-bilingual run 2026-10-02T17:04:51Z
 == the member page server (node:http on :53035), in the background ==
 server: member page on http://localhost:53035 (/, /naive; ?lang=en|fr|en-XA; ?member=alice|bob|carol)
 == demo: a client fetching the same page with different Accept-Language headers ==
@@ -11,6 +11,7 @@ server: member page on http://localhost:53035 (/, /naive; ?lang=en|fr|en-XA; ?me
    GET /          Accept-Language: fr;q=0,en;q=0.5                    -> Content-Language: en, <html lang="en">, Vary: Accept-Language
    GET /          Accept-Language: de-CH                              -> Content-Language: en, <html lang="en">, Vary: Accept-Language
    GET /          Accept-Language: *                                  -> Content-Language: en, <html lang="en">, Vary: Accept-Language
+   GET /          Accept-Language: en;q=0, *                          -> Content-Language: fr, <html lang="fr">, Vary: Accept-Language
    GET /          Accept-Language: (none)                             -> Content-Language: en, <html lang="en">, Vary: Accept-Language
    GET /?lang=fr  Accept-Language: en-GB,en;q=0.9                     -> Content-Language: fr, <html lang="fr">, Vary: Accept-Language
 

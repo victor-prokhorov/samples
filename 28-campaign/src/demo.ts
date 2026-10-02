@@ -90,7 +90,7 @@ const window = (
 console.log(`   busiest 1-second window of SMTP attempts while resuming: ${window} (limit ${RATE}/s); messages received before the resume: ${beforeResume}`);
 check(window <= RATE, "the throttle held");
 const double = (await db.query("SELECT member_id FROM statement_attempts WHERE outcome = 'sent' GROUP BY member_id HAVING count(*) > 1")).rowCount;
-check(double === 0, "no job was recorded sent twice: no two workers ever held the same row");
+check(double === 0, "the fence keeps one sent record per job");
 
 step("6. The dead-letter list, then a fix and a requeue", "a dead letter keeps its last error for a person to act on; once the address is corrected, requeueing that one job sends it, and the rest of the campaign is untouched");
 await report(YEAR);

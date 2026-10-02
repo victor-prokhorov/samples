@@ -5,7 +5,8 @@ import { requireMember } from "@/lib/session";
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const memberId = await requireMember();
   const { id } = await params;
-  const r = /^\d+$/.test(id) ? await getRequest(memberId, Number(id)) : null;
+  // At most 9 digits: the id column is a 32-bit INT, so a longer number would be a Postgres error (500) instead of a 404.
+  const r = /^\d{1,9}$/.test(id) ? await getRequest(memberId, Number(id)) : null;
   if (!r) notFound();
   return (
     <>

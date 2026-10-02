@@ -20,7 +20,7 @@ npm run demo       # the runs the log shows: green, leaking, flaky, brittle
 
 - `src/app.ts` the portal: sign-in, contributions (the total arrives through a delayed `fetch`), request a change, list requests. `MARKUP=v2` serves a refactored sign-in form; `API_DELAY_MS` delays the total.
 - `src/rules.ts` and `src/rules.test.ts` the change-request rule and its unit tests.
-- `src/session.ts` a signed session cookie, valid on every worker's server; `src/db.ts` template cloning; `src/setup.ts` the template; `src/server.ts` the hand-run server.
+- `src/session.ts` a signed session cookie, valid on every worker's server; `src/db.ts` template cloning; `src/setup.ts` the template, with a partial unique index that enforces one pending change per kind under concurrent submits; `src/server.ts` the hand-run server.
 - `playwright.config.ts` workers, `trace: "retain-on-failure"`, the `setup` project and `storageState`.
 - `e2e/fixtures.ts` the worker-scoped database and server, and the per-test reset.
 - `e2e/auth.setup.ts` signs in once and saves `.auth/alice.json`.

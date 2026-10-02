@@ -6,7 +6,7 @@ exec > >(tee logs/30-pipeline.log) 2>&1
 cd 30-pipeline
 echo "# 30-pipeline run $(date -u +%FT%TZ)"
 echo "== fresh state: no pipeline state, cache, artifacts or deployments =="
-rm -rf .gitlab-ci-local .npm dist reports .deploy src/oops.ts
+rm -rf .gitlab-ci-local .npm dist reports .deploy
 command -v rsync >/dev/null || { echo "gitlab-ci-local --shell-isolation needs rsync"; exit 1; }
 npm install --silent --no-audit --no-fund
 echo "node $(node --version), gitlab-ci-local $(npx gitlab-ci-local --version), shell executor (no Docker images)"

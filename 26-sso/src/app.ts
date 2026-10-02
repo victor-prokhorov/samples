@@ -51,9 +51,21 @@ app.get("/", async (req, res) => {
   res.json(user ? { signedIn: true, sub: user.sub, roles: user.roles } : { signedIn: false });
 });
 
+// returnTo must stay on this app. It is resolved as the browser will resolve the Location header ("/\evil.example" and "//evil.example" name
+// another host there), then only its path and query are kept; a path that would itself read as "//host" ("/.//evil.example") is refused too.
+function localPath(want: string) {
+  try {
+    const u = new URL(want, APP);
+    return u.origin === new URL(APP).origin && !u.pathname.startsWith("//") ? u.pathname + u.search : "/";
+  } catch {
+    return "/";
+  }
+}
+
 app.get("/login", async (req, res) => {
-  const want = String(req.query.returnTo ?? "/");
-  const returnTo = want.startsWith("/") && !want.startsWith("//") ? want : "/";
+  const returnTo = localPath(String(req.query.returnTo ?? "/"));
+  // Housekeeping: a login abandoned at the IdP never reaches /callback, so its row is only removed here, once expired.
+  await db.query("DELETE FROM login_transactions WHERE expires_at < now()");
   const tx = { id: randomBytes(16).toString("base64url"), state: oidc.randomState(), nonce: oidc.randomNonce(), verifier: oidc.randomPKCECodeVerifier() };
   await db.query("INSERT INTO login_transactions VALUES ($1, $2, $3, $4, $5, now() + interval '10 minutes')", [tx.id, tx.state, tx.nonce, tx.verifier, returnTo]);
   const url = oidc.buildAuthorizationUrl(config, {
