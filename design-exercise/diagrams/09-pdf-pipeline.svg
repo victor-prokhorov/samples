@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1360" height="630" viewBox="0 0 1360 630" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">Step 8: yearly statements, a resumable PDF pipeline</text>
+<rect x="40" y="120" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="130.0" y="156.0" font-size="16" text-anchor="middle">Freeze data</text><text x="130.0" y="176.0" font-size="16" text-anchor="middle">snapshot per year</text>
+<rect x="260" y="120" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="350.0" y="156.0" font-size="16" text-anchor="middle">Create jobs</text><text x="350.0" y="176.0" font-size="16" text-anchor="middle">1 per member+year</text>
+<rect x="480" y="120" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="570.0" y="146.0" font-size="16" text-anchor="middle">Workers claim</text><text x="570.0" y="166.0" font-size="16" text-anchor="middle">SKIP LOCKED,</text><text x="570.0" y="186.0" font-size="16" text-anchor="middle">lease + fencing</text>
+<rect x="700" y="120" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="790.0" y="146.0" font-size="16" text-anchor="middle">Render PDF</text><text x="790.0" y="166.0" font-size="16" text-anchor="middle">template, language,</text><text x="790.0" y="186.0" font-size="16" text-anchor="middle">tagged</text>
+<rect x="920" y="120" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1010.0" y="156.0" font-size="16" text-anchor="middle">Store PDF</text><text x="1010.0" y="176.0" font-size="16" text-anchor="middle">key + sha256</text>
+<rect x="1140" y="120" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1230.0" y="146.0" font-size="16" text-anchor="middle">Email a link</text><text x="1230.0" y="166.0" font-size="16" text-anchor="middle">(post if no</text><text x="1230.0" y="186.0" font-size="16" text-anchor="middle">valid email)</text>
+<rect x="480" y="290" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="570.0" y="316.0" font-size="16" text-anchor="middle">Retry with backoff</text><text x="570.0" y="336.0" font-size="16" text-anchor="middle">SMTP 4xx, HTTP</text><text x="570.0" y="356.0" font-size="16" text-anchor="middle">429 / 5xx, timeouts</text>
+<rect x="700" y="290" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="790.0" y="316.0" font-size="16" text-anchor="middle">Dead letters</text><text x="790.0" y="336.0" font-size="16" text-anchor="middle">permanent errors or</text><text x="790.0" y="356.0" font-size="16" text-anchor="middle">N attempts; requeue</text>
+<rect x="920" y="290" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1010.0" y="316.0" font-size="16" text-anchor="middle">Campaign report</text><text x="1010.0" y="336.0" font-size="16" text-anchor="middle">sent, failed,</text><text x="1010.0" y="356.0" font-size="16" text-anchor="middle">downloaded</text>
+<rect x="1140" y="290" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1230.0" y="316.0" font-size="16" text-anchor="middle">Member downloads</text><text x="1230.0" y="336.0" font-size="16" text-anchor="middle">signed in, own</text><text x="1230.0" y="356.0" font-size="16" text-anchor="middle">statement only</text>
+<polyline points="220,160 260,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="440,160 480,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="660,160 700,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="880,160 920,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1100,160 1140,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="570,200 570,290" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<polyline points="660,330 700,330" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<polyline points="1230,200 1230,290" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1170,200 1170,245 1010,245 1010,290" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="40" y="420" width="620" height="170" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="446.0" font-size="18" text-anchor="start" font-weight="bold">Before the run</text>
+<rect x="60" y="470" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="200.0" y="511.0" font-size="16" text-anchor="middle">Dry run: sample PDFs</text><text x="200.0" y="531.0" font-size="16" text-anchor="middle">checked by the business</text>
+<rect x="360" y="470" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="500.0" y="511.0" font-size="16" text-anchor="middle">Throttle and schedule</text><text x="500.0" y="531.0" font-size="16" text-anchor="middle">mail limits, help desk ready</text>
+<rect x="700" y="420" width="620" height="170" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="710.0" y="446.0" font-size="18" text-anchor="start" font-weight="bold">Rules</text>
+<rect x="720" y="460" width="580" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="725.0" y="491.0" font-size="16" text-anchor="start">Idempotent: one job per member and year; a rerun skips sent jobs</text><text x="725.0" y="511.0" font-size="16" text-anchor="start">Deterministic: fixed creation date and document ID, same bytes</text><text x="725.0" y="531.0" font-size="16" text-anchor="start">Accessible PDF: tags, language, reading order</text><text x="725.0" y="551.0" font-size="16" text-anchor="start">No personal data in the email body</text></svg>

@@ -9,7 +9,7 @@ The old portal keeps running while the new one takes over one capability at a ti
 | 0. Foundations | Routing facade in front of the old portal, sign-in through the identity provider for both, analytics baseline, pipeline | old portal | every request goes through the facade; KPI baselines recorded |
 | 1. Read-only pages | Profile, contributions, statements download, in the new app | old portal (new app reads a copy synced by CDC) | 4 weeks with parallel-run mismatches at zero (04); old pages get no traffic |
 | 2. Change requests | Address and bank detail requests, staff queue | new app owns requests; approved changes are written back to the old database through the outbox | old back office no longer used for requests |
-| 3. Employer uploads | Monthly file import with staging, rejects and dry run (27) | new app owns contributions | pilot with 3 employers, then the other 23 in waves of 5-6 |
+| 3. Employer uploads | Monthly file import with staging, rejects and dry run (27) | new app owns contributions | pilot with 3 employers, then the other 37 in waves of 6-7 |
 | 4. Statements and decommission | Yearly statement campaign from the new app (28); old portal switched off | new app owns everything | old portal receives zero requests for 30 days; database archived |
 
 <!-- diagram: gantt-migration -->
@@ -29,7 +29,7 @@ gantt
     Change requests and staff queue       :p2, after p1, 10w
     section Phase 3
     Uploads pilot (3 employers)           :p3, after p2, 4w
-    Uploads waves (23 employers)          :p3b, after p3, 8w
+    Uploads waves (37 employers)          :p3b, after p3, 8w
     section Phase 4
     Statement campaign                    :milestone, m1, 2028-01-31, 0d
     Decommission old portal               :p4, after p3b, 4w

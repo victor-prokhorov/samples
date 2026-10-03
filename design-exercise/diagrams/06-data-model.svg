@@ -1,39 +1,39 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1084" height="765" viewBox="0 0 1084 765" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">Step 5: data model (every table starts with org_id)</text>
-<rect x="40" y="90" width="260" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="52.0" y="121.0" font-size="16" text-anchor="start">organisation</text><text x="52.0" y="141.0" font-size="16" text-anchor="start">----</text><text x="52.0" y="161.0" font-size="16" text-anchor="start">id PK</text><text x="52.0" y="181.0" font-size="16" text-anchor="start">name</text><text x="52.0" y="201.0" font-size="16" text-anchor="start">default language</text>
-<rect x="380" y="90" width="280" height="170" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="392.0" y="131.0" font-size="16" text-anchor="start">member</text><text x="392.0" y="151.0" font-size="16" text-anchor="start">----</text><text x="392.0" y="171.0" font-size="16" text-anchor="start">org_id, id PK</text><text x="392.0" y="191.0" font-size="16" text-anchor="start">sub (from the IdP) UNIQUE</text><text x="392.0" y="211.0" font-size="16" text-anchor="start">name, email</text><text x="392.0" y="231.0" font-size="16" text-anchor="start">language</text>
-<rect x="740" y="90" width="300" height="150" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="752.0" y="131.0" font-size="16" text-anchor="start">contribution</text><text x="752.0" y="151.0" font-size="16" text-anchor="start">----</text><text x="752.0" y="171.0" font-size="16" text-anchor="start">org_id, member_id, period PK</text><text x="752.0" y="191.0" font-size="16" text-anchor="start">amount</text><text x="752.0" y="211.0" font-size="16" text-anchor="start">batch_id FK</text>
-<rect x="740" y="300" width="300" height="150" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="752.0" y="341.0" font-size="16" text-anchor="start">import_batch</text><text x="752.0" y="361.0" font-size="16" text-anchor="start">----</text><text x="752.0" y="381.0" font-size="16" text-anchor="start">org_id, id PK</text><text x="752.0" y="401.0" font-size="16" text-anchor="start">file sha256 UNIQUE</text><text x="752.0" y="421.0" font-size="16" text-anchor="start">status, control total</text>
-<rect x="380" y="320" width="280" height="190" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="392.0" y="361.0" font-size="16" text-anchor="start">change_request</text><text x="392.0" y="381.0" font-size="16" text-anchor="start">----</text><text x="392.0" y="401.0" font-size="16" text-anchor="start">org_id, id PK, member_id</text><text x="392.0" y="421.0" font-size="16" text-anchor="start">kind, payload</text><text x="392.0" y="441.0" font-size="16" text-anchor="start">status (state machine)</text><text x="392.0" y="461.0" font-size="16" text-anchor="start">requested_by, approved_by</text><text x="392.0" y="481.0" font-size="16" text-anchor="start">one pending per kind</text>
-<rect x="40" y="300" width="260" height="170" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="52.0" y="341.0" font-size="16" text-anchor="start">statement</text><text x="52.0" y="361.0" font-size="16" text-anchor="start">----</text><text x="52.0" y="381.0" font-size="16" text-anchor="start">org_id, member_id,</text><text x="52.0" y="401.0" font-size="16" text-anchor="start">year PK</text><text x="52.0" y="421.0" font-size="16" text-anchor="start">storage key, sha256</text><text x="52.0" y="441.0" font-size="16" text-anchor="start">sent_at, downloaded_at</text>
-<rect x="40" y="540" width="260" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="52.0" y="571.0" font-size="16" text-anchor="start">audit_log (append-only)</text><text x="52.0" y="591.0" font-size="16" text-anchor="start">----</text><text x="52.0" y="611.0" font-size="16" text-anchor="start">who, what, when</text><text x="52.0" y="631.0" font-size="16" text-anchor="start">before, after</text><text x="52.0" y="651.0" font-size="16" text-anchor="start">reason</text>
-<rect x="380" y="570" width="280" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="392.0" y="601.0" font-size="16" text-anchor="start">outbox</text><text x="392.0" y="621.0" font-size="16" text-anchor="start">----</text><text x="392.0" y="641.0" font-size="16" text-anchor="start">event, payload</text><text x="392.0" y="661.0" font-size="16" text-anchor="start">published_at</text>
-<line x1="300" y1="155" x2="380" y2="175" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<rect x="320.3" y="154.3" width="39.4" height="21.5" fill="#ffffff"/>
-<text x="340.0" y="170.3" font-size="14" text-anchor="middle">1..n</text>
-<line x1="660" y1="175" x2="740" y2="165" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<rect x="680.3" y="159.3" width="39.4" height="21.5" fill="#ffffff"/>
-<text x="700.0" y="175.3" font-size="14" text-anchor="middle">1..n</text>
-<line x1="890" y1="300" x2="890" y2="240" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<rect x="862.5" y="259.3" width="55.0" height="21.5" fill="#ffffff"/>
-<text x="890.0" y="275.3" font-size="14" text-anchor="middle">writes</text>
-<line x1="520" y1="260" x2="520" y2="320" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<rect x="500.3" y="279.3" width="39.4" height="21.5" fill="#ffffff"/>
-<text x="520.0" y="295.3" font-size="14" text-anchor="middle">1..n</text>
-<line x1="380" y1="175" x2="300" y2="385" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<rect x="296.8" y="269.3" width="86.4" height="21.5" fill="#ffffff"/>
-<text x="340.0" y="285.3" font-size="14" text-anchor="middle">1 per year</text>
-<line x1="380" y1="415" x2="300" y2="605" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
-<rect x="308.6" y="499.3" width="62.9" height="21.5" fill="#ffffff"/>
-<text x="340.0" y="515.3" font-size="14" text-anchor="middle">same tx</text>
-<line x1="520" y1="510" x2="520" y2="570" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
-<rect x="488.6" y="529.3" width="62.9" height="21.5" fill="#ffffff"/>
-<text x="520.0" y="545.3" font-size="14" text-anchor="middle">same tx</text>
-<text x="40.0" y="721.0" font-size="16" text-anchor="start">Keys and indexes lead with org_id. Foreign keys include org_id, so a row cannot point into another organisation.</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1160" height="945" viewBox="0 0 1160 945" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">Step 5: data model (org_id leads every key)</text>
+<rect x="420" y="90" width="280" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="425.0" y="121.0" font-size="16" text-anchor="start">organisation (the tenant)</text><text x="425.0" y="141.0" font-size="16" text-anchor="start">----</text><text x="425.0" y="161.0" font-size="16" text-anchor="start">id PK</text><text x="425.0" y="181.0" font-size="16" text-anchor="start">name, default language</text>
+<rect x="40" y="250" width="260" height="150" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="45.0" y="281.0" font-size="16" text-anchor="start">statement</text><text x="45.0" y="301.0" font-size="16" text-anchor="start">----</text><text x="45.0" y="321.0" font-size="16" text-anchor="start">org_id, member_id,</text><text x="45.0" y="341.0" font-size="16" text-anchor="start">year PK</text><text x="45.0" y="361.0" font-size="16" text-anchor="start">storage key, sha256</text><text x="45.0" y="381.0" font-size="16" text-anchor="start">sent_at, downloaded_at</text>
+<rect x="420" y="250" width="280" height="150" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="425.0" y="281.0" font-size="16" text-anchor="start">member</text><text x="425.0" y="301.0" font-size="16" text-anchor="start">----</text><text x="425.0" y="321.0" font-size="16" text-anchor="start">org_id, id PK</text><text x="425.0" y="341.0" font-size="16" text-anchor="start">(iss, sub) UNIQUE</text><text x="425.0" y="361.0" font-size="16" text-anchor="start">name, email, language</text><text x="425.0" y="381.0" font-size="16" text-anchor="start">postal address</text>
+<rect x="820" y="250" width="300" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="825.0" y="281.0" font-size="16" text-anchor="start">contribution</text><text x="825.0" y="301.0" font-size="16" text-anchor="start">----</text><text x="825.0" y="321.0" font-size="16" text-anchor="start">org_id, member_id,</text><text x="825.0" y="341.0" font-size="16" text-anchor="start">period PK</text><text x="825.0" y="361.0" font-size="16" text-anchor="start">amount, batch_id FK</text>
+<rect x="40" y="460" width="260" height="150" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="45.0" y="491.0" font-size="16" text-anchor="start">audit_log (append-only)</text><text x="45.0" y="511.0" font-size="16" text-anchor="start">----</text><text x="45.0" y="531.0" font-size="16" text-anchor="start">org_id, id PK</text><text x="45.0" y="551.0" font-size="16" text-anchor="start">who, what, when</text><text x="45.0" y="571.0" font-size="16" text-anchor="start">before, after</text><text x="45.0" y="591.0" font-size="16" text-anchor="start">reason</text>
+<rect x="420" y="460" width="280" height="170" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="425.0" y="491.0" font-size="16" text-anchor="start">change_request</text><text x="425.0" y="511.0" font-size="16" text-anchor="start">----</text><text x="425.0" y="531.0" font-size="16" text-anchor="start">org_id, id PK, member_id</text><text x="425.0" y="551.0" font-size="16" text-anchor="start">kind, payload</text><text x="425.0" y="571.0" font-size="16" text-anchor="start">status (state machine)</text><text x="425.0" y="591.0" font-size="16" text-anchor="start">requested_by, approved_by</text><text x="425.0" y="611.0" font-size="16" text-anchor="start">one pending per kind</text>
+<rect x="820" y="460" width="300" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="825.0" y="491.0" font-size="16" text-anchor="start">import_batch</text><text x="825.0" y="511.0" font-size="16" text-anchor="start">----</text><text x="825.0" y="531.0" font-size="16" text-anchor="start">org_id, id PK</text><text x="825.0" y="551.0" font-size="16" text-anchor="start">file sha256 UNIQUE</text><text x="825.0" y="571.0" font-size="16" text-anchor="start">status, control total</text>
+<rect x="420" y="690" width="280" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="425.0" y="721.0" font-size="16" text-anchor="start">outbox</text><text x="425.0" y="741.0" font-size="16" text-anchor="start">----</text><text x="425.0" y="761.0" font-size="16" text-anchor="start">org_id, id PK</text><text x="425.0" y="781.0" font-size="16" text-anchor="start">event, payload</text><text x="425.0" y="801.0" font-size="16" text-anchor="start">published_at</text>
+<polyline points="560,200 560,250" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="542.0" y="214.3" width="36.0" height="21.5" fill="#ffffff"/>
+<text x="560.0" y="230.3" font-size="14" text-anchor="middle">1..n</text>
+<polyline points="420,325 300,325" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="321.0" y="314.3" width="78.0" height="21.5" fill="#ffffff"/>
+<text x="360.0" y="330.3" font-size="14" text-anchor="middle">1 per year</text>
+<polyline points="700,315 820,315" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="742.0" y="304.3" width="36.0" height="21.5" fill="#ffffff"/>
+<text x="760.0" y="320.3" font-size="14" text-anchor="middle">1..n</text>
+<polyline points="970,460 970,380" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="945.0" y="409.3" width="50.0" height="21.5" fill="#ffffff"/>
+<text x="970.0" y="425.3" font-size="14" text-anchor="middle">writes</text>
+<polyline points="560,400 560,460" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="542.0" y="419.3" width="36.0" height="21.5" fill="#ffffff"/>
+<text x="560.0" y="435.3" font-size="14" text-anchor="middle">1..n</text>
+<polyline points="420,535 300,535" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="331.5" y="524.3" width="57.0" height="21.5" fill="#ffffff"/>
+<text x="360.0" y="540.3" font-size="14" text-anchor="middle">same tx</text>
+<polyline points="560,630 560,690" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="531.5" y="649.3" width="57.0" height="21.5" fill="#ffffff"/>
+<text x="560.0" y="665.3" font-size="14" text-anchor="middle">same tx</text>
+<text x="40.0" y="861.0" font-size="16" text-anchor="start">Keys and indexes lead with org_id. Foreign keys include org_id, so a row cannot point into another organisation.</text><text x="40.0" y="881.0" font-size="16" text-anchor="start">One membership per person (an assumption): (iss, sub) is unique. If a person can belong to two organisations,</text><text x="40.0" y="901.0" font-size="16" text-anchor="start">split member into person (iss, sub) and membership (org_id, person_id).</text></svg>
