@@ -1,0 +1,223 @@
+# 33-api-contract run 2026-10-03T14:48:38Z
+== no infra: the provider is node:http with in-memory data; fresh install, no earlier temp files ==
+== typecheck: the consumer compiles against the client generated from openapi/v2.yaml ==
+tsc: no errors
+== demo: spec, runtime validation, typed client, drift caught by the contract test, breaking-change check, reference page ==
+
+## 1. The spec comes first
+   concept: openapi/v2.yaml (OpenAPI 3.1, JSON Schema 2020-12) is written before the handlers and linted in CI; the router, both validators, the client types, the contract test and the reference page all read it
+   $ npx redocly lint openapi/v1.yaml openapi/v2.yaml openapi/v2-breaking.yaml --format=summary
+   | validating openapi/v1.yaml...
+   | openapi/v1.yaml: validated in 56ms
+   | validating openapi/v2.yaml...
+   | openapi/v2.yaml: validated in 30ms
+   | validating openapi/v2-breaking.yaml...
+   | openapi/v2-breaking.yaml: validated in 20ms
+   | Woohoo! Your API descriptions are valid. 🎉
+   -> exit 0
+   GET   /employers/{employerId}/members      listEmployerMembers      200 400 401 404
+   GET   /members/{memberId}                  getMember                200 400 401 404
+   GET   /members/{memberId}/contributions    listMemberContributions  200 400 401 404  (deprecated)
+   GET   /contributions                       listContributions        200 400 401 404
+   POST  /members/{memberId}/change-requests  createChangeRequest      201 400 401 404 409
+   GET   /change-requests/{changeRequestId}   getChangeRequest         200 400 401 404
+
+## 2. The client is generated, and generated code is checked in sync
+   concept: openapi-typescript turns the spec into path, parameter and schema types; openapi-fetch is a typed fetch over them. CI regenerates and compares, so the committed client cannot lag behind the spec
+   $ npx openapi-typescript openapi/v2.yaml -o .tmp/api.d.ts
+   | 🚀 openapi/v2.yaml → .tmp/api.d.ts [165.6ms]
+   -> exit 0
+   src/generated/api.d.ts: 403 lines, identical to a fresh generation
+
+## 3. Requests are validated against the spec at runtime
+   concept: before any handler runs, path, query and body are checked against the operation's schemas; the 400 is an RFC 9457 problem that lists every mismatch, and unknown query parameters are refused rather than ignored
+   provider (handlers fixed, response validation: enforce) on http://localhost:53043
+   GET /contributions?memberId=M0001&limit=99&year=2026 -> 400 [{"where":"query.year","message":"is not a parameter of this operation"},{"where":"query.limit","message":"must be <= 24"}]
+   POST /members/M0002/change-requests {kind: phone, value: "", effectiveDate: 2026-02-30, urgent: true} -> 400
+     body: must NOT have additional properties (urgent)
+     body/kind: must be equal to one of the allowed values
+     body/value: must NOT have fewer than 1 characters
+     body/effectiveDate: must match format "date"
+   GET /members/M0001 without a token -> 401, WWW-Authenticate: Bearer realm="members"
+
+## 4. A consumer uses the typed client
+   concept: an employer system calls the API through openapi-fetch; a middleware reads the Deprecation, Sunset and Link headers and reports each deprecated call once, so the consumer learns about the sunset from the API itself
+   active Acme members: M0001 Alice Martin, M0002 Bruno Petit
+   M0001 years of service on 2026-10-03: 12
+   [consumer] DEPRECATED GET /members/{memberId}/contributions since 2026-10-01, sunset Wed, 31 Mar 2027 23:59:59 GMT, use /contributions?memberId=M0001
+   M0001 total paid: 3909.00 through the deprecated endpoint, 3909.00 through GET /contributions in 3 pages of 5
+   deprecation: @1790812800
+   sunset: Wed, 31 Mar 2027 23:59:59 GMT
+   link: </contributions?memberId=M0001>; rel="successor-version", </docs#tag/contributions/operation/listMemberContributions>; rel="deprecation"; type="text/html"
+   change request: 201 CR0001 at /change-requests/CR0001; again: 409 CR0001 is already pending for this member and kind
+
+## 5. Drift: a handler sends what the spec does not say
+   concept: two classic mistakes: returning the stored row as is (an undocumented, sensitive taxId leaks) and formatting amounts as text ("250.50" instead of 250.5). The provider runs them with response validation in warn mode, so they reach the wire, the runtime validator logs them, and the provider contract test fails
+   $ PROVIDER_URL=http://localhost:53143 npx vitest run --reporter=verbose
+   [drift provider] response drift in listEmployerMembers 200: body/items/* must NOT have unevaluated properties (taxId) (x3) (sent anyway: warn mode)
+   [drift provider] response drift in listEmployerMembers 200: body/items/* must NOT have unevaluated properties (taxId) (sent anyway: warn mode)
+   [drift provider] response drift in getMember 200: body must NOT have unevaluated properties (taxId) (sent anyway: warn mode)
+   [drift provider] response drift in listMemberContributions 200: body/items/*/memberAmount must be number (x12); body/items/*/employerAmount must be number (x12) (sent anyway: warn mode)
+   [drift provider] response drift in listContributions 200: body/items/*/memberAmount must be number (x5); body/items/*/employerAmount must be number (x5) (sent anyway: warn mode)
+   |  ✓ contract/provider.test.ts > every operation in the spec has a success case 2ms
+   |  × contract/provider.test.ts > listEmployerMembers: Acme's members -> 200 52ms
+   |    → GET /employers/acme/members differs from the spec: expected [ Array(1) ] to deeply equal []
+   |  × contract/provider.test.ts > listEmployerMembers: only the retired ones -> 200 8ms
+   |    → GET /employers/globex/members?status=retired differs from the spec: expected [ Array(1) ] to deeply equal []
+   |  ✓ contract/provider.test.ts > listEmployerMembers: an employer the spec does not list -> 400 11ms
+   |  × contract/provider.test.ts > getMember: a member -> 200 6ms
+   |    → GET /members/M0001 differs from the spec: expected [ Array(1) ] to deeply equal []
+   |  ✓ contract/provider.test.ts > getMember: without a token -> 401 5ms
+   |  ✓ contract/provider.test.ts > getMember: an id with the wrong shape -> 400 2ms
+   |  ✓ contract/provider.test.ts > getMember: a member who does not exist -> 404 7ms
+   |  × contract/provider.test.ts > listMemberContributions: the deprecated endpoint still answers, with its sunset -> 200 13ms
+   |    → GET /members/M0001/contributions differs from the spec: expected [ …(2) ] to deeply equal []
+   |  × contract/provider.test.ts > listContributions: first page -> 200 15ms
+   |    → GET /contributions?memberId=M0001&limit=5 differs from the spec: expected [ …(2) ] to deeply equal []
+   |  ✓ contract/provider.test.ts > listContributions: a limit above the maximum -> 400 5ms
+   |  ✓ contract/provider.test.ts > listContributions: a parameter the spec does not have -> 400 2ms
+   |  ✓ contract/provider.test.ts > createChangeRequest: a new email -> 201 16ms
+   |  ✓ contract/provider.test.ts > createChangeRequest: the same kind again while pending -> 409 6ms
+   |  ✓ contract/provider.test.ts > createChangeRequest: a kind the spec does not allow, and an extra field -> 400 5ms
+   |  ✓ contract/provider.test.ts > getChangeRequest: the request just created -> 200 7ms
+   |  ✓ contract/provider.test.ts > getChangeRequest: one that does not exist -> 404 2ms
+   |  FAIL  contract/provider.test.ts > listEmployerMembers: Acme's members -> 200
+   | +   "body/items/* must NOT have unevaluated properties (taxId) (x3)",
+   |  FAIL  contract/provider.test.ts > listEmployerMembers: only the retired ones -> 200
+   | +   "body/items/* must NOT have unevaluated properties (taxId)",
+   |  FAIL  contract/provider.test.ts > getMember: a member -> 200
+   | +   "body must NOT have unevaluated properties (taxId)",
+   |  FAIL  contract/provider.test.ts > listMemberContributions: the deprecated endpoint still answers, with its sunset -> 200
+   | +   "body/items/*/memberAmount must be number (x12)",
+   | +   "body/items/*/employerAmount must be number (x12)",
+   |  FAIL  contract/provider.test.ts > listContributions: first page -> 200
+   | +   "body/items/*/memberAmount must be number (x5)",
+   | +   "body/items/*/employerAmount must be number (x5)",
+   |       Tests  5 failed | 12 passed (17)
+   -> exit 1
+   [drift provider, enforce] response drift in getMember 200: body must NOT have unevaluated properties (taxId) (replaced by a 500: enforce mode)
+   same drift with response validation in enforce mode: GET /members/M0001 -> 500 {"type":"https://contract.local/problems/internal-server-error","title":"Internal server error","status":500,"detail":"the response did not match the API description"}
+
+## 6. Fixed: the same contract test passes
+   concept: the fixed handlers map the row to the documented shape and send numbers; a fresh provider with them answers every case as the spec says
+   $ PROVIDER_URL=http://localhost:53043 npx vitest run --reporter=verbose
+   |  ✓ contract/provider.test.ts > every operation in the spec has a success case 2ms
+   |  ✓ contract/provider.test.ts > listEmployerMembers: Acme's members -> 200 33ms
+   |  ✓ contract/provider.test.ts > listEmployerMembers: only the retired ones -> 200 9ms
+   |  ✓ contract/provider.test.ts > listEmployerMembers: an employer the spec does not list -> 400 12ms
+   |  ✓ contract/provider.test.ts > getMember: a member -> 200 8ms
+   |  ✓ contract/provider.test.ts > getMember: without a token -> 401 7ms
+   |  ✓ contract/provider.test.ts > getMember: an id with the wrong shape -> 400 3ms
+   |  ✓ contract/provider.test.ts > getMember: a member who does not exist -> 404 7ms
+   |  ✓ contract/provider.test.ts > listMemberContributions: the deprecated endpoint still answers, with its sunset -> 200 10ms
+   |  ✓ contract/provider.test.ts > listContributions: first page -> 200 10ms
+   |  ✓ contract/provider.test.ts > listContributions: a limit above the maximum -> 400 3ms
+   |  ✓ contract/provider.test.ts > listContributions: a parameter the spec does not have -> 400 2ms
+   |  ✓ contract/provider.test.ts > createChangeRequest: a new email -> 201 15ms
+   |  ✓ contract/provider.test.ts > createChangeRequest: the same kind again while pending -> 409 7ms
+   |  ✓ contract/provider.test.ts > createChangeRequest: a kind the spec does not allow, and an extra field -> 400 3ms
+   |  ✓ contract/provider.test.ts > getChangeRequest: the request just created -> 200 7ms
+   |  ✓ contract/provider.test.ts > getChangeRequest: one that does not exist -> 404 1ms
+   |       Tests  17 passed (17)
+   -> exit 0
+
+## 7. Breaking-change check between revisions
+   concept: a consumer written against v1 must keep working: removing or retyping a response field, or adding a required parameter, breaks it; adding an operation, an optional field or a deprecation does not. CI runs this on every change to the spec
+   $ npx tsx src/breaking.ts openapi/v1.yaml openapi/v2.yaml
+   |    openapi/v1.yaml (1.0.0) -> openapi/v2.yaml (1.1.0)
+   |      ok        GET /employers/{employerId}/members 200 body.items[].phone: added (tolerant readers ignore it)
+   |      ok        GET /members/{memberId} 200 body.phone: added (tolerant readers ignore it)
+   |      ok        GET /members/{memberId}/contributions: deprecated (still served until its Sunset date)
+   |      ok        GET /contributions: operation added
+   |    0 breaking, 4 compatible
+   -> exit 0
+   $ npx tsx src/breaking.ts openapi/v1.yaml openapi/v2-breaking.yaml
+   |    openapi/v1.yaml (1.0.0) -> openapi/v2-breaking.yaml (2.0.0-draft)
+   |      BREAKING  GET /employers/{employerId}/members 200 body.items[].joinedOn: removed from the response
+   |      BREAKING  GET /members/{memberId} 200 body.joinedOn: removed from the response
+   |      BREAKING  GET /members/{memberId}/contributions query.year: new required parameter
+   |      BREAKING  GET /members/{memberId}/contributions 200 body.items[].memberAmount: type number -> string
+   |      BREAKING  GET /members/{memberId}/contributions 200 body.items[].employerAmount: type number -> string
+   |      ok        GET /employers/{employerId}/members 200 body.items[].startDate: added (tolerant readers ignore it)
+   |      ok        GET /members/{memberId} 200 body.startDate: added (tolerant readers ignore it)
+   |    5 breaking, 2 compatible
+   -> exit 1
+
+## 8. The same break, seen by the consumer's compiler
+   concept: regenerating the client from the breaking draft makes the unchanged consumer fail tsc: the type checker finds the call sites a breaking change would hit at runtime
+   $ npx openapi-typescript openapi/v2-breaking.yaml -o .tmp/breaking/generated/api.d.ts
+   | 🚀 openapi/v2-breaking.yaml → .tmp/breaking/generated/api.d.ts [171.7ms]
+   -> exit 0
+   $ npx tsc -p .tmp/breaking --pretty false
+   | .tmp/breaking/consumer.ts(48,50): error TS2339: Property 'joinedOn' does not exist on type '{ id: string; employerId: string; firstName: string; lastName: string; email: string; st...
+   | .tmp/breaking/consumer.ts(53,83): error TS2741: Property 'query' is missing in type '{ path: { memberId: string; }; }' but required in type '{ query: { year: number; }; header?: un...
+   | .tmp/breaking/consumer.ts(55,3): error TS2322: Type '{ period: string; memberAmount: string; employerAmount: string; }' is not assignable to type 'number'.
+   | .tmp/breaking/consumer.ts(55,40): error TS2769: No overload matches this call.
+   | .tmp/breaking/consumer.ts(64,46): error TS2345: Argument of type '"/contributions"' is not assignable to parameter of type 'PathsWithMethod<paths, "get">'.
+   | .tmp/breaking/consumer.ts(67,19): error TS2339: Property 'items' does not exist on type 'Readable<SuccessResponse<{ 200: { headers: { [name: string]: unknown; }; content: { "applic...
+   | .tmp/breaking/consumer.ts(67,33): error TS7006: Parameter 'sum' implicitly has an 'any' type.
+   | .tmp/breaking/consumer.ts(67,38): error TS7006: Parameter 'c' implicitly has an 'any' type.
+   | .tmp/breaking/consumer.ts(68,19): error TS2339: Property 'nextCursor' does not exist on type 'Readable<SuccessResponse<{ 200: { headers: { [name: string]: unknown; }; content: { "a...
+   -> exit 2
+
+## 9. A reference page from the same spec
+   concept: Redocly renders the spec as one HTML page; the Redoc script is inlined so it works offline, attached to a ticket or opened from the repo
+   out/api-reference.html: 1192 KiB, external scripts or stylesheets: none
+
+all checks passed
+
+== proof: the deprecated endpoint, raw (curl -i; RFC 9745 Deprecation, RFC 8594 Sunset, Link to the successor) ==
+HTTP/1.1 200 OK
+deprecation: @1790812800
+sunset: Wed, 31 Mar 2027 23:59:59 GMT
+link: </contributions?memberId=M0001>; rel="successor-version", </docs#tag/contributions/operation/listMemberContributions>; rel="deprecation"; type="text/html"
+content-type: application/json
+Date: Sat, 03 Oct 2026 14:48:55 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+== proof: its successor, first page of 3 ==
+{"items":[{"period":"2026-09","memberAmount":125.5,"employerAmount":200.25},{"period":"2026-08","memberAmount":125.5,"employerAmount":200.25},{"period":"2026-07","memberAmount":125.5,"employerAmount":200.25}],"nextCursor":"eyJvIjozfQ"}
+== proof: a request that does not match the spec, raw (RFC 9457 problem, every mismatch listed) ==
+status 400, content-type application/problem+json
+{
+  "type": "https://contract.local/problems/bad-request",
+  "title": "Bad request",
+  "status": 400,
+  "detail": "the request does not match the API description",
+  "errors": [
+    {
+      "where": "body",
+      "message": "must NOT have additional properties (urgent)"
+    },
+    {
+      "where": "body/kind",
+      "message": "must be equal to one of the allowed values"
+    },
+    {
+      "where": "body/value",
+      "message": "must NOT have fewer than 1 characters"
+    },
+    {
+      "where": "body/effectiveDate",
+      "message": "must match format \"date\""
+    }
+  ]
+}
+== proof: the breaking-change check as CI runs it (exit code is the gate) ==
+v1 -> v2:          exit 0
+v1 -> v2-breaking: exit 1
+== proof: the generated client marks the deprecated operation (editors strike it through) ==
+49-         * List a member's contributions (deprecated)
+50:         * @deprecated
+51-         * @description Deprecated since 2026-10-01 and removed on 2027-03-31: use `GET /contributions?memberId=...`,
+52-         *     which pages. Every response says so in its `Deprecation`, `Sunset` and `Link` headers.
+53-         */
+== proof: out/api-reference.html loads nothing from the network ==
+1221104 out/api-reference.html
+script tags with src: 0, stylesheet links: 0
+== screenshots: the reference page, opened from the file with the network blocked ==
+screenshots/api-reference.png: the top of the reference
+screenshots/api-reference-deprecated.png: the deprecated operation and its headers
+requests to the network (blocked): https://cdn.redoc.ly/redoc/logo-mini.svg
+114375 screenshots/api-reference-deprecated.png
+103418 screenshots/api-reference.png
