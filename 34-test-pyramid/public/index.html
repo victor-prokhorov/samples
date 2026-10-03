@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Change my contribution</title>
+    <style>
+      body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; color: #1e1e1e; }
+      label { display: block; font-weight: 600; margin-top: 1rem; }
+      label + p { margin: 0; color: #555; }
+      input, select { font: inherit; padding: 0.3rem; margin-top: 0.3rem; }
+      [aria-invalid="true"] { outline: 3px solid #b00020; }
+      p[id$="-error"] { color: #b00020; font-weight: 600; margin: 0.3rem 0 0; }
+      dl { display: grid; grid-template-columns: max-content max-content; gap: 0.2rem 1rem; }
+      dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+      button { font: inherit; padding: 0.5rem 1rem; margin-top: 1rem; }
+      [role="status"]:not(:empty) { border-left: 4px solid #1e1e1e; padding: 0.5rem 1rem; margin-top: 1rem; }
+      [role="alert"]:not(:empty) { border-left: 4px solid #b00020; padding: 0.5rem 1rem; margin-top: 1rem; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

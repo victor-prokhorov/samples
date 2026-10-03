@@ -1,0 +1,34 @@
+[
+  {
+    "level": "unit",
+    "label": "Unit",
+    "tests": 33,
+    "passed": 33,
+    "wallMs": 4669,
+    "testMs": 61
+  },
+  {
+    "level": "component",
+    "label": "Component",
+    "tests": 10,
+    "passed": 10,
+    "wallMs": 6889,
+    "testMs": 1555
+  },
+  {
+    "level": "api",
+    "label": "API + Postgres",
+    "tests": 8,
+    "passed": 8,
+    "wallMs": 5679,
+    "testMs": 678
+  },
+  {
+    "level": "e2e",
+    "label": "End to end",
+    "tests": 1,
+    "passed": 1,
+    "wallMs": 9324,
+    "testMs": 1151
+  }
+]

@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 328" width="900" height="328" role="img" aria-labelledby="t d">
+<title id="t">Test pyramid: tests and wall time per level</title>
+<desc id="d">End to end: 1 tests, 9.3 s; API + Postgres: 8 tests, 5.7 s; Component: 10 tests, 6.9 s; Unit: 33 tests, 4.7 s</desc>
+<style>
+  .viz { --surface-1: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e; --rule: #d6d5d0; --series-1: #2a78d6; }
+  @media (prefers-color-scheme: dark) { .viz { --surface-1: #1a1a19; --text-primary: #ffffff; --text-secondary: #c3c2b7; --rule: #3a3936; --series-1: #3987e5; } }
+  text { font-family: system-ui, -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; fill: var(--text-primary); }
+  .title { font-size: 18px; font-weight: 600; }
+  .sub, .muted { font-size: 12px; fill: var(--text-secondary); }
+  .head { font-size: 13px; font-weight: 600; fill: var(--text-secondary); }
+  .name { font-size: 14px; }
+  .value { font-size: 13px; font-variant-numeric: tabular-nums; }
+  .mark { fill: var(--series-1); }
+  .rule { stroke: var(--rule); stroke-width: 1; }
+</style>
+<g class="viz">
+  <rect width="900" height="328" fill="var(--surface-1)"/>
+  <text class="title" x="24" y="34">The pyramid, measured: many fast tests at the bottom, one slow one at the top</text>
+  <text class="sub" x="24" y="56">Each level run on its own; wall time is the whole process (start-up, environment, browser), as CI pays it.</text>
+  <text class="head" x="330" y="90" text-anchor="middle">Tests per level</text>
+  <text class="head" x="560" y="90">Wall time per level</text>
+  <line class="rule" x1="560" x2="560" y1="100" y2="282"/>
+  <text class="name" x="24" y="122">End to end</text>
+  <rect class="mark" x="325.5" y="104" width="9.1" height="26" rx="4.0"><title>End to end: 1 tests</title></rect>
+  <text class="value" x="342.54545454545456" y="122">1</text>
+  <rect class="mark" x="560.0" y="104" width="190.0" height="26" rx="4.0"><title>End to end: 9.3 s wall time, 1151 ms per test</title></rect>
+  <text class="value" x="758" y="122">9.3 s</text>
+  <text class="muted" x="758" y="137">1151 ms per test</text>
+  <text class="name" x="24" y="168">API + Postgres</text>
+  <rect class="mark" x="293.6" y="150" width="72.7" height="26" rx="4.0"><title>API + Postgres: 8 tests</title></rect>
+  <text class="value" x="374.3636363636364" y="168">8</text>
+  <rect class="mark" x="560.0" y="150" width="115.7" height="26" rx="4.0"><title>API + Postgres: 5.7 s wall time, 85 ms per test</title></rect>
+  <text class="value" x="683.7239382239383" y="168">5.7 s</text>
+  <text class="muted" x="683.7239382239383" y="183">85 ms per test</text>
+  <text class="name" x="24" y="214">Component</text>
+  <rect class="mark" x="284.5" y="196" width="90.9" height="26" rx="4.0"><title>Component: 10 tests</title></rect>
+  <text class="value" x="383.45454545454544" y="214">10</text>
+  <rect class="mark" x="560.0" y="196" width="140.4" height="26" rx="4.0"><title>Component: 6.9 s wall time, 156 ms per test</title></rect>
+  <text class="value" x="708.3807378807379" y="214">6.9 s</text>
+  <text class="muted" x="708.3807378807379" y="229">156 ms per test</text>
+  <text class="name" x="24" y="260">Unit</text>
+  <rect class="mark" x="180.0" y="242" width="300.0" height="26" rx="4.0"><title>Unit: 33 tests</title></rect>
+  <text class="value" x="488" y="260">33</text>
+  <rect class="mark" x="560.0" y="242" width="95.1" height="26" rx="4.0"><title>Unit: 4.7 s wall time, 2 ms per test</title></rect>
+  <text class="value" x="663.1426426426426" y="260">4.7 s</text>
+  <text class="muted" x="663.1426426426426" y="275">1.8 ms per test</text>
+</g>
+</svg>
