@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1460" height="930" viewBox="0 0 1460 930" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">Step 4: target architecture (containers)</text>
+<rect x="80" y="90" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="170.0" y="116.0" font-size="16" text-anchor="middle">Member</text><text x="170.0" y="136.0" font-size="16" text-anchor="middle">(browser)</text>
+<rect x="300" y="90" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="390.0" y="116.0" font-size="16" text-anchor="middle">Employer admin</text><text x="390.0" y="136.0" font-size="16" text-anchor="middle">(browser)</text>
+<rect x="520" y="90" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="610.0" y="116.0" font-size="16" text-anchor="middle">Staff</text><text x="610.0" y="136.0" font-size="16" text-anchor="middle">(browser)</text>
+<rect x="40" y="200" width="1100" height="480" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="226.0" font-size="18" text-anchor="start" font-weight="bold">Portal platform</text>
+<rect x="80" y="250" width="1020" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="590.0" y="286.0" font-size="16" text-anchor="middle" font-weight="bold">Routing facade (strangler): new or legacy, per path</text>
+<rect x="80" y="350" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="210.0" y="381.0" font-size="16" text-anchor="middle">New portal</text><text x="210.0" y="401.0" font-size="16" text-anchor="middle">Next.js, React, SSR</text>
+<rect x="80" y="460" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="210.0" y="491.0" font-size="16" text-anchor="middle">API + domain</text><text x="210.0" y="511.0" font-size="16" text-anchor="middle">Node, TypeScript, REST</text>
+<rect x="80" y="570" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="210.0" y="601.0" font-size="16" text-anchor="middle">PostgreSQL</text><text x="210.0" y="621.0" font-size="16" text-anchor="middle">RLS, outbox table</text>
+<rect x="420" y="350" width="280" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="560.0" y="381.0" font-size="16" text-anchor="middle">Object storage</text><text x="560.0" y="401.0" font-size="16" text-anchor="middle">PDF statements</text>
+<rect x="420" y="460" width="280" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="560.0" y="491.0" font-size="16" text-anchor="middle">Job workers</text><text x="560.0" y="511.0" font-size="16" text-anchor="middle">imports, PDF, email</text>
+<rect x="780" y="350" width="320" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="940.0" y="381.0" font-size="16" text-anchor="middle">Legacy app</text><text x="940.0" y="401.0" font-size="16" text-anchor="middle">(shrinking)</text>
+<rect x="780" y="460" width="320" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="940.0" y="501.0" font-size="16" text-anchor="middle">Legacy database</text>
+<rect x="780" y="570" width="320" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="940.0" y="601.0" font-size="16" text-anchor="middle">Sync old &lt;-&gt; new</text><text x="940.0" y="621.0" font-size="16" text-anchor="middle">outbox / CDC, reconcile</text>
+<rect x="1200" y="250" width="220" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1310.0" y="276.0" font-size="16" text-anchor="middle">Identity provider</text><text x="1310.0" y="296.0" font-size="16" text-anchor="middle">OIDC, MFA</text>
+<rect x="1200" y="570" width="220" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1310.0" y="611.0" font-size="16" text-anchor="middle">Finance / payroll</text>
+<text x="40.0" y="731.0" font-size="16" text-anchor="start" font-weight="bold">Outside the platform</text>
+<rect x="300" y="760" width="240" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="420.0" y="796.0" font-size="16" text-anchor="middle">Email service</text>
+<rect x="580" y="760" width="240" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="700.0" y="786.0" font-size="16" text-anchor="middle">Employer files</text><text x="700.0" y="806.0" font-size="16" text-anchor="middle">upload / SFTP</text>
+<line x1="170" y1="150" x2="590" y2="250" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="390" y1="150" x2="590" y2="250" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="610" y1="150" x2="590" y2="250" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="1100" y1="280" x2="1200" y2="280" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="1099.0" y="269.3" width="102.1" height="21.5" fill="#ffffff"/>
+<text x="1150.0" y="285.3" font-size="14" text-anchor="middle">OIDC sign-in</text>
+<line x1="590" y1="310" x2="210" y2="350" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="590" y1="310" x2="940" y2="350" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<line x1="210" y1="420" x2="210" y2="460" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="210" y1="530" x2="210" y2="570" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="340" y1="495" x2="420" y2="495" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="560" y1="460" x2="560" y2="420" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="940" y1="420" x2="940" y2="460" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<line x1="940" y1="530" x2="940" y2="570" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)" marker-start="url(#head-start)"/>
+<line x1="340" y1="605" x2="780" y2="605" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)" marker-start="url(#head-start)"/>
+<line x1="560" y1="530" x2="420" y2="760" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="700" y1="760" x2="560" y2="530" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="1100" y1="605" x2="1200" y2="605" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="1122.5" y="594.3" width="55.0" height="21.5" fill="#ffffff"/>
+<text x="1150.0" y="610.3" font-size="14" text-anchor="middle">events</text>
+<text x="40.0" y="866.0" font-size="16" text-anchor="start">Boring on purpose: one language (TypeScript), one database engine, one deployable portal.</text><text x="40.0" y="886.0" font-size="16" text-anchor="start">Every arrow is a decision worth one line in an ADR.</text></svg>

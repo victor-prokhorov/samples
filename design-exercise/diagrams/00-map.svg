@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="730" viewBox="0 0 1180 730" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">The case on one page: 13 steps in 3 phases</text>
+<rect x="40" y="90" width="340" height="420" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Understand</text>
+<rect x="60" y="140" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="210.0" y="171.0" font-size="16" text-anchor="middle">0  Frame the problem</text><text x="210.0" y="191.0" font-size="16" text-anchor="middle">assumptions, open questions</text>
+<rect x="60" y="230" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="210.0" y="261.0" font-size="16" text-anchor="middle">1  Gather information</text><text x="210.0" y="281.0" font-size="16" text-anchor="middle">sources, stakeholders, legacy</text>
+<rect x="60" y="320" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="210.0" y="351.0" font-size="16" text-anchor="middle">2  Map journeys</text><text x="210.0" y="371.0" font-size="16" text-anchor="middle">as-is pain, to-be flow</text>
+<rect x="60" y="410" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="210.0" y="441.0" font-size="16" text-anchor="middle">3  Write requirements</text><text x="210.0" y="461.0" font-size="16" text-anchor="middle">acceptance criteria, MVP</text>
+<rect x="420" y="90" width="340" height="600" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="430.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Design</text>
+<rect x="440" y="140" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="590.0" y="171.0" font-size="16" text-anchor="middle">4  Architecture</text><text x="590.0" y="191.0" font-size="16" text-anchor="middle">containers, choices, ADRs</text>
+<rect x="440" y="230" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="590.0" y="261.0" font-size="16" text-anchor="middle">5  Multi-tenancy + data</text><text x="590.0" y="281.0" font-size="16" text-anchor="middle">org isolation, data model</text>
+<rect x="440" y="320" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="590.0" y="351.0" font-size="16" text-anchor="middle">6  Security</text><text x="590.0" y="371.0" font-size="16" text-anchor="middle">identity, roles, data, ops</text>
+<rect x="440" y="410" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="590.0" y="441.0" font-size="16" text-anchor="middle">7  Accessibility</text><text x="590.0" y="461.0" font-size="16" text-anchor="middle">WCAG / RGAA by design</text>
+<rect x="440" y="500" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="590.0" y="531.0" font-size="16" text-anchor="middle">8  Documents</text><text x="590.0" y="551.0" font-size="16" text-anchor="middle">PDF statement pipeline</text>
+<rect x="440" y="590" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="590.0" y="621.0" font-size="16" text-anchor="middle">9  Integrations</text><text x="590.0" y="641.0" font-size="16" text-anchor="middle">IdP, legacy, files, email</text>
+<rect x="800" y="90" width="340" height="330" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="810.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Deliver</text>
+<rect x="820" y="140" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="970.0" y="171.0" font-size="16" text-anchor="middle">10  Migration</text><text x="970.0" y="191.0" font-size="16" text-anchor="middle">legacy to new, slice by slice</text>
+<rect x="820" y="230" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="970.0" y="261.0" font-size="16" text-anchor="middle">11  Operate + measure</text><text x="970.0" y="281.0" font-size="16" text-anchor="middle">runbooks, KPIs</text>
+<rect x="820" y="320" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="970.0" y="351.0" font-size="16" text-anchor="middle">12  Plan + risks</text><text x="970.0" y="371.0" font-size="16" text-anchor="middle">phases, top risks, next</text>
+<line x1="380" y1="300" x2="420" y2="390" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<line x1="760" y1="390" x2="800" y2="255" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="800.0" y="476.0" font-size="16" text-anchor="start">Each step answers four questions:</text><text x="800.0" y="496.0" font-size="16" text-anchor="start">What do we do?</text><text x="800.0" y="516.0" font-size="16" text-anchor="start">Why (which user need or rule)?</text><text x="800.0" y="536.0" font-size="16" text-anchor="start">What is the trade-off?</text><text x="800.0" y="556.0" font-size="16" text-anchor="start">How do we know it worked?</text></svg>

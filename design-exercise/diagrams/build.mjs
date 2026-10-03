@@ -1,0 +1,303 @@
+// node diagrams/build.mjs  ->  writes every NN-name.excalidraw and NN-name.svg in this folder.
+// Editing a .excalidraw by hand and rerunning this script overwrites it: keep one source of truth.
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { diagram } from "./lib.mjs";
+
+const here = dirname(fileURLToPath(import.meta.url));
+
+// 00. The whole case on one page
+diagram("00-map", "The case on one page: 13 steps in 3 phases")
+  .frame("understand", 40, 90, 340, 420, "Understand")
+  .box("s0", 60, 140, 300, 70, "0  Frame the problem\nassumptions, open questions")
+  .box("s1", 60, 230, 300, 70, "1  Gather information\nsources, stakeholders, legacy")
+  .box("s2", 60, 320, 300, 70, "2  Map journeys\nas-is pain, to-be flow")
+  .box("s3", 60, 410, 300, 70, "3  Write requirements\nacceptance criteria, MVP")
+  .frame("design", 420, 90, 340, 600, "Design")
+  .box("s4", 440, 140, 300, 70, "4  Architecture\ncontainers, choices, ADRs")
+  .box("s5", 440, 230, 300, 70, "5  Multi-tenancy + data\norg isolation, data model")
+  .box("s6", 440, 320, 300, 70, "6  Security\nidentity, roles, data, ops")
+  .box("s7", 440, 410, 300, 70, "7  Accessibility\nWCAG / RGAA by design")
+  .box("s8", 440, 500, 300, 70, "8  Documents\nPDF statement pipeline")
+  .box("s9", 440, 590, 300, 70, "9  Integrations\nIdP, legacy, files, email")
+  .frame("deliver", 800, 90, 340, 330, "Deliver")
+  .box("s10", 820, 140, 300, 70, "10  Migration\nlegacy to new, slice by slice")
+  .box("s11", 820, 230, 300, 70, "11  Operate + measure\nrunbooks, KPIs")
+  .box("s12", 820, 320, 300, 70, "12  Plan + risks\nphases, top risks, next")
+  .arrow("understand", "design")
+  .arrow("design", "deliver")
+  .text(800, 460, "Each step answers four questions:\nWhat do we do?\nWhy (which user need or rule)?\nWhat is the trade-off?\nHow do we know it worked?")
+  .write(here);
+
+// 01. Information gathering to journeys
+diagram("01-discovery", "Step 1: from information gathering to journeys")
+  .frame("src", 40, 90, 280, 510, "Sources")
+  .box("w", 60, 140, 240, 60, "Workshops with\nbusiness units")
+  .box("i", 60, 215, 240, 60, "Interviews: members,\nemployer admins, staff")
+  .box("l", 60, 290, 240, 60, "Legacy app: screens,\ncode, database")
+  .box("t", 60, 365, 240, 60, "Help desk tickets and\nuser requests")
+  .box("a", 60, 440, 240, 60, "Logs and analytics")
+  .box("r", 60, 515, 240, 60, "Rules, policies,\nregulations")
+  .box("syn", 380, 290, 220, 110, "Synthesise\naffinity map,\nglossary, rule list", { bold: true })
+  .frame("out", 660, 90, 280, 510, "Outputs")
+  .box("p", 680, 140, 240, 70, "Personas\n(3 or 4, real data)")
+  .box("asis", 680, 230, 240, 70, "As-is journeys\n+ pain points")
+  .box("rules", 680, 320, 240, 70, "Business rules\nrecovered from legacy")
+  .box("gl", 680, 410, 240, 70, "Glossary +\ndata owners")
+  .box("q", 680, 500, 240, 70, "Open questions\n+ assumptions")
+  .box("tobe", 1000, 140, 240, 70, "To-be journeys", { bold: true })
+  .box("req", 1000, 290, 240, 70, "Requirements +\nacceptance criteria")
+  .box("bl", 1000, 440, 240, 70, "Backlog\nstory map, MVP first")
+  .arrow("src", "syn")
+  .arrow("syn", "out")
+  .arrow("out", "tobe")
+  .arrow("tobe", "req")
+  .arrow("req", "bl")
+  .text(40, 630, "Loop: play the to-be journeys back to the same people before writing specs.\nEvery requirement points to a journey step; every journey step points to a need you heard.")
+  .write(here);
+
+// 02. Stakeholder map
+diagram("02-stakeholders", "Step 1: stakeholder map (power and interest)")
+  .box("ks", 140, 100, 380, 200, "Keep satisfied\n\nsecurity officer,\ndata protection officer,\nbudget owner")
+  .box("mc", 540, 100, 380, 200, "Manage closely\n\nbusiness owner (benefits team),\ntechnical lead, admins of\nthe largest organisations", { bold: true })
+  .box("mo", 140, 320, 380, 200, "Monitor\n\nexternal providers,\nother IT teams")
+  .box("ki", 540, 320, 380, 200, "Keep informed\n\nmembers, help desk,\nsmaller organisations")
+  .text(40, 190, "high\npower")
+  .text(40, 410, "low\npower")
+  .text(270, 535, "low interest")
+  .text(670, 535, "high interest")
+  .text(40, 590, "For each stakeholder write: what they need from the portal, what they fear,\nwhat decision they own, and how often you meet them.")
+  .write(here);
+
+// 03. One journey as swimlanes
+diagram("03-journey", "Step 2: journey 'change my bank details' (to-be)")
+  .frame("lm", 40, 90, 1240, 130, "Member")
+  .frame("lp", 40, 230, 1240, 130, "Portal")
+  .frame("ls", 40, 370, 1240, 130, "Staff (a second person above a threshold)")
+  .frame("ll", 40, 510, 1240, 130, "Payroll / legacy system")
+  .box("m1", 200, 140, 180, 60, "Signs in (SSO)")
+  .box("m2", 420, 140, 180, 60, "Enters new account\n+ effective date")
+  .box("p1", 640, 280, 180, 60, "Validates, creates\npending request")
+  .box("s1", 860, 420, 180, 60, "Approves\n(four eyes)")
+  .box("l1", 1060, 560, 180, 60, "Applied from\neffective date")
+  .box("p2", 1060, 280, 180, 60, "Audit entry +\nnotification")
+  .box("m3", 1060, 140, 180, 60, "Sees status,\ngets email")
+  .arrow("m1", "m2")
+  .arrow("m2", "p1")
+  .arrow("p1", "s1")
+  .arrow("s1", "l1")
+  .arrow("l1", "p2", { fromSide: "top", toSide: "bottom" })
+  .arrow("p2", "m3", { fromSide: "top", toSide: "bottom" })
+  .text(40, 665, "As-is pain: paper form, three weeks, no status, calls to the help desk.\nMeasure: time to apply, % done online, help desk calls about bank details.")
+  .write(here);
+
+// 04. Architecture
+diagram("04-architecture", "Step 4: target architecture (containers)")
+  .box("um", 80, 90, 180, 60, "Member\n(browser)")
+  .box("ua", 300, 90, 180, 60, "Employer admin\n(browser)")
+  .box("us", 520, 90, 180, 60, "Staff\n(browser)")
+  .frame("plat", 40, 200, 1100, 480, "Portal platform")
+  .box("proxy", 80, 250, 1020, 60, "Routing facade (strangler): new or legacy, per path", { bold: true })
+  .box("web", 80, 350, 260, 70, "New portal\nNext.js, React, SSR")
+  .box("api", 80, 460, 260, 70, "API + domain\nNode, TypeScript, REST")
+  .box("pg", 80, 570, 260, 70, "PostgreSQL\nRLS, outbox table")
+  .box("store", 420, 350, 280, 70, "Object storage\nPDF statements")
+  .box("jobs", 420, 460, 280, 70, "Job workers\nimports, PDF, email")
+  .box("legacy", 780, 350, 320, 70, "Legacy app\n(shrinking)", { dashed: true })
+  .box("ldb", 780, 460, 320, 70, "Legacy database", { dashed: true })
+  .box("sync", 780, 570, 320, 70, "Sync old <-> new\noutbox / CDC, reconcile", { dashed: true })
+  .box("idp", 1200, 250, 220, 60, "Identity provider\nOIDC, MFA")
+  .box("fin", 1200, 570, 220, 70, "Finance / payroll")
+  .text(40, 715, "Outside the platform", { bold: true })
+  .box("smtp", 300, 760, 240, 60, "Email service")
+  .box("files", 580, 760, 240, 60, "Employer files\nupload / SFTP")
+  .arrow("um", "proxy", { toSide: "top" })
+  .arrow("ua", "proxy", { toSide: "top" })
+  .arrow("us", "proxy", { toSide: "top" })
+  .arrow("proxy", "idp", { label: "OIDC sign-in" })
+  .arrow("proxy", "web", { fromSide: "bottom", toSide: "top" })
+  .arrow("proxy", "legacy", { fromSide: "bottom", toSide: "top", dashed: true })
+  .arrow("web", "api")
+  .arrow("api", "pg")
+  .arrow("api", "jobs")
+  .arrow("jobs", "store")
+  .arrow("legacy", "ldb", { dashed: true })
+  .arrow("ldb", "sync", { dashed: true, both: true })
+  .arrow("pg", "sync", { dashed: true, both: true })
+  .arrow("jobs", "smtp", { fromSide: "bottom", toSide: "top" })
+  .arrow("files", "jobs", { fromSide: "top", toSide: "bottom" })
+  .arrow("sync", "fin", { label: "events", dashed: true })
+  .text(40, 850, "Boring on purpose: one language (TypeScript), one database engine, one deployable portal.\nEvery arrow is a decision worth one line in an ADR.")
+  .write(here);
+
+// 05. Multi-tenancy
+diagram("05-multitenancy", "Step 5: multi-tenancy (tenant = partner organisation)")
+  .frame("pool", 40, 90, 360, 440, "Pool: shared tables")
+  .box("p1", 60, 140, 320, 60, "One database, shared tables,\nevery row has org_id")
+  .box("p2", 60, 220, 320, 60, "RLS policy on every table:\norg_id = current org")
+  .box("p3", 60, 300, 320, 60, "+ cheap, one migration,\nthousands of tenants")
+  .box("p4", 60, 380, 320, 60, "- one missing policy leaks,\nnoisy neighbours", { dashed: true })
+  .frame("bridge", 440, 90, 360, 440, "Bridge: schema per org")
+  .box("b1", 460, 140, 320, 60, "Same tables in each schema:\norg_acme, org_globex, ...")
+  .box("b2", 460, 220, 320, 60, "One role per org: SET LOCAL\nrole + search_path")
+  .box("b3", 460, 300, 320, 60, "+ per-org export, restore,\nclear boundaries")
+  .box("b4", 460, 380, 320, 60, "- N migrations, catalog bloat\npast a few hundred", { dashed: true })
+  .frame("silo", 840, 90, 360, 440, "Silo: database per org")
+  .box("s1", 860, 140, 320, 60, "One database per org,\nrouter picks the connection")
+  .box("s2", 860, 220, 320, 60, "Own backup, region,\ncapacity, deletion")
+  .box("s3", 860, 300, 320, 60, "+ strongest isolation,\neasy to delete a tenant")
+  .box("s4", 860, 380, 320, 60, "- cost and operations\ngrow with each tenant", { dashed: true })
+  .text(40, 545, "About forty organisations, one product, same features: pool with RLS by default; a silo only for one that demands it.")
+  .frame("flow", 40, 600, 1160, 150, "Request flow in the pool")
+  .box("f1", 60, 650, 200, 70, "Sign-in token\nsub, org, role")
+  .box("f2", 290, 650, 200, 70, "Server session\n(org from IdP)")
+  .box("f3", 520, 650, 220, 70, "BEGIN;\nSET LOCAL app.org")
+  .box("f4", 770, 650, 180, 70, "Query, no\nWHERE org_id")
+  .box("f5", 980, 650, 200, 70, "RLS filters rows\napp is not owner")
+  .arrow("f1", "f2")
+  .arrow("f2", "f3")
+  .arrow("f3", "f4")
+  .arrow("f4", "f5")
+  .text(40, 775, "Rule: the tenant comes from the session, never from the URL, a header or a form field.")
+  .write(here);
+
+// 06. Data model
+diagram("06-data-model", "Step 5: data model (every table starts with org_id)")
+  .box("org", 40, 90, 260, 130, "organisation\n----\nid PK\nname\ndefault language", { align: "left" })
+  .box("mem", 380, 90, 280, 170, "member\n----\norg_id, id PK\nsub (from the IdP) UNIQUE\nname, email\nlanguage", { align: "left" })
+  .box("con", 740, 90, 300, 150, "contribution\n----\norg_id, member_id, period PK\namount\nbatch_id FK", { align: "left" })
+  .box("bat", 740, 300, 300, 150, "import_batch\n----\norg_id, id PK\nfile sha256 UNIQUE\nstatus, control total", { align: "left" })
+  .box("chg", 380, 320, 280, 190, "change_request\n----\norg_id, id PK, member_id\nkind, payload\nstatus (state machine)\nrequested_by, approved_by\none pending per kind", { align: "left" })
+  .box("stm", 40, 300, 260, 170, "statement\n----\norg_id, member_id,\nyear PK\nstorage key, sha256\nsent_at, downloaded_at", { align: "left" })
+  .box("aud", 40, 540, 260, 130, "audit_log (append-only)\n----\nwho, what, when\nbefore, after\nreason", { align: "left" })
+  .box("box", 380, 570, 280, 110, "outbox\n----\nevent, payload\npublished_at", { align: "left" })
+  .arrow("org", "mem", { label: "1..n" })
+  .arrow("mem", "con", { label: "1..n" })
+  .arrow("bat", "con", { label: "writes" })
+  .arrow("mem", "chg", { label: "1..n" })
+  .arrow("mem", "stm", { label: "1 per year" })
+  .arrow("chg", "aud", { dashed: true, label: "same tx" })
+  .arrow("chg", "box", { dashed: true, label: "same tx" })
+  .text(40, 705, "Keys and indexes lead with org_id. Foreign keys include org_id, so a row cannot point into another organisation.")
+  .write(here);
+
+// 07. PDF pipeline
+diagram("07-pdf-pipeline", "Step 8: yearly statements, a resumable PDF pipeline")
+  .box("snap", 40, 120, 180, 80, "Freeze data\nsnapshot per year")
+  .box("jobs", 260, 120, 180, 80, "Create jobs\n1 per member+year")
+  .box("work", 480, 120, 180, 80, "Workers claim\nSKIP LOCKED\n+ lease")
+  .box("pdf", 700, 120, 180, 80, "Render PDF\ntemplate, language,\ntagged")
+  .box("store", 920, 120, 180, 80, "Store PDF\nkey + sha256")
+  .box("mail", 1140, 120, 180, 80, "Email a link\nnever the PDF")
+  .box("retry", 480, 290, 180, 80, "Retry with\nbackoff (4xx,\ntimeouts)", { dashed: true })
+  .box("dead", 700, 290, 180, 80, "Dead letters\nafter N attempts,\nfix, then requeue", { dashed: true })
+  .box("report", 920, 290, 180, 80, "Campaign report\nsent, failed, read")
+  .box("dl", 1140, 290, 180, 80, "Member downloads\nsigned in, own\nstatement only")
+  .arrow("snap", "jobs")
+  .arrow("jobs", "work")
+  .arrow("work", "pdf")
+  .arrow("pdf", "store")
+  .arrow("store", "mail")
+  .arrow("work", "retry", { dashed: true })
+  .arrow("retry", "dead", { dashed: true })
+  .arrow("mail", "dl")
+  .arrow("mail", "report", { fromSide: "bottom", toSide: "top" })
+  .frame("before", 40, 420, 620, 170, "Before the run")
+  .box("dry", 60, 470, 280, 90, "Dry run: sample PDFs\nchecked by the business")
+  .box("thr", 360, 470, 280, 90, "Throttle and schedule\nmail limits, help desk ready")
+  .frame("rules", 700, 420, 620, 170, "Rules")
+  .box("r", 720, 460, 580, 110, "Idempotent: a rerun sends nothing twice\nDeterministic: same data, same bytes\nAccessible PDF: tags, language, reading order\nNo personal data in the email body", { align: "left" })
+  .write(here);
+
+// 08. Security
+const sec = diagram("08-security", "Step 6: security, defence in depth");
+[
+  ["Identity", "Single sign-on (OIDC, code + PKCE); MFA for staff and admins;\nthe portal stores no passwords"],
+  ["Authorisation", "Roles per organisation (member, employer admin, staff),\nchecked on every route and every query; 404, not 403"],
+  ["Data isolation", "Row-Level Security by org_id; the app role is not the table owner;\nSET LOCAL per transaction"],
+  ["Application", "OWASP ASVS level 2: validation on the server, CSRF, CSP,\nsafe redirects, parameterised SQL, dependency audit"],
+  ["Sensitive changes", "Four-eyes approval, re-authentication for bank details,\nnotify the old and the new address"],
+  ["Personal data", "GDPR: minimise, retention periods, encryption in transit and at rest,\nerasure that also reaches backups (crypto-shredding)"],
+  ["Operations", "Secrets in a vault, patching, tested backups, append-only audit log,\nalerts on unusual access, incident runbook"],
+].forEach(([name, controls], i) => {
+  const y = 100 + i * 84;
+  sec.box(`n${i}`, 40, y, 220, 64, name, { bold: true }).box(`c${i}`, 280, y, 860, 64, controls, { align: "left" });
+});
+sec.text(40, 700, "Ask for each layer: what is the worst thing one bug here could leak? Then make sure another layer stops it.").write(here);
+
+// 09. Accessibility
+diagram("09-accessibility", "Step 7: accessibility across the whole lifecycle")
+  .box("d", 40, 120, 270, 110, "Design\ncontrast, focus, plain\nlanguage, annotated\ncomponents")
+  .box("b", 350, 120, 270, 110, "Build\nsemantic HTML, labels,\nerrors tied to fields,\nkeyboard first")
+  .box("t", 660, 120, 270, 110, "Test\naxe in CI, keyboard\njourney, screen reader,\nzoom 200%")
+  .box("a", 970, 120, 270, 110, "Audit + declare\nexternal WCAG / RGAA\naudit, accessibility\nstatement")
+  .box("l", 1280, 120, 270, 110, "Listen\nfeedback channel,\nfix backlog, re-test")
+  .box("c", 660, 290, 270, 70, "Continuous: every\nrelease, every sprint", { dashed: true })
+  .arrow("d", "b")
+  .arrow("b", "t")
+  .arrow("t", "a")
+  .arrow("a", "l")
+  .arrow("l", "c", { fromSide: "bottom", toSide: "right", dashed: true })
+  .arrow("c", "d", { fromSide: "left", toSide: "bottom", dashed: true })
+  .frame("chk", 40, 410, 1510, 160, "Checklist for every form")
+  .box("c1", 60, 460, 720, 90, "A visible label on every input, never a placeholder only\nErrors in text, tied to the field with aria-describedby\nAn error summary that takes focus after submit", { align: "left" })
+  .box("c2", 810, 460, 720, 90, "Everything reachable and submittable with the keyboard\nlang on the page, and on parts in the other language\nTargets at least 24 px, text contrast at least 4.5:1", { align: "left" })
+  .write(here);
+
+// 10. Integrations
+diagram("10-integrations", "Step 9: integrations, the core in the middle, adapters at the edge")
+  .box("core", 520, 300, 260, 90, "Portal core\ndomain + API", { bold: true })
+  .box("idp", 520, 100, 260, 70, "Identity provider\nwho, which org, which role")
+  .box("leg", 60, 300, 320, 90, "Legacy system\nbehind an anti-corruption\nlayer")
+  .box("files", 60, 500, 320, 90, "Employer monthly files\nstaging, validate,\nupsert, report")
+  .box("mail", 920, 100, 320, 70, "Email service\ntemplates, bounces")
+  .box("docs", 920, 300, 320, 90, "Document storage\nPDF statements")
+  .box("fin", 920, 500, 320, 90, "Finance / payroll\nevents from the outbox")
+  .box("crm", 520, 520, 260, 70, "Case management\n(user requests)")
+  .arrow("core", "idp", { both: true, label: "OIDC" })
+  .arrow("core", "leg", { both: true, label: "translate" })
+  .arrow("files", "core", { label: "batch" })
+  .arrow("core", "mail")
+  .arrow("core", "docs")
+  .arrow("core", "fin", { label: "outbox" })
+  .arrow("core", "crm", { both: true })
+  .text(40, 630, "For each integration write one line: owner, format, frequency, volume, what happens when it fails,\nwho retries, who is alerted. The core never speaks the legacy model: translate at the edge.")
+  .write(here);
+
+// 11. Migration
+diagram("11-migration", "Step 10: from legacy to new, strangle, never big-bang")
+  .box("p0", 40, 120, 230, 110, "0  Prepare\nfacade in front of\nlegacy, SSO,\ncharacterise rules")
+  .box("p1", 300, 120, 230, 110, "1  Read-only\nprofile, contributions\n(synced from legacy)")
+  .box("p2", 560, 120, 230, 110, "2  Change requests\nnew owns the writes,\nsync back to legacy")
+  .box("p3", 820, 120, 230, 110, "3  Statements\nPDF pipeline,\nyearly campaign")
+  .box("p4", 1080, 120, 230, 110, "4  Employer imports\nnew format, both\naccepted for a while")
+  .box("p5", 1340, 120, 230, 110, "5  Switch off\nread-only archive,\nthen delete")
+  .arrow("p0", "p1")
+  .arrow("p1", "p2")
+  .arrow("p2", "p3")
+  .arrow("p3", "p4")
+  .arrow("p4", "p5")
+  .frame("every", 40, 290, 1530, 180, "At every phase")
+  .box("e1", 60, 340, 280, 90, "Parallel run\ncompare old and new")
+  .box("e2", 370, 340, 280, 90, "Feature flag per org\npilot with two first")
+  .box("e3", 680, 340, 280, 90, "Rollback in one switch\nat the facade")
+  .box("e4", 990, 340, 280, 90, "Data sync\noutbox / CDC,\ndaily reconciliation")
+  .box("e5", 1300, 340, 250, 90, "Exit criteria\nKPIs met, no\nblocking defect")
+  .text(40, 500, "Don't: freeze the old app and rewrite everything for two years.\nDo: ship one slice at a time to real users; the old app shrinks until it can be switched off.")
+  .write(here);
+
+// 12. Operate and measure
+diagram("12-operate-measure", "Step 11: operate and measure")
+  .frame("ops", 40, 90, 560, 420, "Recurring operations")
+  .box("o1", 60, 140, 520, 70, "Scheduled release\nrunbook, smoke test, one-step rollback", { align: "left" })
+  .box("o2", 60, 225, 520, 70, "Monthly data update\nemployer files: dry run, apply, reconcile", { align: "left" })
+  .box("o3", 60, 310, 520, 70, "Yearly statement campaign\ndry run, throttle, report, dead letters", { align: "left" })
+  .box("o4", 60, 395, 520, 70, "User requests\ntriage, service level, a runbook per type", { align: "left" })
+  .box("rb", 660, 180, 220, 80, "Runbooks\nwritten, versioned,\nexecutable")
+  .box("auto", 660, 330, 220, 80, "Automation\nCI/CD, jobs, alerts")
+  .frame("kpi", 940, 90, 500, 420, "KPIs (each with a target and an owner)")
+  .box("k", 960, 140, 460, 340, "Adoption: active members / eligible\nTask success: changes done online\nTime to apply a change (p50, p95)\nAvailability against the SLO\nOpen accessibility issues\nHelp desk calls per 1,000 members\nImport files accepted first time\nStatements delivered and read", { align: "left" })
+  .arrow("ops", "rb")
+  .arrow("rb", "auto")
+  .arrow("auto", "kpi", { label: "measure" })
+  .write(here);
