@@ -1,0 +1,2 @@
+# The collector's raw store (every span of the last run); the traces worth reading are copied to out/.
+.collector/

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1220" height="640" viewBox="0 0 1220 640" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">37. Authorization: one policy, a matrix, the same rules in RLS</text>
+<rect x="40" y="110" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="170.0" y="141.0" font-size="16" text-anchor="middle">before: 8 handlers, 10 role checks,</text><text x="170.0" y="161.0" font-size="16" text-anchor="middle">one route with none</text>
+<rect x="450" y="110" width="220" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="560.0" y="141.0" font-size="16" text-anchor="middle">Postgres as table owner</text><text x="560.0" y="161.0" font-size="16" text-anchor="middle">checks nothing</text>
+<rect x="40" y="270" width="140" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="110.0" y="301.0" font-size="16" text-anchor="middle">request</text><text x="110.0" y="321.0" font-size="16" text-anchor="middle">x-user: ana</text>
+<rect x="230" y="270" width="170" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="315.0" y="301.0" font-size="16" text-anchor="middle">route declares</text><text x="315.0" y="321.0" font-size="16" text-anchor="middle">its action</text>
+<rect x="450" y="260" width="250" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="575.0" y="291.0" font-size="16" text-anchor="middle">can(user, action, resource)</text><text x="575.0" y="311.0" font-size="16" text-anchor="middle">RBAC roles + ABAC conditions</text><text x="575.0" y="331.0" font-size="16" text-anchor="middle">deny by default</text>
+<rect x="760" y="270" width="160" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="840.0" y="301.0" font-size="16" text-anchor="middle">handler</text><text x="840.0" y="321.0" font-size="16" text-anchor="middle">as role app</text>
+<rect x="1000" y="270" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1090.0" y="301.0" font-size="16" text-anchor="middle">Postgres RLS</text><text x="1090.0" y="321.0" font-size="16" text-anchor="middle">the same rules</text>
+<rect x="450" y="440" width="250" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="575.0" y="471.0" font-size="16" text-anchor="middle">matrix, generated</text><text x="575.0" y="491.0" font-size="16" text-anchor="middle">out/matrix.md + .html</text>
+<rect x="1000" y="440" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1090.0" y="471.0" font-size="16" text-anchor="middle">tests: expectations,</text><text x="1090.0" y="491.0" font-size="16" text-anchor="middle">code = RLS per cell</text>
+<polyline points="300,145 450,145" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="325.5" y="134.3" width="99.0" height="21.5" fill="#ffffff"/>
+<text x="375.0" y="150.3" font-size="14" text-anchor="middle">7 of 63 wrong</text>
+<polyline points="180,305 230,305" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="400,305 450,305" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="700,305 760,305" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="708.5" y="294.3" width="43.0" height="21.5" fill="#ffffff"/>
+<text x="730.0" y="310.3" font-size="14" text-anchor="middle">allow</text>
+<polyline points="920,305 1000,305" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="945.5" y="294.3" width="29.0" height="21.5" fill="#ffffff"/>
+<text x="960.0" y="310.3" font-size="14" text-anchor="middle">SQL</text>
+<polyline points="575,350 575,440" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="536.0" y="384.3" width="78.0" height="21.5" fill="#ffffff"/>
+<text x="575.0" y="400.3" font-size="14" text-anchor="middle">every cell</text>
+<polyline points="700,475 1000,475" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1090,340 1090,440" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="576.0" font-size="16" text-anchor="start">Before, each handler checks roles its own way and the database trusts the app. After, one policy decides,</text><text x="40.0" y="596.0" font-size="16" text-anchor="start">the matrix is generated from it, and RLS enforces the same rules: a bug in the code is refused by the database.</text></svg>
