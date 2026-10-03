@@ -1,31 +1,31 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1610" height="580" viewBox="0 0 1610 580" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">Step 10: from legacy to new, strangle, never big-bang</text>
-<rect x="40" y="120" width="230" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="155.0" y="151.0" font-size="16" text-anchor="middle">0  Prepare</text><text x="155.0" y="171.0" font-size="16" text-anchor="middle">facade in front of</text><text x="155.0" y="191.0" font-size="16" text-anchor="middle">legacy, SSO,</text><text x="155.0" y="211.0" font-size="16" text-anchor="middle">characterise rules</text>
-<rect x="300" y="120" width="230" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="415.0" y="161.0" font-size="16" text-anchor="middle">1  Read-only</text><text x="415.0" y="181.0" font-size="16" text-anchor="middle">profile, contributions</text><text x="415.0" y="201.0" font-size="16" text-anchor="middle">(synced from legacy)</text>
-<rect x="560" y="120" width="230" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="675.0" y="161.0" font-size="16" text-anchor="middle">2  Change requests</text><text x="675.0" y="181.0" font-size="16" text-anchor="middle">new owns the writes,</text><text x="675.0" y="201.0" font-size="16" text-anchor="middle">sync back to legacy</text>
-<rect x="820" y="120" width="230" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="935.0" y="161.0" font-size="16" text-anchor="middle">3  Statements</text><text x="935.0" y="181.0" font-size="16" text-anchor="middle">PDF pipeline,</text><text x="935.0" y="201.0" font-size="16" text-anchor="middle">yearly campaign</text>
-<rect x="1080" y="120" width="230" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="1195.0" y="161.0" font-size="16" text-anchor="middle">4  Employer imports</text><text x="1195.0" y="181.0" font-size="16" text-anchor="middle">new format, both</text><text x="1195.0" y="201.0" font-size="16" text-anchor="middle">accepted for a while</text>
-<rect x="1340" y="120" width="230" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="1455.0" y="161.0" font-size="16" text-anchor="middle">5  Switch off</text><text x="1455.0" y="181.0" font-size="16" text-anchor="middle">read-only archive,</text><text x="1455.0" y="201.0" font-size="16" text-anchor="middle">then delete</text>
-<line x1="270" y1="175" x2="300" y2="175" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<line x1="530" y1="175" x2="560" y2="175" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<line x1="790" y1="175" x2="820" y2="175" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<line x1="1050" y1="175" x2="1080" y2="175" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<line x1="1310" y1="175" x2="1340" y2="175" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<rect x="40" y="290" width="1530" height="180" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
-<text x="50.0" y="316.0" font-size="18" text-anchor="start" font-weight="bold">At every phase</text>
-<rect x="60" y="340" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="200.0" y="381.0" font-size="16" text-anchor="middle">Parallel run</text><text x="200.0" y="401.0" font-size="16" text-anchor="middle">compare old and new</text>
-<rect x="370" y="340" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="510.0" y="381.0" font-size="16" text-anchor="middle">Feature flag per org</text><text x="510.0" y="401.0" font-size="16" text-anchor="middle">pilot with two first</text>
-<rect x="680" y="340" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="820.0" y="381.0" font-size="16" text-anchor="middle">Rollback in one switch</text><text x="820.0" y="401.0" font-size="16" text-anchor="middle">at the facade</text>
-<rect x="990" y="340" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="1130.0" y="371.0" font-size="16" text-anchor="middle">Data sync</text><text x="1130.0" y="391.0" font-size="16" text-anchor="middle">outbox / CDC,</text><text x="1130.0" y="411.0" font-size="16" text-anchor="middle">daily reconciliation</text>
-<rect x="1300" y="340" width="250" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="1425.0" y="371.0" font-size="16" text-anchor="middle">Exit criteria</text><text x="1425.0" y="391.0" font-size="16" text-anchor="middle">KPIs met, no</text><text x="1425.0" y="411.0" font-size="16" text-anchor="middle">blocking defect</text>
-<text x="40.0" y="516.0" font-size="16" text-anchor="start">Don't: freeze the old app and rewrite everything for two years.</text><text x="40.0" y="536.0" font-size="16" text-anchor="start">Do: ship one slice at a time to real users; the old app shrinks until it can be switched off.</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1000" height="790" viewBox="0 0 1000 790" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">Step 10: from legacy to new, strangle, never big-bang</text>
+<rect x="40" y="100" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="45.0" y="126.0" font-size="16" text-anchor="start">0  Prepare (months 1-3)</text><text x="45.0" y="146.0" font-size="16" text-anchor="start">facade, sign-in for both, account linking,</text><text x="45.0" y="166.0" font-size="16" text-anchor="start">characterise the legacy rules</text>
+<rect x="40" y="200" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="45.0" y="236.0" font-size="16" text-anchor="start">1  Read-only (months 3-6)</text><text x="45.0" y="256.0" font-size="16" text-anchor="start">profile and contributions from synced data</text>
+<rect x="40" y="300" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="45.0" y="326.0" font-size="16" text-anchor="start">2  Change requests (months 6-10)</text><text x="45.0" y="346.0" font-size="16" text-anchor="start">new portal and staff queue own them,</text><text x="45.0" y="366.0" font-size="16" text-anchor="start">write-back to legacy through the outbox</text>
+<rect x="40" y="400" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="45.0" y="426.0" font-size="16" text-anchor="start">3  Statements (months 10-13)</text><text x="45.0" y="446.0" font-size="16" text-anchor="start">PDF pipeline; the campaign in month 13</text><text x="45.0" y="466.0" font-size="16" text-anchor="start">is a fixed date (fallback: legacy once more)</text>
+<rect x="40" y="500" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="45.0" y="526.0" font-size="16" text-anchor="start">4  Employer imports (months 12-16)</text><text x="45.0" y="546.0" font-size="16" text-anchor="start">pilot with three, then waves of six or seven;</text><text x="45.0" y="566.0" font-size="16" text-anchor="start">both formats accepted for a while</text>
+<rect x="40" y="600" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="45.0" y="626.0" font-size="16" text-anchor="start">5  Switch off (month 17)</text><text x="45.0" y="646.0" font-size="16" text-anchor="start">read-only archive, then delete;</text><text x="45.0" y="666.0" font-size="16" text-anchor="start">end of support in month 18</text>
+<polyline points="250,180 250,200" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="250,280 250,300" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="250,380 250,400" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="250,480 250,500" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="250,580 250,600" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="500" y="90" width="460" height="590" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="510.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">At every phase</text>
+<rect x="520" y="140" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="730.0" y="176.0" font-size="16" text-anchor="middle">Parallel run for reads and calculations;</text><text x="730.0" y="196.0" font-size="16" text-anchor="middle">shadow run for writes and emails</text>
+<rect x="520" y="245" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="730.0" y="281.0" font-size="16" text-anchor="middle">Feature flag per organisation,</text><text x="730.0" y="301.0" font-size="16" text-anchor="middle">pilot with three first</text>
+<rect x="520" y="350" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="730.0" y="386.0" font-size="16" text-anchor="middle">Rollback in one switch</text><text x="730.0" y="406.0" font-size="16" text-anchor="middle">at the facade</text>
+<rect x="520" y="455" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="730.0" y="491.0" font-size="16" text-anchor="middle">One owner per entity; sync by</text><text x="730.0" y="511.0" font-size="16" text-anchor="middle">outbox or CDC, reconciled daily</text>
+<rect x="520" y="560" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="730.0" y="596.0" font-size="16" text-anchor="middle">Exit criteria: KPIs met,</text><text x="730.0" y="616.0" font-size="16" text-anchor="middle">no blocking defect</text>
+<text x="40.0" y="726.0" font-size="16" text-anchor="start">Don't: freeze the old app and rewrite everything for two years.</text><text x="40.0" y="746.0" font-size="16" text-anchor="start">Do: ship one slice at a time to real users; the old app shrinks until it can be switched off.</text></svg>

@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="980" height="780" viewBox="0 0 980 780" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">Step 6: security, defence in depth</text>
+<rect x="40" y="100" width="200" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="140.0" y="138.0" font-size="16" text-anchor="middle">Identity</text>
+<rect x="260" y="100" width="680" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="265.0" y="128.0" font-size="16" text-anchor="start">The operator's identity provider: OIDC code + PKCE, state, nonce;</text><text x="265.0" y="148.0" font-size="16" text-anchor="start">MFA for staff and admins; employer admins may federate; no passwords stored</text>
+<rect x="40" y="184" width="200" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="140.0" y="222.0" font-size="16" text-anchor="middle">Authorisation</text>
+<rect x="260" y="184" width="680" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="265.0" y="212.0" font-size="16" text-anchor="start">Roles per organisation (member, employer admin, staff), checked on</text><text x="265.0" y="232.0" font-size="16" text-anchor="start">every route and every query; another member's request answers 404</text>
+<rect x="40" y="268" width="200" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="140.0" y="306.0" font-size="16" text-anchor="middle">Data isolation</text>
+<rect x="260" y="268" width="680" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="265.0" y="296.0" font-size="16" text-anchor="start">RLS on every table (ENABLE + FORCE), app role not the owner, NOBYPASSRLS;</text><text x="265.0" y="316.0" font-size="16" text-anchor="start">org set per transaction; parameterised SQL (RLS does not stop injection)</text>
+<rect x="40" y="352" width="200" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="140.0" y="390.0" font-size="16" text-anchor="middle">Application</text>
+<rect x="260" y="352" width="680" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="265.0" y="380.0" font-size="16" text-anchor="start">OWASP ASVS level 2: server-side validation, CSRF, CSP, safe redirects</text><text x="265.0" y="400.0" font-size="16" text-anchor="start">(same-origin relative paths only), dependency audit in CI</text>
+<rect x="40" y="436" width="200" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="140.0" y="474.0" font-size="16" text-anchor="middle">Sensitive changes</text>
+<rect x="260" y="436" width="680" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="265.0" y="464.0" font-size="16" text-anchor="start">Re-authentication with MFA; notice to the contact details on file at</text><text x="265.0" y="484.0" font-size="16" text-anchor="start">request time; 48 h hold; second staff approval above the threshold</text>
+<rect x="40" y="520" width="200" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="140.0" y="558.0" font-size="16" text-anchor="middle">Personal data</text>
+<rect x="260" y="520" width="680" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="265.0" y="548.0" font-size="16" text-anchor="start">GDPR: minimise, keep what the law requires, erase the rest (backups by</text><text x="265.0" y="568.0" font-size="16" text-anchor="start">crypto-shredding); DPIA, processor agreements, no production data in test</text>
+<rect x="40" y="604" width="200" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="140.0" y="642.0" font-size="16" text-anchor="middle">Operations</text>
+<rect x="260" y="604" width="680" height="64" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="265.0" y="632.0" font-size="16" text-anchor="start">Secrets in a vault, patching, tested backups, append-only audit log,</text><text x="265.0" y="652.0" font-size="16" text-anchor="start">alerts on unusual access, incident runbook</text>
+<text x="40.0" y="716.0" font-size="16" text-anchor="start">Ask for each layer: what is the worst thing one bug here could leak?</text><text x="40.0" y="736.0" font-size="16" text-anchor="start">Then make sure another layer stops it.</text></svg>

@@ -1,30 +1,33 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="745" viewBox="0 0 1320 745" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">Step 2: journey 'change my bank details' (to-be)</text>
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1320" height="765" viewBox="0 0 1320 765" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">Step 2: journey 'change my bank details' (to-be)</text>
 <rect x="40" y="90" width="1240" height="130" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
 <text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Member</text>
 <rect x="40" y="230" width="1240" height="130" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
 <text x="50.0" y="256.0" font-size="18" text-anchor="start" font-weight="bold">Portal</text>
 <rect x="40" y="370" width="1240" height="130" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
-<text x="50.0" y="396.0" font-size="18" text-anchor="start" font-weight="bold">Staff (a second person above a threshold)</text>
+<text x="50.0" y="396.0" font-size="18" text-anchor="start" font-weight="bold">Staff (two different people above the threshold)</text>
 <rect x="40" y="510" width="1240" height="130" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
 <text x="50.0" y="536.0" font-size="18" text-anchor="start" font-weight="bold">Payroll / legacy system</text>
-<rect x="200" y="140" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="290.0" y="176.0" font-size="16" text-anchor="middle">Signs in (SSO)</text>
-<rect x="420" y="140" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="510.0" y="166.0" font-size="16" text-anchor="middle">Enters new account</text><text x="510.0" y="186.0" font-size="16" text-anchor="middle">+ effective date</text>
-<rect x="640" y="280" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="730.0" y="306.0" font-size="16" text-anchor="middle">Validates, creates</text><text x="730.0" y="326.0" font-size="16" text-anchor="middle">pending request</text>
-<rect x="860" y="420" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="950.0" y="446.0" font-size="16" text-anchor="middle">Approves</text><text x="950.0" y="466.0" font-size="16" text-anchor="middle">(four eyes)</text>
-<rect x="1060" y="560" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="1150.0" y="586.0" font-size="16" text-anchor="middle">Applied from</text><text x="1150.0" y="606.0" font-size="16" text-anchor="middle">effective date</text>
-<rect x="1060" y="280" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="1150.0" y="306.0" font-size="16" text-anchor="middle">Audit entry +</text><text x="1150.0" y="326.0" font-size="16" text-anchor="middle">notification</text>
-<rect x="1060" y="140" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="1150.0" y="166.0" font-size="16" text-anchor="middle">Sees status,</text><text x="1150.0" y="186.0" font-size="16" text-anchor="middle">gets email</text>
-<line x1="380" y1="170" x2="420" y2="170" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<line x1="510" y1="200" x2="730" y2="280" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<line x1="730" y1="340" x2="950" y2="420" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<line x1="950" y1="480" x2="1150" y2="560" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<line x1="1150" y1="560" x2="1150" y2="340" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<line x1="1150" y1="280" x2="1150" y2="200" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
-<text x="40.0" y="681.0" font-size="16" text-anchor="start">As-is pain: paper form, three weeks, no status, calls to the help desk.</text><text x="40.0" y="701.0" font-size="16" text-anchor="start">Measure: time to apply, % done online, help desk calls about bank details.</text></svg>
+<rect x="180" y="130" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="270.0" y="171.0" font-size="16" text-anchor="middle">Signs in (SSO)</text>
+<rect x="400" y="130" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="490.0" y="161.0" font-size="16" text-anchor="middle">Re-authenticates</text><text x="490.0" y="181.0" font-size="16" text-anchor="middle">with MFA</text>
+<rect x="620" y="130" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="710.0" y="161.0" font-size="16" text-anchor="middle">Enters new account</text><text x="710.0" y="181.0" font-size="16" text-anchor="middle">+ effective date</text>
+<rect x="1060" y="130" width="200" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1160.0" y="161.0" font-size="16" text-anchor="middle">Sees the status;</text><text x="1160.0" y="181.0" font-size="16" text-anchor="middle">email when applied</text>
+<rect x="620" y="270" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="710.0" y="301.0" font-size="16" text-anchor="middle">Validates, creates</text><text x="710.0" y="321.0" font-size="16" text-anchor="middle">pending request</text>
+<rect x="840" y="270" width="200" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="940.0" y="301.0" font-size="16" text-anchor="middle">Audit entry + notice</text><text x="940.0" y="321.0" font-size="16" text-anchor="middle">to contacts on file</text>
+<rect x="840" y="410" width="200" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="940.0" y="431.0" font-size="16" text-anchor="middle">Approves; above</text><text x="940.0" y="451.0" font-size="16" text-anchor="middle">1,000.00 a month a</text><text x="940.0" y="471.0" font-size="16" text-anchor="middle">second person too</text>
+<rect x="840" y="550" width="200" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="940.0" y="571.0" font-size="16" text-anchor="middle">Applied from the</text><text x="940.0" y="591.0" font-size="16" text-anchor="middle">effective date,</text><text x="940.0" y="611.0" font-size="16" text-anchor="middle">after a 48 h hold</text>
+<polyline points="360,165 400,165" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="580,165 620,165" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="710,200 710,270" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="800,305 840,305" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="940,340 940,410" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="940,480 940,550" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1040,585 1160,585 1160,200" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="681.0" font-size="16" text-anchor="start">As-is pain: paper form, three weeks, no status, calls to the help desk.</text><text x="40.0" y="701.0" font-size="16" text-anchor="start">Measure (target): bank change applied within 5 working days p95 (hold included), 80% requested online,</text><text x="40.0" y="721.0" font-size="16" text-anchor="start">help desk calls about bank details down 40%.</text></svg>
