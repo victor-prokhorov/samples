@@ -1,0 +1,17 @@
+C4Context
+    title Member portal: system context
+    Person(member, "Member", "Employee of a partner organisation")
+    Person(hr, "Employer administrator", "HR at one of about forty employers")
+    Person(staff, "Support staff", "Processes change requests")
+    System(portal, "Member portal", "Profile, contributions, change requests, statements, monthly uploads")
+    System_Ext(idp, "Identity provider", "OpenID Connect, MFA")
+    System_Ext(mail, "Email service", "Notifications")
+    System_Ext(legacy, "Legacy portal", "Until decommissioned")
+    System_Ext(payroll, "Employer payroll", "Produces the monthly file")
+    Rel(member, portal, "Uses", "HTTPS")
+    Rel(hr, portal, "Uploads files, views members", "HTTPS")
+    Rel(staff, portal, "Works the queue", "HTTPS")
+    Rel(portal, idp, "Authenticates users", "OIDC")
+    Rel(portal, mail, "Sends notifications", "SMTP")
+    Rel(portal, legacy, "Syncs data during migration", "CDC / outbox")
+    Rel(payroll, hr, "Exports file")

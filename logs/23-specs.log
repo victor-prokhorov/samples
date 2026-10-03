@@ -1,4 +1,4 @@
-# 23-specs run 2026-10-02T17:06:03Z
+# 23-specs run 2026-10-03T11:26:51Z
 == fresh Postgres (docker compose down -v && up) ==
  Container 23-specs-postgres-1 Healthy 
 setup: members, bank_accounts (one row per effective date), change_requests, approvals, spec_results (the traceability matrix)
@@ -86,7 +86,7 @@ Failures:
 
 13 scenarios (6 failed, 7 passed)
 84 steps (6 failed, 3 skipped, 75 passed)
-0m00.480s (executing steps: 0m00.416s)
+0m00.412s (executing steps: 0m00.348s)
    cucumber-js exit code (IMPL=naive): 1
 
 ## 2. Traceability for the naive run
@@ -255,7 +255,7 @@ Feature: Request a change of bank details # features/change-bank-details.feature
 
 13 scenarios (13 passed)
 84 steps (84 passed)
-0m00.554s (executing steps: 0m00.466s)
+0m00.404s (executing steps: 0m00.336s)
    cucumber-js exit code (IMPL=domain): 0
 
 ## 4. Traceability for the domain run
@@ -306,5 +306,5 @@ Feature: Request a change of bank details # features/change-bank-details.feature
 == proof: raw Cucumber messages, one per line (the input of the traceability report) ==
    envelopes by type: {"meta":1,"source":1,"gherkinDocument":1,"pickle":13,"hook":2,"stepDefinition":8,"testRunStarted":1,"testCase":13,"testCaseStarted":13,"testStepStarted":97,"testStepFinished":97,"testCaseFinished":13,"testRunHookStarted":1,"testRunHookFinished":1,"testRunFinished":1}
    one outline example as a pickle (scenario id + example row id, tags inherited from the Rule):
-   {"name":"One approval is enough up to the threshold, not above it","astNodeIds":["d7273d16-54c0-4fbc-80ea-fbca9e09e609","9045b72e-aea5-4e9e-bad5-38ce95c81fa5"],"tags":["@REQ-02"],"steps":["today is 2026-03-10","member \"alice\" is paid 800.00 a month into \"GB00ACME00000011111111\"","member \"bob\" is paid 2400.00 a month into \"GB00ACME00000022222222\"","member \"carmen\" is paid 999.99 a month into \"GB00ACME00000011111111\"","\"carmen\" requests to be paid into \"FR7600000000000000033333333\" from 2026-04-01","\"carol\" approves the request","the request is \"approved\""]}
-   {"testRunFinished":{"testRunStartedId":"ea55023f-6af8-47a8-b46e-0b45e165b5e4","timestamp":{"seconds":1790960773,"nanos":976000000},"success":true}}
+   {"name":"One approval is enough up to the threshold, not above it","astNodeIds":["88e5d870-5af8-4a3b-8987-895fe7cc8af3","eb52c223-7114-4641-a6cc-f66046e8a56c"],"tags":["@REQ-02"],"steps":["today is 2026-03-10","member \"alice\" is paid 800.00 a month into \"GB00ACME00000011111111\"","member \"bob\" is paid 2400.00 a month into \"GB00ACME00000022222222\"","member \"carmen\" is paid 999.99 a month into \"GB00ACME00000011111111\"","\"carmen\" requests to be paid into \"FR7600000000000000033333333\" from 2026-04-01","\"carol\" approves the request","the request is \"approved\""]}
+   {"testRunFinished":{"testRunStartedId":"5dccb3f4-a85a-4c74-87dd-d5a6fbe19c1a","timestamp":{"seconds":1791026819,"nanos":630000000},"success":true}}

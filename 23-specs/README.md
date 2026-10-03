@@ -33,6 +33,7 @@ npm run demo                     # both runs, then the traceability matrix for e
 - `src/trace.ts` reads `--format message` output (ndjson): Rules and their `@REQ` tags, pickles, test cases, step results; rolls scenario results up to requirements.
 - `src/demo.ts` runs Cucumber twice and prints and stores the traceability matrix.
 - `cucumber.mjs` the Cucumber configuration (feature paths, step definitions, default formatter).
+- `reports/naive.ndjson`, `reports/domain.ndjson` the Cucumber message streams of the last run, committed: the input of the traceability report.
 
 ## Concepts
 

@@ -1,4 +1,4 @@
-# 30-pipeline run 2026-10-02T17:17:29Z
+# 30-pipeline run 2026-10-03T11:27:00Z
 == fresh state: no pipeline state, cache, artifacts or deployments ==
 node v22.22.0, gitlab-ci-local 4.76.0, shell executor (no Docker images)
 == demo: .gitlab-ci.yml run locally by gitlab-ci-local, one copy of the project per job ==
@@ -27,48 +27,48 @@ node v22.22.0, gitlab-ci-local 4.76.0, shell executor (no Docker images)
    lint      >   13:14  error  Expected '===' and instead saw '=='          eqeqeq
    lint      > ✖ 3 problems (3 errors, 0 warnings)
     FAIL  lint
-   lint      finished in 6.6 s  FAIL 1
-   pipeline finished in 7.14 s
+   lint      finished in 6.65 s  FAIL 1
+   pipeline finished in 7.32 s
 
 ## 4. The fix: the same pipeline passes
    concept: each job runs in its own copy of the project (shell isolation), restores the npm cache keyed on package-lock.json, and hands its files to later jobs as artifacts
-   lint      > added 182 packages in 5s
+   lint      > added 182 packages in 4s
    lint      $ npm run lint
-   lint      cache created in '.gitlab-ci-local/cache/0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 465 ms
-   typecheck imported cache '0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 471 ms
-   typecheck > added 182 packages in 4s
+   lint      cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 500 ms
+   typecheck imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 463 ms
+   typecheck > added 182 packages in 3s
    typecheck $ npm run typecheck
-   typecheck cache created in '.gitlab-ci-local/cache/0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 86 ms
-   unit      imported cache '0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 501 ms
-   a11y      imported cache '0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 903 ms
+   typecheck cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 86 ms
+   unit      imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 341 ms
+   a11y      imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 866 ms
    unit      > added 182 packages in 5s
    unit      $ npx vitest run --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
-   a11y      > added 182 packages in 4s
+   a11y      > added 182 packages in 5s
    a11y      $ npm run a11y
    unit      >       Tests  4 passed (4)
    unit      > JUNIT report written to .gitlab-ci-local/builds/unit/reports/junit.xml
-   unit      cache created in '.gitlab-ci-local/cache/0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 88 ms
+   unit      cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 102 ms
    unit      exported artifacts in 68 ms
    a11y      > axe-core 4.13.0 on the statement page: 7 rules passed, 0 violated
-   a11y      cache created in '.gitlab-ci-local/cache/0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 88 ms
-   a11y      exported artifacts in 68 ms
-   audit     imported cache '0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 516 ms
-   audit     > added 182 packages in 4s
+   a11y      cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 82 ms
+   a11y      exported artifacts in 66 ms
+   audit     imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 202 ms
+   audit     > added 182 packages in 3s
    audit     $ npm run audit
    audit     > found 0 vulnerabilities
-   audit     cache created in '.gitlab-ci-local/cache/0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 86 ms
-   build     imported cache '0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 347 ms
-   build     > added 182 packages in 4s
+   audit     cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 84 ms
+   build     imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 491 ms
+   build     > added 182 packages in 3s
    build     $ npm run build
-   build     cache created in '.gitlab-ci-local/cache/0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 88 ms
-   build     exported artifacts in 67 ms
+   build     cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 84 ms
+   build     exported artifacts in 61 ms
     PASS  lint
     PASS  typecheck
     PASS  unit
     PASS  a11y
     PASS  audit
     PASS  build
-   pipeline finished in 33 s
+   pipeline finished in 31 s
 
 ## 5. A scheduled pipeline deploys
    concept: the deploy job needs build (it downloads dist/ from it), runs in the production environment, one at a time (resource_group), and switches a symlink so the release goes live atomically
@@ -81,7 +81,7 @@ node v22.22.0, gitlab-ci-local 4.76.0, shell executor (no Docker images)
    deploy    > smoke ok
    deploy    $ ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
    deploy    $ echo "deployed $RELEASE to $DEPLOY_DIR/current"
-   deploy    > deployed scheduled-c0c37da4-1002 to .deploy/current
+   deploy    > deployed scheduled-ae86480c-1002 to .deploy/current
     PASS  lint
     PASS  typecheck
     PASS  unit
@@ -89,8 +89,8 @@ node v22.22.0, gitlab-ci-local 4.76.0, shell executor (no Docker images)
     PASS  audit
     PASS  build
     PASS  deploy
-   pipeline finished in 35 s
-   .deploy/current -> releases/scheduled-c0c37da4-1002
+   pipeline finished in 32 s
+   .deploy/current -> releases/scheduled-ae86480c-1002
 
 ## 6. A release tag deploys too, and the previous release stays for rollback
    concept: gitlab-ci-local --needs deploy runs deploy and what it depends on (build, which has no needs:, so every earlier stage); rolling back is pointing current at the previous release
@@ -103,8 +103,8 @@ node v22.22.0, gitlab-ci-local 4.76.0, shell executor (no Docker images)
     PASS  audit
     PASS  build
     PASS  deploy
-   pipeline finished in 46 s
-   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"c0c37da4c4b5b22752072cda0e1c87f115fa5c10","source":"push"}; previous releases/scheduled-c0c37da4-1002 still on disk: true
+   pipeline finished in 31 s
+   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"ae86480c3905853f94533f548518f4e25ab8e5f7","source":"push"}; previous releases/scheduled-ae86480c-1002 still on disk: true
 
 ## 7. The same pipeline on GitHub Actions
    concept: github-actions/ci.yml (not under .github/, so it does not run here) has the same jobs, commands in the same order, runners and deploy triggers; stages become needs, rules become if and on:, resource_group becomes concurrency, runner tags become runs-on labels
@@ -124,30 +124,30 @@ node v22.22.0, gitlab-ci-local 4.76.0, shell executor (no Docker images)
 
 == proof: the unit job's JUnit artifact (GitLab shows it in the merge request) ==
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="4" failures="0" errors="0" time="0.038496245">
-    <testsuite name="src/statement.test.ts" timestamp="2026-10-02T17:19:34.501Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.038496245">
-        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; sums only the requested year" time="0.002440865">
+<testsuites name="vitest tests" tests="4" failures="0" errors="0" time="0.025666051">
+    <testsuite name="src/statement.test.ts" timestamp="2026-10-03T11:28:40.539Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.025666051">
+        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; sums only the requested year" time="0.002436756">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; is zero for a year without contributions" time="0.004484884">
+        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; is zero for a year without contributions" time="0.000369336">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in English" time="0.02858342">
+        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in English" time="0.020524446">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in French" time="0.000705079">
+        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in French" time="0.000651939">
         </testcase>
     </testsuite>
 </testsuites>
 == proof: deployments (one directory per release, current is a symlink) ==
 .deploy:
 total 4
-lrwxrwxrwx 1 root root   15 Oct  2 17:19 current -> releases/v1.4.0
-drwxr-xr-x 4 root root 4096 Oct  2 17:19 releases
+lrwxrwxrwx 1 root root   15 Oct  3 11:28 current -> releases/v1.4.0
+drwxr-xr-x 4 root root 4096 Oct  3 11:28 releases
 
 .deploy/releases:
 total 8
-drwxr-xr-x 2 root root 4096 Oct  2 17:19 scheduled-c0c37da4-1002
-drwxr-xr-x 2 root root 4096 Oct  2 17:19 v1.4.0
-.deploy/releases/scheduled-c0c37da4-1002: {"release":"scheduled-c0c37da4-1002","commit":"c0c37da4c4b5b22752072cda0e1c87f115fa5c10","source":"schedule"}
-.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"c0c37da4c4b5b22752072cda0e1c87f115fa5c10","source":"push"}
+drwxr-xr-x 2 root root 4096 Oct  3 11:28 scheduled-ae86480c-1002
+drwxr-xr-x 2 root root 4096 Oct  3 11:28 v1.4.0
+.deploy/releases/scheduled-ae86480c-1002: {"release":"scheduled-ae86480c-1002","commit":"ae86480c3905853f94533f548518f4e25ab8e5f7","source":"schedule"}
+.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"ae86480c3905853f94533f548518f4e25ab8e5f7","source":"push"}
 == proof: the deploy job's own log, as gitlab-ci-local recorded it ==
 $ RELEASE="${CI_COMMIT_TAG:-scheduled-$CI_COMMIT_SHORT_SHA-$CI_PIPELINE_ID}"
 $ mkdir -p "$DEPLOY_DIR/releases/$RELEASE"

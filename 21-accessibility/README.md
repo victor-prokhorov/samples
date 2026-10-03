@@ -27,6 +27,7 @@ npm run demo     # starts the server itself (stop the one above first), runs the
 - `src/address.ts` the fields and the validation both versions share.
 - `src/server.tsx` GET and POST for `/bad` and `/good`; 422 with the errors, 303 on success.
 - `src/demo.ts` the axe scans (WCAG 2.0, 2.1 and 2.2 A and AA rules), the keyboard journeys, the accessibility tree reads through the Chrome DevTools Protocol, and the findings table with the closest RGAA criterion.
+- `out/` the outputs of the last run, committed: `axe-*.json` (the raw axe results of each page state) and `bad-errors.html`, `good-errors.html` (each form as served after a failed submit).
 
 ## Concepts
 

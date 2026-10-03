@@ -36,6 +36,7 @@ Needs `rsync` (gitlab-ci-local copies the project per job with it).
 - `scripts/compare.ts` parses both pipeline files and compares, per job, the commands in order and the runner, and which triggers (schedule, push, release and non-release tags) deploy.
 - `scripts/demo.ts` drives `gitlab-ci-local`: lists jobs per trigger, a pipeline failing on a lint error, the same pipeline green, a scheduled deploy, a tagged deploy, the comparison of both pipeline files (and of a drifted copy).
 - `eslint.config.js`, `tsconfig.json`, `tsconfig.build.json` lint rules, the typecheck (no emit) and the build (emits `dist/`).
+- `reports/junit.xml`, `reports/a11y.json` the test and accessibility reports of the last pipeline run, committed. `dist/`, `.npm/`, `.gitlab-ci-local/` and `.deploy/` are build output and caches, left out.
 
 ## Concepts
 
@@ -77,21 +78,21 @@ A function that type-checks but breaks three lint rules, appended to `src/statem
    lint      >   13:14  error  Expected '===' and instead saw '=='          eqeqeq
    lint      > ✖ 3 problems (3 errors, 0 warnings)
     FAIL  lint
-   lint      finished in 6.6 s  FAIL 1
-   pipeline finished in 7.14 s
+   lint      finished in 6.65 s  FAIL 1
+   pipeline finished in 7.32 s
 ```
 
 Without the function, the same pipeline passes; from the second job on, each restores the npm cache the previous jobs saved:
 
 ```
-   typecheck imported cache '0_package-lock-19dce0d6a8dcbaaba9ae788ddfc8a76f1c7ad8d4' in 471 ms
+   typecheck imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 463 ms
     PASS  lint
     PASS  typecheck
     PASS  unit
     PASS  a11y
     PASS  audit
     PASS  build
-   pipeline finished in 33 s
+   pipeline finished in 31 s
 ```
 
 A scheduled pipeline, then a release tag, each deploy into their own directory, smoke-tested there before `current` is switched to it; `current` points at the last one and the previous one is kept:
@@ -105,12 +106,12 @@ A scheduled pipeline, then a release tag, each deploy into their own directory, 
    deploy    > smoke ok
    deploy    $ ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
    deploy    $ echo "deployed $RELEASE to $DEPLOY_DIR/current"
-   deploy    > deployed scheduled-c0c37da4-1002 to .deploy/current
-   .deploy/current -> releases/scheduled-c0c37da4-1002
-   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"c0c37da4c4b5b22752072cda0e1c87f115fa5c10","source":"push"}; previous releases/scheduled-c0c37da4-1002 still on disk: true
+   deploy    > deployed scheduled-ae86480c-1002 to .deploy/current
+   .deploy/current -> releases/scheduled-ae86480c-1002
+   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"ae86480c3905853f94533f548518f4e25ab8e5f7","source":"push"}; previous releases/scheduled-ae86480c-1002 still on disk: true
 
-.deploy/releases/scheduled-c0c37da4-1002: {"release":"scheduled-c0c37da4-1002","commit":"c0c37da4c4b5b22752072cda0e1c87f115fa5c10","source":"schedule"}
-.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"c0c37da4c4b5b22752072cda0e1c87f115fa5c10","source":"push"}
+.deploy/releases/scheduled-ae86480c-1002: {"release":"scheduled-ae86480c-1002","commit":"ae86480c3905853f94533f548518f4e25ab8e5f7","source":"schedule"}
+.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"ae86480c3905853f94533f548518f4e25ab8e5f7","source":"push"}
 ```
 
 Both pipeline files run the same commands in the same order, on the same kind of runner, and deploy on the same triggers; a drifted copy of the GitHub file is caught:

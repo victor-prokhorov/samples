@@ -1,5 +1,5 @@
+# build output and caches; reports/ (JUnit, accessibility) is committed
 dist/
-reports/
 .npm/
 .gitlab-ci-local/
 .deploy/

@@ -1,0 +1,18 @@
+sequenceDiagram
+    autonumber
+    actor M as Member
+    participant W as Web application
+    participant I as Identity provider
+    participant D as Database
+    M->>W: GET /contributions (no session)
+    W->>W: create state, nonce, PKCE verifier
+    W-->>M: 302 to IdP /authorize (state, nonce, code_challenge)
+    M->>I: sign in (password + MFA when required)
+    I-->>M: 302 to /callback?code&state
+    M->>W: GET /callback?code&state
+    W->>W: check state matches the one in the pre-login cookie
+    W->>I: POST /token (code, code_verifier)
+    I-->>W: ID token + access token
+    W->>W: validate ID token (signature, issuer, audience, expiry, nonce)
+    W->>D: find user by subject, load roles and employer
+    W-->>M: 302 to /contributions, session cookie (HttpOnly, Secure, SameSite=Lax)

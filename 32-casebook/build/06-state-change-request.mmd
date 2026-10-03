@@ -1,0 +1,13 @@
+stateDiagram-v2
+    [*] --> submitted: member submits (REQ-04, REQ-05)
+    submitted --> cancelled: member cancels
+    submitted --> in_review: staff picks it up (REQ-11)
+    in_review --> rejected: staff rejects, reason required
+    in_review --> approved: address approved
+    in_review --> awaiting_second_approval: bank details, first approval
+    awaiting_second_approval --> approved: a different staff member approves (REQ-05)
+    awaiting_second_approval --> rejected: second approver rejects
+    approved --> applied: effective date reached, data changed and audited (REQ-12)
+    rejected --> [*]
+    cancelled --> [*]
+    applied --> [*]

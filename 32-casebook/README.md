@@ -36,6 +36,7 @@ Rendering needs a Chromium. Puppeteer reads its path from `PUPPETEER_EXECUTABLE_
 - `src/render.ts` mermaid-cli per diagram, `--no-font-embed`; `puppeteer.json` holds only the browser flags, and puppeteer takes the browser from `PUPPETEER_EXECUTABLE_PATH`.
 - `src/schema.ts` applies the DDL and seed, runs each journey query, compares with its `expect`: a row count, or `error <constraint>` (another error is a mismatch). The user's steps run in a transaction as `portal_app`, under row-level security.
 - `src/demo.ts` the seven steps and their checks.
+- `build/` the intermediate files of the last run, committed: one `.mmd` per diagram as handed to mermaid-cli, `build/draft/*.svg` the flawed draft's diagrams that did render, and `build/nogrant/05-data-model.md`, the data model without its `GRANT USAGE ON ALL SEQUENCES` line, for the negative check.
 
 ## Concepts
 
@@ -96,10 +97,10 @@ Nine diagrams rendered:
    casebook/01-discovery.md:32                -> diagrams/01-stakeholder-map.svg          quadrantChart, 7831 bytes
    casebook/02-personas-journeys.md:38        -> diagrams/02-journey-change-address.svg   journey, 18262 bytes
    casebook/04-architecture.md:8              -> diagrams/04-c4-context.svg               c4, 38546 bytes
-   casebook/04-architecture.md:33             -> diagrams/04-c4-container.svg             flowchart-v2, 132467 bytes
+   casebook/04-architecture.md:33             -> diagrams/04-c4-container.svg             flowchart-v2, 132457 bytes
    casebook/04-architecture.md:62             -> diagrams/04-sequence-login.svg           sequence, 32895 bytes
    casebook/04-architecture.md:86             -> diagrams/04-sequence-change-request.svg  sequence, 34893 bytes
-   casebook/05-data-model.md:6                -> diagrams/05-er-model.svg                 er, 195247 bytes
+   casebook/05-data-model.md:6                -> diagrams/05-er-model.svg                 er, 195258 bytes
    casebook/06-change-request-lifecycle.md:6  -> diagrams/06-state-change-request.svg     stateDiagram, 50176 bytes
    casebook/08-migration-plan.md:16           -> diagrams/08-gantt-migration.svg          gantt, 13100 bytes
 ```
