@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>After: GET /employers/acme/dashboard (one join)</title>
+<style>
+  body { font: 13px/1.4 system-ui, sans-serif; margin: 20px 24px; color: #1b1f24; background: #fff; }
+  h1 { font-size: 20px; margin: 0 0 4px; } p { margin: 4px 0 12px; color: #444; }
+  .meta span { margin-right: 18px; } code { font: 12px ui-monospace, monospace; }
+  table { border-collapse: collapse; width: 100%; } td, th { padding: 3px 6px; text-align: left; vertical-align: middle; }
+  .wf td { border-bottom: 1px solid #eef0f2; height: 18px; }
+  .wf .svc { width: 44px; font-weight: 600; } .wf .name { width: 470px; max-width: 470px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wf .lane { position: relative; } .wf .ms { width: 110px; text-align: right; color: #555; white-space: nowrap; }
+  .lane i { position: absolute; top: 4px; height: 12px; border-radius: 2px; }
+  .axis { position: relative; height: 16px; color: #666; font-size: 11px; white-space: nowrap; } .axis span { position: absolute; transform: translateX(-50%); } .nowrap { white-space: nowrap; }
+  .axis span:first-child { transform: none; } .axis span:last-child { transform: translateX(-100%); }
+  i.web { background: #3b6fd8; } i.api { background: #2f9a5d; } i.db { background: #d9822b; } i.error { outline: 2px solid #c62828; }
+  td.web { color: #3b6fd8; } td.api { color: #2f9a5d; } td.db { color: #d9822b; } .err { color: #c62828; }
+  .legend i { display: inline-block; position: static; width: 12px; height: 10px; margin: 0 4px 0 12px; border-radius: 2px; }
+  h2 { font-size: 15px; margin: 18px 0 6px; } .small td { border-bottom: 1px solid #eef0f2; } .num { text-align: right; white-space: nowrap; width: 80px; }
+  .legend { white-space: nowrap; } .small code { word-break: break-all; } .small .nowrap code { word-break: normal; }
+  .lvl-warn { color: #9a6700; font-weight: 600; } .lvl-error { color: #c62828; font-weight: 600; }
+</style></head><body>
+<h1>After: GET /employers/acme/dashboard (one join)</h1>
+<p>The same request after the fix, drawn on the before trace's 3416 ms axis: the comb of per-member queries is gone, one query does the join and the sums.</p>
+<div class="meta"><span>trace <code>dcab29b7afb3e940c77d63689057e7f1</code></span><span>root <b>web GET /employers/:code/dashboard</b></span><span><b>92.7 ms</b> (drawn on a 3416 ms axis)</span><span>5 spans</span><span>2 database queries</span><span class="legend"><i class="web"></i>web<i class="api"></i>api<i class="db"></i>postgres query</span></div>
+<table class="wf"><tr><td></td><td></td><td class="lane"><div class="axis"><span style="left:0%">0 ms</span><span style="left:25%">854 ms</span><span style="left:50%">1708 ms</span><span style="left:75%">2562 ms</span><span style="left:100%">3416 ms</span></div></td><td></td></tr>
+<tr><td class="svc web">web</td><td class="name" style="padding-left:8px" title="GET /employers/:code/dashboard">GET /employers/:code/dashboard</td><td class="lane"><i class="web" style="left:0.000%;width:max(1px,2.714%)"></i></td><td class="ms">92.7 ms</td></tr>
+<tr><td class="svc web">web</td><td class="name" style="padding-left:22px" title="GET /api/employers/acme/members">GET /api/employers/acme/members</td><td class="lane"><i class="web" style="left:0.029%;width:max(1px,2.647%)"></i></td><td class="ms">90.4 ms</td></tr>
+<tr><td class="svc api">api</td><td class="name" style="padding-left:36px" title="GET /api/employers/:code/members">GET /api/employers/:code/members</td><td class="lane"><i class="api" style="left:0.029%;width:max(1px,2.616%)"></i></td><td class="ms">89.4 ms</td></tr>
+<tr><td class="svc db">api</td><td class="name" style="padding-left:50px" title="SELECT id, name FROM employers WHERE code = $1">SELECT id, name FROM employers WHERE code = $1</td><td class="lane"><i class="db" style="left:0.029%;width:max(1px,0.537%)"></i></td><td class="ms">18.3 ms</td></tr>
+<tr><td class="svc db">api</td><td class="name" style="padding-left:50px" title="SELECT m.id, m.name, coalesce(sum(c.amount), 0) AS total, count(c.member_id)::int AS months, max(c.period)::text AS last_period FROM members m LEFT JOIN contributions c ON c.member_id = m.id WHERE m.employer_id = $1 GROUP BY m.id ORDER BY m.id">SELECT m.id, m.name, coalesce(sum(c.amount), 0) AS total, count(c.member_id)::int AS months, max(c.period)::text AS last_period FROM members m LEFT JOIN contributions c ON c.member_id = m.id WHERE m.employer_id = $1 GROUP BY m.id ORDER BY m.id</td><td class="lane"><i class="db" style="left:0.585%;width:max(1px,1.979%)"></i></td><td class="ms">67.6 ms</td></tr>
+</table>
+<h2>Queries in this trace</h2>
+<table class="small"><tr><th class="num">count</th><th class="num">time</th><th>statement</th></tr><tr><td class="num">1</td><td class="num">67.6 ms</td><td><code>SELECT m.id, m.name, coalesce(sum(c.amount), 0) AS total, count(c.member_id)::int AS months, max(c.period)::text AS last_period
+     FROM members m LEFT JOIN contributions c ON c.member_id = m.id
+     WHERE m.employer_id = $1 GROUP BY m.id ORDER BY m.id</code></td></tr><tr><td class="num">1</td><td class="num">18.3 ms</td><td><code>SELECT id, name FROM employers WHERE code = $1</code></td></tr></table>
+
+<h2>Log lines with this trace id</h2>
+<table class="small"><tr><th>service</th><th>level</th><th>span</th><th>message</th><th>fields</th></tr><tr><td>api</td><td class="lvl-info">info</td><td class="nowrap"><code>23e661840d968b09</code></td><td class="nowrap">employer report built</td><td><code>{&quot;employer&quot;:&quot;acme&quot;,&quot;members&quot;:600,&quot;mode&quot;:&quot;join&quot;}</code></td></tr><tr><td>api</td><td class="lvl-info">info</td><td class="nowrap"><code>23e661840d968b09</code></td><td class="nowrap">request</td><td><code>{&quot;method&quot;:&quot;GET&quot;,&quot;route&quot;:&quot;/api/employers/:code/members&quot;,&quot;path&quot;:&quot;/api/employers/acme/members&quot;,&quot;status&quot;:200,&quot;duration_ms&quot;:89}</code></td></tr><tr><td>web</td><td class="lvl-info">info</td><td class="nowrap"><code>d4011e3bd31d3751</code></td><td class="nowrap">request</td><td><code>{&quot;method&quot;:&quot;GET&quot;,&quot;route&quot;:&quot;/employers/:code/dashboard&quot;,&quot;path&quot;:&quot;/employers/acme/dashboard&quot;,&quot;status&quot;:200,&quot;duration_ms&quot;:92}</code></td></tr></table>
+</body></html>
