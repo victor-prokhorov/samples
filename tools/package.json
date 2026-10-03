@@ -1,0 +1,12 @@
+{
+  "name": "samples-tools",
+  "private": true,
+  "type": "module",
+  "description": "Shared helpers: diagrams as code (Excalidraw + SVG) and PNG rendering for screenshots.",
+  "scripts": {
+    "diagrams": "node diagrams/build-all.mjs"
+  },
+  "dependencies": {
+    "playwright-core": "1.56.1"
+  }
+}
