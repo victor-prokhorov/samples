@@ -1,0 +1,77 @@
+{
+  "member_no": "M0042",
+  "request_id": 4,
+  "generated_at": "2026-10-03T09:00:40Z",
+  "files": [
+    {
+      "file": "README.md",
+      "bytes": 9861,
+      "sha256": "f2defee3bf142e81f5aef5f7cfa6f65797712b0e988ce2ac98c2e981490a8aea"
+    },
+    {
+      "file": "index.html",
+      "bytes": 14433,
+      "sha256": "5729ee7e9fd9443a48511d6cefff7113ed25534e5405cf7f112aa9513b1ffc45"
+    },
+    {
+      "file": "data.json",
+      "bytes": 54173,
+      "sha256": "278764f732b3b6c35c77c378919147ae73ddea780c67e84f8563b086cdf82201"
+    },
+    {
+      "file": "csv/members.csv",
+      "bytes": 266,
+      "sha256": "6021256e4d465a984f63a5101ea0d1431af919703e996e3c14d24795b3038a57"
+    },
+    {
+      "file": "csv/contributions.csv",
+      "bytes": 6384,
+      "sha256": "eafbe2c81ffb51f834c3333aac0299119a2877204b5b0296d1ffc67cdf47747f"
+    },
+    {
+      "file": "csv/bank_accounts.csv",
+      "bytes": 97,
+      "sha256": "7df7f95d5dcd14ba7d9beddd42902ce34386986bfff9ec9cd72a047e952624ab"
+    },
+    {
+      "file": "csv/beneficiaries.csv",
+      "bytes": 79,
+      "sha256": "11eca426a5aad405a9f227ad0010178510f95f158fcf2bd1235beca84ed2b315"
+    },
+    {
+      "file": "csv/consents.csv",
+      "bytes": 125,
+      "sha256": "b79fb7eb5ba1a116e87672ffcb858a319ea960f94eb0ec5a42e2540f74cc5b2a"
+    },
+    {
+      "file": "csv/support_tickets.csv",
+      "bytes": 424,
+      "sha256": "92290189ad32d70d5b0b3c3d5ae414fb58a93cbdb10d9ee28af4e3d61e6ac7ae"
+    },
+    {
+      "file": "csv/credentials.csv",
+      "bytes": 34,
+      "sha256": "b3041bac3ab0d7fc67a8a579586eabe7adf7d26d6d65b66752e94c0712da69ca"
+    },
+    {
+      "file": "csv/sessions.csv",
+      "bytes": 122,
+      "sha256": "21eb64615a63524128c26361462afe870c86cba4b398e21b4b07b588a4462b10"
+    },
+    {
+      "file": "csv/login_events.csv",
+      "bytes": 9816,
+      "sha256": "132e73294b4d9e98cf30402bfee923c58ca157c3fe1ecf2399b40377ed21d646"
+    },
+    {
+      "file": "csv/dsar_requests.csv",
+      "bytes": 290,
+      "sha256": "2079cec8425ff4ac20a402a3865954a283f9f770d90d6b7181874147f8946f37"
+    },
+    {
+      "file": "csv/dsar_events.csv",
+      "bytes": 307,
+      "sha256": "0e680d403455210d8866a0c47de30a31797c3f1a8248a57b0512dae1366470f0"
+    }
+  ]
+}

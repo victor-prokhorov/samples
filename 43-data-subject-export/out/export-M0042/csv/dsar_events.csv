@@ -1,0 +1,5 @@
+request_id,at,event,detail
+3,2025-01-08T21:14:00Z,received,access
+3,2025-01-09T07:30:00Z,completed,export delivered
+4,2026-10-03T09:00:40Z,received,"access (art. 15) and portability (art. 20), through the portal"
+4,2026-10-03T09:00:40Z,identity verified,session re-authenticated 40s earlier (max 300s)

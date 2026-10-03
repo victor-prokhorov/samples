@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1300" height="690" viewBox="0 0 1300 690" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">41. A partner CRM behind an anti-corruption layer</text>
+<rect x="30" y="140" width="210" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="135.0" y="171.0" font-size="16" text-anchor="middle">Fake CRM (OData v4)</text><text x="135.0" y="191.0" font-size="16" text-anchor="middle">PascalCase fields,</text><text x="135.0" y="211.0" font-size="16" text-anchor="middle">option-set codes,</text><text x="135.0" y="231.0" font-size="16" text-anchor="middle">429 / 503, ETags</text>
+<rect x="362" y="100" width="606" height="350" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="372.0" y="126.0" font-size="18" text-anchor="start" font-weight="bold">Anti-corruption layer</text>
+<rect x="380" y="140" width="250" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="505.0" y="171.0" font-size="16" text-anchor="middle">CRM client</text><text x="505.0" y="191.0" font-size="16" text-anchor="middle">paging by @odata.nextLink,</text><text x="505.0" y="211.0" font-size="16" text-anchor="middle">retries honour Retry-After,</text><text x="505.0" y="231.0" font-size="16" text-anchor="middle">If-Match on PATCH</text>
+<rect x="700" y="140" width="250" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="825.0" y="171.0" font-size="16" text-anchor="middle">Translator</text><text x="825.0" y="191.0" font-size="16" text-anchor="middle">fields and codes to</text><text x="825.0" y="211.0" font-size="16" text-anchor="middle">Member, Employer;</text><text x="825.0" y="231.0" font-size="16" text-anchor="middle">domain invariants</text>
+<rect x="380" y="330" width="250" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="505.0" y="366.0" font-size="16" text-anchor="middle">Webhook verifier</text><text x="505.0" y="386.0" font-size="16" text-anchor="middle">HMAC-SHA256, 300 s window,</text><text x="505.0" y="406.0" font-size="16" text-anchor="middle">dedupe by event id</text>
+<rect x="700" y="330" width="250" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="825.0" y="366.0" font-size="16" text-anchor="middle">Quarantine</text><text x="825.0" y="386.0" font-size="16" text-anchor="middle">reasons + raw record</text>
+<rect x="1030" y="140" width="230" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1145.0" y="181.0" font-size="16" text-anchor="middle">Domain</text><text x="1145.0" y="201.0" font-size="16" text-anchor="middle">Member, Employer</text><text x="1145.0" y="221.0" font-size="16" text-anchor="middle">no CRM shapes</text>
+<rect x="1030" y="330" width="230" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1145.0" y="366.0" font-size="16" text-anchor="middle">Postgres local copy</text><text x="1145.0" y="386.0" font-size="16" text-anchor="middle">high-water mark,</text><text x="1145.0" y="406.0" font-size="16" text-anchor="middle">inbox, source links</text>
+<rect x="380" y="500" width="880" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="820.0" y="541.0" font-size="16" text-anchor="middle">Nightly reconciliation: counts and checksums, CRM versus local copy, by employer then by member -&gt; drift report</text>
+<polyline points="240,195 380,195" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="271.0" y="184.3" width="78.0" height="21.5" fill="#ffffff"/>
+<text x="310.0" y="200.3" font-size="14" text-anchor="middle">OData JSON</text>
+<polyline points="630,195 700,195" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="950,195 1030,195" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="825,250 825,330" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="796.5" y="279.3" width="57.0" height="21.5" fill="#ffffff"/>
+<text x="825.0" y="295.3" font-size="14" text-anchor="middle">invalid</text>
+<polyline points="1145,250 1145,330" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="1067.5" y="279.3" width="155.0" height="21.5" fill="#ffffff"/>
+<text x="1145.0" y="295.3" font-size="14" text-anchor="middle">upsert, version guard</text>
+<polyline points="240,247.5 405,330" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="269.5" y="278.0" width="106.0" height="21.5" fill="#ffffff"/>
+<text x="322.5" y="294.0" font-size="14" text-anchor="middle">signed webhook</text>
+<polyline points="505,330 505,250" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="438.0" y="279.3" width="134.0" height="21.5" fill="#ffffff"/>
+<text x="505.0" y="295.3" font-size="14" text-anchor="middle">re-read the record</text>
+<polyline points="1145,500 1145,430" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="1116.5" y="454.3" width="57.0" height="21.5" fill="#ffffff"/>
+<text x="1145.0" y="470.3" font-size="14" text-anchor="middle">compare</text>
+<polyline points="380,535 135,535 135,250" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="106.5" y="524.3" width="57.0" height="21.5" fill="#ffffff"/>
+<text x="135.0" y="540.3" font-size="14" text-anchor="middle">compare</text>
+<text x="40.0" y="626.0" font-size="16" text-anchor="start">Sync and webhooks only see what ModifiedOn and notifications show; reconciliation finds the rest (hard deletes, backdated imports, hand edits).</text><text x="40.0" y="646.0" font-size="16" text-anchor="start">The domain imports nothing from the layer: a checked dependency rule.</text></svg>
