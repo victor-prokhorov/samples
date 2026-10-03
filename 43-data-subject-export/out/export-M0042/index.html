@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Your personal data</title>
+<style>body{font:15px/1.5 system-ui,sans-serif;color:#111;margin:24px auto;max-width:960px;padding:0 16px}h1{font-size:24px}h2{font-size:18px;margin-top:28px;border-bottom:1px solid #ccc;padding-bottom:4px}
+table{border-collapse:collapse;width:100%;margin:8px 0}th,td{border:1px solid #aaa;padding:4px 8px;text-align:left;vertical-align:top}th{background:#eee}code{font-size:13px;background:#f3f3f3;padding:0 3px}</style>
+</head><body>
+<h1>Your personal data: export for member M0042</h1>
+<p>Request #4, received 2026-10-03T09:00:40Z, answered 2026-10-03T09:00:40Z (due by 2026-11-03).</p>
+<p>This export answers your right of access (GDPR article 15) and your right to data portability (article 20).</p>
+<p>Controller: the scheme (fictional). Data protection officer: dpo@example.org.</p>
+<h2>How to read it</h2>
+<ul>
+<li><code>data.json</code> holds everything; each <code>csv/</code> file holds one kind of data, one row per record.</li>
+<li>CSV files are UTF-8, comma-separated, with a header row (RFC 4180). Dates are <code>YYYY-MM-DD</code>; instants are ISO 8601 in UTC; amounts are in euros.</li>
+<li>&quot;Portable&quot; marks the data you gave us or that your use of the portal produced, which we process under your contract or your consent: article 20 lets you take it to another provider.</li>
+</ul>
+<h2>Files</h2>
+<table><thead><tr><th>File</th><th>What it holds</th><th>Rows</th><th>Portable (art. 20)</th></tr></thead><tbody>
+<tr><td><code>data.json</code></td><td>Everything below in one machine-readable file.</td><td></td><td></td></tr>
+<tr><td><code>csv/members.csv</code></td><td>Membership record</td><td>1</td><td>yes</td></tr>
+<tr><td><code>csv/contributions.csv</code></td><td>Contributions</td><td>141</td><td>yes</td></tr>
+<tr><td><code>csv/bank_accounts.csv</code></td><td>Bank account</td><td>1</td><td>yes</td></tr>
+<tr><td><code>csv/beneficiaries.csv</code></td><td>Beneficiaries</td><td>2</td><td>yes</td></tr>
+<tr><td><code>csv/consents.csv</code></td><td>Consents</td><td>2</td><td>no</td></tr>
+<tr><td><code>csv/support_tickets.csv</code></td><td>Support requests</td><td>3</td><td>yes</td></tr>
+<tr><td><code>csv/credentials.csv</code></td><td>Sign-in credentials</td><td>1</td><td>no</td></tr>
+<tr><td><code>csv/sessions.csv</code></td><td>Sign-in sessions</td><td>1</td><td>no</td></tr>
+<tr><td><code>csv/login_events.csv</code></td><td>Sign-in history</td><td>106</td><td>no</td></tr>
+<tr><td><code>csv/dsar_requests.csv</code></td><td>Your data requests</td><td>2</td><td>no</td></tr>
+<tr><td><code>csv/dsar_events.csv</code></td><td>Your data requests: timeline</td><td>4</td><td>no</td></tr>
+<tr><td><code>manifest.json</code></td><td>SHA-256 checksum of every file, to check nothing was altered.</td><td></td><td></td></tr>
+</tbody></table>
+<h2>Membership record (<code>csv/members.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Run your membership of the scheme: identify you, contact you, compute your rights.</li>
+<li>Lawful basis: Contract (art. 6(1)(b)): your membership of the scheme.</li>
+<li>Where it comes from: You, and your employer when you joined.</li>
+<li>Who receives it: Your employer (membership status and dates only).</li>
+<li>How long we keep it: 10 years after leaving the scheme.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>member_no</code></td><td>your member number</td><td>identity</td></tr>
+<tr><td><code>given_name</code></td><td>given name</td><td>identity</td></tr>
+<tr><td><code>family_name</code></td><td>family name</td><td>identity</td></tr>
+<tr><td><code>email</code></td><td>email address</td><td>contact details</td></tr>
+<tr><td><code>phone</code></td><td>phone number</td><td>contact details</td></tr>
+<tr><td><code>birth_date</code></td><td>date of birth</td><td>identity</td></tr>
+<tr><td><code>national_id</code></td><td>social security number</td><td>government identifier</td></tr>
+<tr><td><code>address_line</code></td><td>street address</td><td>contact details</td></tr>
+<tr><td><code>postcode</code></td><td>postcode</td><td>contact details</td></tr>
+<tr><td><code>city</code></td><td>city</td><td>contact details</td></tr>
+<tr><td><code>employer_id</code></td><td>the employer you joined through</td><td>employment</td></tr>
+<tr><td><code>joined_on</code></td><td>date you joined the scheme</td><td>employment</td></tr>
+<tr><td><code>left_on</code></td><td>date you left the scheme, if you have</td><td>employment</td></tr>
+</tbody></table>
+<h2>Contributions (<code>csv/contributions.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Record the contributions paid for you, which your benefits are computed from.</li>
+<li>Lawful basis: Contract (art. 6(1)(b)); kept afterwards under a legal obligation (art. 6(1)(c)) for pension and tax records.</li>
+<li>Where it comes from: Your employer's monthly contribution files.</li>
+<li>Who receives it: Your employer (reconciliation); the tax authority (yearly statement).</li>
+<li>How long we keep it: 10 years after leaving the scheme.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>period</code></td><td>month the contribution is for</td><td>financial</td></tr>
+<tr><td><code>employer_id</code></td><td>employer who paid it</td><td>employment</td></tr>
+<tr><td><code>amount</code></td><td>amount in euros</td><td>financial</td></tr>
+<tr><td><code>recorded_at</code></td><td>when we recorded it</td><td>financial</td></tr>
+</tbody></table>
+<h2>Bank account (<code>csv/bank_accounts.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Pay your benefits and refunds.</li>
+<li>Lawful basis: Contract (art. 6(1)(b)).</li>
+<li>Where it comes from: You.</li>
+<li>Who receives it: Our bank, when a payment is made.</li>
+<li>How long we keep it: 1 year after leaving the scheme.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>iban</code></td><td>IBAN</td><td>financial</td></tr>
+<tr><td><code>holder_name</code></td><td>account holder's name</td><td>financial</td></tr>
+<tr><td><code>updated_at</code></td><td>when you last changed it</td><td>financial</td></tr>
+</tbody></table>
+<h2>Beneficiaries (<code>csv/beneficiaries.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Pay a death benefit to the people you designated.</li>
+<li>Lawful basis: Contract (art. 6(1)(b)).</li>
+<li>Where it comes from: You.</li>
+<li>Who receives it: None outside the scheme until a benefit is paid.</li>
+<li>How long we keep it: 10 years after leaving the scheme.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>full_name</code></td><td>name of the person you designated</td><td>third parties</td></tr>
+<tr><td><code>relationship</code></td><td>their relationship to you</td><td>third parties</td></tr>
+<tr><td><code>share_pct</code></td><td>their share of the benefit, in percent</td><td>third parties</td></tr>
+</tbody></table>
+<h2>Consents (<code>csv/consents.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Prove what you agreed to and when you withdrew it.</li>
+<li>Lawful basis: Legal obligation (art. 6(1)(c) with art. 7(1)): we must be able to show your consent.</li>
+<li>Where it comes from: You, through the portal.</li>
+<li>Who receives it: None.</li>
+<li>How long we keep it: 5 years after consent was withdrawn.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>purpose</code></td><td>what the consent is for</td><td>consent records</td></tr>
+<tr><td><code>given_at</code></td><td>when you gave it</td><td>consent records</td></tr>
+<tr><td><code>withdrawn_at</code></td><td>when you withdrew it, if you did</td><td>consent records</td></tr>
+</tbody></table>
+<h2>Support requests (<code>csv/support_tickets.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Answer your questions and requests.</li>
+<li>Lawful basis: Contract (art. 6(1)(b)).</li>
+<li>Where it comes from: You, and our support staff's answers.</li>
+<li>Who receives it: None.</li>
+<li>How long we keep it: 2 years after the ticket was closed.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td>ticket number</td><td>communications</td></tr>
+<tr><td><code>opened_at</code></td><td>when you opened it</td><td>communications</td></tr>
+<tr><td><code>closed_at</code></td><td>when it was closed</td><td>communications</td></tr>
+<tr><td><code>subject</code></td><td>subject</td><td>communications</td></tr>
+<tr><td><code>body</code></td><td>your message</td><td>communications</td></tr>
+</tbody></table>
+<h2>Sign-in credentials (<code>csv/credentials.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Let you sign in securely.</li>
+<li>Lawful basis: Legitimate interests (art. 6(1)(f)): securing your account.</li>
+<li>Where it comes from: You (your password), the portal.</li>
+<li>Who receives it: None.</li>
+<li>How long we keep it: 1 year after leaving the scheme.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>updated_at</code></td><td>when you last changed your password</td><td>security</td></tr>
+</tbody></table>
+<h2>Sign-in sessions (<code>csv/sessions.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Keep you signed in, and ask for your password again before sensitive actions.</li>
+<li>Lawful basis: Legitimate interests (art. 6(1)(f)): securing your account.</li>
+<li>Where it comes from: Recorded by the portal when you sign in.</li>
+<li>Who receives it: None.</li>
+<li>How long we keep it: 30 days after the session started.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>created_at</code></td><td>when the session started</td><td>online identifiers</td></tr>
+<tr><td><code>auth_time</code></td><td>when you last typed your password in it</td><td>online identifiers</td></tr>
+<tr><td><code>user_agent</code></td><td>your browser, as it described itself</td><td>online identifiers</td></tr>
+</tbody></table>
+<h2>Sign-in history (<code>csv/login_events.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Detect and investigate unauthorised access to your account.</li>
+<li>Lawful basis: Legitimate interests (art. 6(1)(f)): security of the portal.</li>
+<li>Where it comes from: Recorded by the portal when you sign in.</li>
+<li>Who receives it: None.</li>
+<li>How long we keep it: 1 year after the sign-in.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>at</code></td><td>when</td><td>online identifiers</td></tr>
+<tr><td><code>ip</code></td><td>the IP address the request came from</td><td>online identifiers</td></tr>
+<tr><td><code>user_agent</code></td><td>your browser, as it described itself</td><td>online identifiers</td></tr>
+<tr><td><code>outcome</code></td><td>success or failure</td><td>online identifiers</td></tr>
+</tbody></table>
+<h2>Your data requests (<code>csv/dsar_requests.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Answer your requests about your data, within the legal deadline, and show that we did.</li>
+<li>Lawful basis: Legal obligation (art. 6(1)(c) with art. 12 and art. 5(2)).</li>
+<li>Where it comes from: Recorded when you make a request.</li>
+<li>Who receives it: None.</li>
+<li>How long we keep it: 3 years after the request was answered.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td>request number</td><td>request history</td></tr>
+<tr><td><code>kind</code></td><td>what you asked for</td><td>request history</td></tr>
+<tr><td><code>received_at</code></td><td>when we received it</td><td>request history</td></tr>
+<tr><td><code>due_on</code></td><td>the date we must answer by</td><td>request history</td></tr>
+<tr><td><code>verified_by</code></td><td>how we checked it was you</td><td>request history</td></tr>
+<tr><td><code>status</code></td><td>where it stands</td><td>request history</td></tr>
+<tr><td><code>completed_at</code></td><td>when we answered</td><td>request history</td></tr>
+<tr><td><code>export_sha256</code></td><td>SHA-256 of the export we gave you</td><td>request history</td></tr>
+</tbody></table>
+<h2>Your data requests: timeline (<code>csv/dsar_events.csv</code>)</h2>
+<ul>
+<li>Why we hold it: Show each step of handling your requests.</li>
+<li>Lawful basis: Legal obligation (art. 6(1)(c) with art. 5(2)).</li>
+<li>Where it comes from: Recorded while your request is handled.</li>
+<li>Who receives it: None.</li>
+<li>How long we keep it: 3 years after the request was answered.</li>
+</ul>
+<table><thead><tr><th>Column</th><th>Meaning</th><th>Category</th></tr></thead><tbody>
+<tr><td><code>request_id</code></td><td>request number</td><td>request history</td></tr>
+<tr><td><code>at</code></td><td>when</td><td>request history</td></tr>
+<tr><td><code>event</code></td><td>what happened</td><td>request history</td></tr>
+<tr><td><code>detail</code></td><td>details</td><td>request history</td></tr>
+</tbody></table>
+<h2>What is not included, and why</h2>
+<ul>
+<li><code>beneficiaries.birth_date</code>: Personal data of another person (art. 15(4)): you designated them, so their name and share are shown, but not their date of birth.</li>
+<li><code>credentials.password_hash</code>: A secret derived from your password: giving it out would weaken your account's security, and it says nothing about you.</li>
+<li><code>sessions.id_hash</code>: A hash of a live credential: it is left out for your account's security.</li>
+<li>Legal holds (<code>legal_holds</code>): May be restricted while a claim is pending where disclosure would prejudice it (art. 23 and national law); reviewed by the data protection officer case by case.</li>
+<li>Internal keys that only link our tables together are left out.</li>
+</ul>
+<h2>Your other rights</h2>
+<p>You can ask us to correct (art. 16) or erase (art. 17) your data, to restrict its use (art. 18), and you can object to processing based on our legitimate interests (art. 21).</p>
+<p>Data we must keep by law (contributions) is kept until its retention period ends, then deleted or anonymised.</p>
+<p>You can complain to a supervisory authority (art. 77).</p>
+</body></html>

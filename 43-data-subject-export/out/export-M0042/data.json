@@ -1,0 +1,1754 @@
+{
+  "export": {
+    "member_no": "M0042",
+    "request_id": 4,
+    "rights": [
+      "access (GDPR art. 15)",
+      "portability (GDPR art. 20)"
+    ],
+    "received_at": "2026-10-03T09:00:40Z",
+    "generated_at": "2026-10-03T09:00:40Z",
+    "controller": "The scheme (fictional). Data protection officer: dpo@example.org",
+    "format": "UTF-8 JSON; dates YYYY-MM-DD; instants ISO 8601 in UTC; amounts in euros as decimal strings"
+  },
+  "data": {
+    "members": {
+      "title": "Membership record",
+      "purpose": "Run your membership of the scheme: identify you, contact you, compute your rights.",
+      "lawful_basis": "Contract (art. 6(1)(b)): your membership of the scheme.",
+      "source": "You, and your employer when you joined.",
+      "recipients": "Your employer (membership status and dates only).",
+      "retention": "10 years after leaving the scheme",
+      "portable": true,
+      "rows": [
+        {
+          "member_no": "M0042",
+          "given_name": "Alex",
+          "family_name": "Martin",
+          "email": "alex.martin@example.org",
+          "phone": "+33 6 00 00 04 20",
+          "birth_date": "1984-05-17",
+          "national_id": "1 84 05 99 042 000 00",
+          "address_line": "12 rue des Lilas",
+          "postcode": "75011",
+          "city": "Paris",
+          "employer_id": "acme",
+          "joined_on": "2015-01-05",
+          "left_on": null
+        }
+      ]
+    },
+    "contributions": {
+      "title": "Contributions",
+      "purpose": "Record the contributions paid for you, which your benefits are computed from.",
+      "lawful_basis": "Contract (art. 6(1)(b)); kept afterwards under a legal obligation (art. 6(1)(c)) for pension and tax records.",
+      "source": "Your employer's monthly contribution files.",
+      "recipients": "Your employer (reconciliation); the tax authority (yearly statement).",
+      "retention": "10 years after leaving the scheme",
+      "portable": true,
+      "rows": [
+        {
+          "period": "2015-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-02-06T00:00:00Z"
+        },
+        {
+          "period": "2015-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-03-06T00:00:00Z"
+        },
+        {
+          "period": "2015-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-04-06T00:00:00Z"
+        },
+        {
+          "period": "2015-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-05-06T00:00:00Z"
+        },
+        {
+          "period": "2015-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-06-06T00:00:00Z"
+        },
+        {
+          "period": "2015-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-07-06T00:00:00Z"
+        },
+        {
+          "period": "2015-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-08-06T00:00:00Z"
+        },
+        {
+          "period": "2015-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-09-06T00:00:00Z"
+        },
+        {
+          "period": "2015-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-10-06T00:00:00Z"
+        },
+        {
+          "period": "2015-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-11-06T00:00:00Z"
+        },
+        {
+          "period": "2015-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2015-12-06T00:00:00Z"
+        },
+        {
+          "period": "2015-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-01-06T00:00:00Z"
+        },
+        {
+          "period": "2016-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-02-06T00:00:00Z"
+        },
+        {
+          "period": "2016-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-03-06T00:00:00Z"
+        },
+        {
+          "period": "2016-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-04-06T00:00:00Z"
+        },
+        {
+          "period": "2016-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-05-06T00:00:00Z"
+        },
+        {
+          "period": "2016-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-06-06T00:00:00Z"
+        },
+        {
+          "period": "2016-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-07-06T00:00:00Z"
+        },
+        {
+          "period": "2016-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-08-06T00:00:00Z"
+        },
+        {
+          "period": "2016-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-09-06T00:00:00Z"
+        },
+        {
+          "period": "2016-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-10-06T00:00:00Z"
+        },
+        {
+          "period": "2016-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-11-06T00:00:00Z"
+        },
+        {
+          "period": "2016-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2016-12-06T00:00:00Z"
+        },
+        {
+          "period": "2016-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-01-06T00:00:00Z"
+        },
+        {
+          "period": "2017-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-02-06T00:00:00Z"
+        },
+        {
+          "period": "2017-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-03-06T00:00:00Z"
+        },
+        {
+          "period": "2017-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-04-06T00:00:00Z"
+        },
+        {
+          "period": "2017-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-05-06T00:00:00Z"
+        },
+        {
+          "period": "2017-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-06-06T00:00:00Z"
+        },
+        {
+          "period": "2017-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-07-06T00:00:00Z"
+        },
+        {
+          "period": "2017-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-08-06T00:00:00Z"
+        },
+        {
+          "period": "2017-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-09-06T00:00:00Z"
+        },
+        {
+          "period": "2017-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-10-06T00:00:00Z"
+        },
+        {
+          "period": "2017-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-11-06T00:00:00Z"
+        },
+        {
+          "period": "2017-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2017-12-06T00:00:00Z"
+        },
+        {
+          "period": "2017-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-01-06T00:00:00Z"
+        },
+        {
+          "period": "2018-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-02-06T00:00:00Z"
+        },
+        {
+          "period": "2018-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-03-06T00:00:00Z"
+        },
+        {
+          "period": "2018-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-04-06T00:00:00Z"
+        },
+        {
+          "period": "2018-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-05-06T00:00:00Z"
+        },
+        {
+          "period": "2018-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-06-06T00:00:00Z"
+        },
+        {
+          "period": "2018-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-07-06T00:00:00Z"
+        },
+        {
+          "period": "2018-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-08-06T00:00:00Z"
+        },
+        {
+          "period": "2018-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-09-06T00:00:00Z"
+        },
+        {
+          "period": "2018-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-10-06T00:00:00Z"
+        },
+        {
+          "period": "2018-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-11-06T00:00:00Z"
+        },
+        {
+          "period": "2018-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2018-12-06T00:00:00Z"
+        },
+        {
+          "period": "2018-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-01-06T00:00:00Z"
+        },
+        {
+          "period": "2019-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-02-06T00:00:00Z"
+        },
+        {
+          "period": "2019-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-03-06T00:00:00Z"
+        },
+        {
+          "period": "2019-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-04-06T00:00:00Z"
+        },
+        {
+          "period": "2019-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-05-06T00:00:00Z"
+        },
+        {
+          "period": "2019-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-06-06T00:00:00Z"
+        },
+        {
+          "period": "2019-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-07-06T00:00:00Z"
+        },
+        {
+          "period": "2019-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-08-06T00:00:00Z"
+        },
+        {
+          "period": "2019-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-09-06T00:00:00Z"
+        },
+        {
+          "period": "2019-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-10-06T00:00:00Z"
+        },
+        {
+          "period": "2019-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-11-06T00:00:00Z"
+        },
+        {
+          "period": "2019-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2019-12-06T00:00:00Z"
+        },
+        {
+          "period": "2019-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-01-06T00:00:00Z"
+        },
+        {
+          "period": "2020-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-02-06T00:00:00Z"
+        },
+        {
+          "period": "2020-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-03-06T00:00:00Z"
+        },
+        {
+          "period": "2020-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-04-06T00:00:00Z"
+        },
+        {
+          "period": "2020-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-05-06T00:00:00Z"
+        },
+        {
+          "period": "2020-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-06-06T00:00:00Z"
+        },
+        {
+          "period": "2020-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-07-06T00:00:00Z"
+        },
+        {
+          "period": "2020-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-08-06T00:00:00Z"
+        },
+        {
+          "period": "2020-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-09-06T00:00:00Z"
+        },
+        {
+          "period": "2020-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-10-06T00:00:00Z"
+        },
+        {
+          "period": "2020-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-11-06T00:00:00Z"
+        },
+        {
+          "period": "2020-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2020-12-06T00:00:00Z"
+        },
+        {
+          "period": "2020-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-01-06T00:00:00Z"
+        },
+        {
+          "period": "2021-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-02-06T00:00:00Z"
+        },
+        {
+          "period": "2021-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-03-06T00:00:00Z"
+        },
+        {
+          "period": "2021-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-04-06T00:00:00Z"
+        },
+        {
+          "period": "2021-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-05-06T00:00:00Z"
+        },
+        {
+          "period": "2021-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-06-06T00:00:00Z"
+        },
+        {
+          "period": "2021-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-07-06T00:00:00Z"
+        },
+        {
+          "period": "2021-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-08-06T00:00:00Z"
+        },
+        {
+          "period": "2021-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-09-06T00:00:00Z"
+        },
+        {
+          "period": "2021-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-10-06T00:00:00Z"
+        },
+        {
+          "period": "2021-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-11-06T00:00:00Z"
+        },
+        {
+          "period": "2021-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2021-12-06T00:00:00Z"
+        },
+        {
+          "period": "2021-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-01-06T00:00:00Z"
+        },
+        {
+          "period": "2022-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-02-06T00:00:00Z"
+        },
+        {
+          "period": "2022-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-03-06T00:00:00Z"
+        },
+        {
+          "period": "2022-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-04-06T00:00:00Z"
+        },
+        {
+          "period": "2022-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-05-06T00:00:00Z"
+        },
+        {
+          "period": "2022-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-06-06T00:00:00Z"
+        },
+        {
+          "period": "2022-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-07-06T00:00:00Z"
+        },
+        {
+          "period": "2022-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-08-06T00:00:00Z"
+        },
+        {
+          "period": "2022-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-09-06T00:00:00Z"
+        },
+        {
+          "period": "2022-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-10-06T00:00:00Z"
+        },
+        {
+          "period": "2022-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-11-06T00:00:00Z"
+        },
+        {
+          "period": "2022-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2022-12-06T00:00:00Z"
+        },
+        {
+          "period": "2022-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-01-06T00:00:00Z"
+        },
+        {
+          "period": "2023-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-02-06T00:00:00Z"
+        },
+        {
+          "period": "2023-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-03-06T00:00:00Z"
+        },
+        {
+          "period": "2023-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-04-06T00:00:00Z"
+        },
+        {
+          "period": "2023-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-05-06T00:00:00Z"
+        },
+        {
+          "period": "2023-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-06-06T00:00:00Z"
+        },
+        {
+          "period": "2023-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-07-06T00:00:00Z"
+        },
+        {
+          "period": "2023-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-08-06T00:00:00Z"
+        },
+        {
+          "period": "2023-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-09-06T00:00:00Z"
+        },
+        {
+          "period": "2023-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-10-06T00:00:00Z"
+        },
+        {
+          "period": "2023-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-11-06T00:00:00Z"
+        },
+        {
+          "period": "2023-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2023-12-06T00:00:00Z"
+        },
+        {
+          "period": "2023-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-01-06T00:00:00Z"
+        },
+        {
+          "period": "2024-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-02-06T00:00:00Z"
+        },
+        {
+          "period": "2024-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-03-06T00:00:00Z"
+        },
+        {
+          "period": "2024-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-04-06T00:00:00Z"
+        },
+        {
+          "period": "2024-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-05-06T00:00:00Z"
+        },
+        {
+          "period": "2024-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-06-06T00:00:00Z"
+        },
+        {
+          "period": "2024-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-07-06T00:00:00Z"
+        },
+        {
+          "period": "2024-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-08-06T00:00:00Z"
+        },
+        {
+          "period": "2024-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-09-06T00:00:00Z"
+        },
+        {
+          "period": "2024-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-10-06T00:00:00Z"
+        },
+        {
+          "period": "2024-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-11-06T00:00:00Z"
+        },
+        {
+          "period": "2024-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2024-12-06T00:00:00Z"
+        },
+        {
+          "period": "2024-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-01-06T00:00:00Z"
+        },
+        {
+          "period": "2025-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-02-06T00:00:00Z"
+        },
+        {
+          "period": "2025-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-03-06T00:00:00Z"
+        },
+        {
+          "period": "2025-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-04-06T00:00:00Z"
+        },
+        {
+          "period": "2025-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-05-06T00:00:00Z"
+        },
+        {
+          "period": "2025-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-06-06T00:00:00Z"
+        },
+        {
+          "period": "2025-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-07-06T00:00:00Z"
+        },
+        {
+          "period": "2025-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-08-06T00:00:00Z"
+        },
+        {
+          "period": "2025-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-09-06T00:00:00Z"
+        },
+        {
+          "period": "2025-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-10-06T00:00:00Z"
+        },
+        {
+          "period": "2025-10-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-11-06T00:00:00Z"
+        },
+        {
+          "period": "2025-11-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2025-12-06T00:00:00Z"
+        },
+        {
+          "period": "2025-12-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-01-06T00:00:00Z"
+        },
+        {
+          "period": "2026-01-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-02-06T00:00:00Z"
+        },
+        {
+          "period": "2026-02-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-03-06T00:00:00Z"
+        },
+        {
+          "period": "2026-03-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-04-06T00:00:00Z"
+        },
+        {
+          "period": "2026-04-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-05-06T00:00:00Z"
+        },
+        {
+          "period": "2026-05-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-06-06T00:00:00Z"
+        },
+        {
+          "period": "2026-06-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-07-06T00:00:00Z"
+        },
+        {
+          "period": "2026-07-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-08-06T00:00:00Z"
+        },
+        {
+          "period": "2026-08-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-09-06T00:00:00Z"
+        },
+        {
+          "period": "2026-09-01",
+          "employer_id": "acme",
+          "amount": "133.00",
+          "recorded_at": "2026-10-06T00:00:00Z"
+        }
+      ]
+    },
+    "bank_accounts": {
+      "title": "Bank account",
+      "purpose": "Pay your benefits and refunds.",
+      "lawful_basis": "Contract (art. 6(1)(b)).",
+      "source": "You.",
+      "recipients": "Our bank, when a payment is made.",
+      "retention": "1 year after leaving the scheme",
+      "portable": true,
+      "rows": [
+        {
+          "iban": "FR76 0000 0000 0000 0000 0000 042",
+          "holder_name": "Alex Martin",
+          "updated_at": "2015-01-15T00:00:00Z"
+        }
+      ]
+    },
+    "beneficiaries": {
+      "title": "Beneficiaries",
+      "purpose": "Pay a death benefit to the people you designated.",
+      "lawful_basis": "Contract (art. 6(1)(b)).",
+      "source": "You.",
+      "recipients": "None outside the scheme until a benefit is paid.",
+      "retention": "10 years after leaving the scheme",
+      "portable": true,
+      "rows": [
+        {
+          "full_name": "Sam Martin",
+          "relationship": "spouse",
+          "share_pct": 60
+        },
+        {
+          "full_name": "Robin Martin",
+          "relationship": "child",
+          "share_pct": 40
+        }
+      ]
+    },
+    "consents": {
+      "title": "Consents",
+      "purpose": "Prove what you agreed to and when you withdrew it.",
+      "lawful_basis": "Legal obligation (art. 6(1)(c) with art. 7(1)): we must be able to show your consent.",
+      "source": "You, through the portal.",
+      "recipients": "None.",
+      "retention": "5 years after consent was withdrawn",
+      "portable": false,
+      "rows": [
+        {
+          "purpose": "newsletter",
+          "given_at": "2015-01-05T10:12:00Z",
+          "withdrawn_at": null
+        },
+        {
+          "purpose": "research_surveys",
+          "given_at": "2019-03-01T18:40:00Z",
+          "withdrawn_at": "2023-06-12T07:55:00Z"
+        }
+      ]
+    },
+    "support_tickets": {
+      "title": "Support requests",
+      "purpose": "Answer your questions and requests.",
+      "lawful_basis": "Contract (art. 6(1)(b)).",
+      "source": "You, and our support staff's answers.",
+      "recipients": "None.",
+      "retention": "2 years after the ticket was closed",
+      "portable": true,
+      "rows": [
+        {
+          "id": 298,
+          "opened_at": "2023-02-14T09:30:00Z",
+          "closed_at": "2023-02-15T11:00:00Z",
+          "subject": "Change of bank details",
+          "body": "Hello, I changed banks: my new IBAN is in my profile. Alex"
+        },
+        {
+          "id": 299,
+          "opened_at": "2025-04-03T17:05:00Z",
+          "closed_at": "2025-04-07T08:20:00Z",
+          "subject": "Question about my 2024 annual statement",
+          "body": "Hello, March 2024 seems to be missing from my statement. Alex"
+        },
+        {
+          "id": 300,
+          "opened_at": "2026-09-28T20:11:00Z",
+          "closed_at": null,
+          "subject": "What data do you hold about me?",
+          "body": "Hello, I would like a copy of my data. Alex"
+        }
+      ]
+    },
+    "credentials": {
+      "title": "Sign-in credentials",
+      "purpose": "Let you sign in securely.",
+      "lawful_basis": "Legitimate interests (art. 6(1)(f)): securing your account.",
+      "source": "You (your password), the portal.",
+      "recipients": "None.",
+      "retention": "1 year after leaving the scheme",
+      "portable": false,
+      "rows": [
+        {
+          "updated_at": "2024-11-20T19:02:00Z"
+        }
+      ]
+    },
+    "sessions": {
+      "title": "Sign-in sessions",
+      "purpose": "Keep you signed in, and ask for your password again before sensitive actions.",
+      "lawful_basis": "Legitimate interests (art. 6(1)(f)): securing your account.",
+      "source": "Recorded by the portal when you sign in.",
+      "recipients": "None.",
+      "retention": "30 days after the session started",
+      "portable": false,
+      "rows": [
+        {
+          "created_at": "2026-10-03T06:00:00Z",
+          "auth_time": "2026-10-03T09:00:00Z",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0"
+        }
+      ]
+    },
+    "login_events": {
+      "title": "Sign-in history",
+      "purpose": "Detect and investigate unauthorised access to your account.",
+      "lawful_basis": "Legitimate interests (art. 6(1)(f)): security of the portal.",
+      "source": "Recorded by the portal when you sign in.",
+      "recipients": "None.",
+      "retention": "1 year after the sign-in",
+      "portable": false,
+      "rows": [
+        {
+          "at": "2024-10-04T21:06:00Z",
+          "ip": "198.51.100.147",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-10-11T21:06:00Z",
+          "ip": "198.51.100.146",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "failure"
+        },
+        {
+          "at": "2024-10-18T21:06:00Z",
+          "ip": "198.51.100.145",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-10-25T21:06:00Z",
+          "ip": "198.51.100.144",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-11-01T21:06:00Z",
+          "ip": "198.51.100.143",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-11-08T21:06:00Z",
+          "ip": "198.51.100.142",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-11-15T21:06:00Z",
+          "ip": "198.51.100.141",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-11-22T21:06:00Z",
+          "ip": "198.51.100.140",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-11-29T21:06:00Z",
+          "ip": "198.51.100.139",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-12-06T21:06:00Z",
+          "ip": "198.51.100.138",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-12-13T21:06:00Z",
+          "ip": "198.51.100.137",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-12-20T21:06:00Z",
+          "ip": "198.51.100.136",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2024-12-27T21:06:00Z",
+          "ip": "198.51.100.135",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-01-03T21:06:00Z",
+          "ip": "198.51.100.134",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-01-10T21:06:00Z",
+          "ip": "198.51.100.133",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-01-17T21:06:00Z",
+          "ip": "198.51.100.132",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-01-24T21:06:00Z",
+          "ip": "198.51.100.131",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-01-31T21:06:00Z",
+          "ip": "198.51.100.130",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-02-07T21:06:00Z",
+          "ip": "198.51.100.129",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-02-14T21:06:00Z",
+          "ip": "198.51.100.128",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-02-21T21:06:00Z",
+          "ip": "198.51.100.127",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-02-28T21:06:00Z",
+          "ip": "198.51.100.126",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-03-07T21:06:00Z",
+          "ip": "198.51.100.125",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-03-14T21:06:00Z",
+          "ip": "198.51.100.124",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-03-21T21:06:00Z",
+          "ip": "198.51.100.123",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-03-28T21:06:00Z",
+          "ip": "198.51.100.122",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-04-04T21:06:00Z",
+          "ip": "198.51.100.121",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-04-11T21:06:00Z",
+          "ip": "198.51.100.120",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-04-18T21:06:00Z",
+          "ip": "198.51.100.119",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-04-25T21:06:00Z",
+          "ip": "198.51.100.118",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-05-02T21:06:00Z",
+          "ip": "198.51.100.117",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "failure"
+        },
+        {
+          "at": "2025-05-09T21:06:00Z",
+          "ip": "198.51.100.116",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-05-16T21:06:00Z",
+          "ip": "198.51.100.115",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-05-23T21:06:00Z",
+          "ip": "198.51.100.114",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-05-30T21:06:00Z",
+          "ip": "198.51.100.113",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-06-06T21:06:00Z",
+          "ip": "198.51.100.112",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-06-13T21:06:00Z",
+          "ip": "198.51.100.111",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-06-20T21:06:00Z",
+          "ip": "198.51.100.110",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-06-27T21:06:00Z",
+          "ip": "198.51.100.109",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-07-04T21:06:00Z",
+          "ip": "198.51.100.108",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-07-11T21:06:00Z",
+          "ip": "198.51.100.107",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-07-18T21:06:00Z",
+          "ip": "198.51.100.106",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-07-25T21:06:00Z",
+          "ip": "198.51.100.105",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-08-01T21:06:00Z",
+          "ip": "198.51.100.104",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-08-08T21:06:00Z",
+          "ip": "198.51.100.103",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-08-15T21:06:00Z",
+          "ip": "198.51.100.102",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-08-22T21:06:00Z",
+          "ip": "198.51.100.101",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-08-29T21:06:00Z",
+          "ip": "198.51.100.100",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-09-05T21:06:00Z",
+          "ip": "198.51.100.99",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-09-12T21:06:00Z",
+          "ip": "198.51.100.98",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-09-19T21:06:00Z",
+          "ip": "198.51.100.97",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-09-26T21:06:00Z",
+          "ip": "198.51.100.96",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-10-03T21:06:00Z",
+          "ip": "198.51.100.95",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-10-10T21:06:00Z",
+          "ip": "198.51.100.94",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-10-17T21:06:00Z",
+          "ip": "198.51.100.93",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-10-24T21:06:00Z",
+          "ip": "198.51.100.92",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-10-31T21:06:00Z",
+          "ip": "198.51.100.91",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-11-07T21:06:00Z",
+          "ip": "198.51.100.90",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-11-14T21:06:00Z",
+          "ip": "198.51.100.89",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-11-21T21:06:00Z",
+          "ip": "198.51.100.88",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "failure"
+        },
+        {
+          "at": "2025-11-28T21:06:00Z",
+          "ip": "198.51.100.87",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-12-05T21:06:00Z",
+          "ip": "198.51.100.86",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-12-12T21:06:00Z",
+          "ip": "198.51.100.85",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-12-19T21:06:00Z",
+          "ip": "198.51.100.84",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2025-12-26T21:06:00Z",
+          "ip": "198.51.100.83",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-01-02T21:06:00Z",
+          "ip": "198.51.100.82",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-01-09T21:06:00Z",
+          "ip": "198.51.100.81",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-01-16T21:06:00Z",
+          "ip": "198.51.100.80",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-01-23T21:06:00Z",
+          "ip": "198.51.100.79",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-01-30T21:06:00Z",
+          "ip": "198.51.100.78",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-02-06T21:06:00Z",
+          "ip": "198.51.100.77",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-02-13T21:06:00Z",
+          "ip": "198.51.100.76",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-02-20T21:06:00Z",
+          "ip": "198.51.100.75",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-02-27T21:06:00Z",
+          "ip": "198.51.100.74",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-03-06T21:06:00Z",
+          "ip": "198.51.100.73",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-03-13T21:06:00Z",
+          "ip": "198.51.100.72",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-03-20T21:06:00Z",
+          "ip": "198.51.100.71",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-03-27T21:06:00Z",
+          "ip": "198.51.100.70",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-04-03T21:06:00Z",
+          "ip": "198.51.100.69",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-04-10T21:06:00Z",
+          "ip": "198.51.100.68",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-04-17T21:06:00Z",
+          "ip": "198.51.100.67",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-04-24T21:06:00Z",
+          "ip": "198.51.100.66",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-05-01T21:06:00Z",
+          "ip": "198.51.100.65",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-05-08T21:06:00Z",
+          "ip": "198.51.100.64",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-05-15T21:06:00Z",
+          "ip": "198.51.100.63",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-05-22T21:06:00Z",
+          "ip": "198.51.100.62",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-05-29T21:06:00Z",
+          "ip": "198.51.100.61",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-06-05T21:06:00Z",
+          "ip": "198.51.100.60",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-06-12T21:06:00Z",
+          "ip": "198.51.100.59",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "failure"
+        },
+        {
+          "at": "2026-06-19T21:06:00Z",
+          "ip": "198.51.100.58",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-06-26T21:06:00Z",
+          "ip": "198.51.100.57",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-07-03T21:06:00Z",
+          "ip": "198.51.100.56",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-07-10T21:06:00Z",
+          "ip": "198.51.100.55",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-07-17T21:06:00Z",
+          "ip": "198.51.100.54",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-07-24T21:06:00Z",
+          "ip": "198.51.100.53",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-07-31T21:06:00Z",
+          "ip": "198.51.100.52",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-08-07T21:06:00Z",
+          "ip": "198.51.100.51",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-08-14T21:06:00Z",
+          "ip": "198.51.100.50",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-08-21T21:06:00Z",
+          "ip": "198.51.100.49",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-08-28T21:06:00Z",
+          "ip": "198.51.100.48",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-09-04T21:06:00Z",
+          "ip": "198.51.100.47",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-09-11T21:06:00Z",
+          "ip": "198.51.100.46",
+          "user_agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5) Safari/604.1",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-09-18T21:06:00Z",
+          "ip": "198.51.100.45",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-09-25T21:06:00Z",
+          "ip": "198.51.100.44",
+          "user_agent": "Mozilla/5.0 (X11; Linux x86_64) Firefox/141.0",
+          "outcome": "success"
+        },
+        {
+          "at": "2026-10-03T09:00:00Z",
+          "ip": "203.0.113.42",
+          "user_agent": "node",
+          "outcome": "reauth failure"
+        },
+        {
+          "at": "2026-10-03T09:00:00Z",
+          "ip": "203.0.113.42",
+          "user_agent": "node",
+          "outcome": "reauth success"
+        }
+      ]
+    },
+    "dsar_requests": {
+      "title": "Your data requests",
+      "purpose": "Answer your requests about your data, within the legal deadline, and show that we did.",
+      "lawful_basis": "Legal obligation (art. 6(1)(c) with art. 12 and art. 5(2)).",
+      "source": "Recorded when you make a request.",
+      "recipients": "None.",
+      "retention": "3 years after the request was answered",
+      "portable": false,
+      "rows": [
+        {
+          "id": 3,
+          "kind": "access",
+          "received_at": "2025-01-08T21:14:00Z",
+          "due_on": "2025-02-10",
+          "verified_by": "password re-authentication",
+          "status": "completed",
+          "completed_at": "2025-01-09T07:30:00Z",
+          "export_sha256": null
+        },
+        {
+          "id": 4,
+          "kind": "access+portability",
+          "received_at": "2026-10-03T09:00:40Z",
+          "due_on": "2026-11-03",
+          "verified_by": "password re-authentication 40s before the request",
+          "status": "verified",
+          "completed_at": null,
+          "export_sha256": null
+        }
+      ]
+    },
+    "dsar_events": {
+      "title": "Your data requests: timeline",
+      "purpose": "Show each step of handling your requests.",
+      "lawful_basis": "Legal obligation (art. 6(1)(c) with art. 5(2)).",
+      "source": "Recorded while your request is handled.",
+      "recipients": "None.",
+      "retention": "3 years after the request was answered",
+      "portable": false,
+      "rows": [
+        {
+          "request_id": 3,
+          "at": "2025-01-08T21:14:00Z",
+          "event": "received",
+          "detail": "access"
+        },
+        {
+          "request_id": 3,
+          "at": "2025-01-09T07:30:00Z",
+          "event": "completed",
+          "detail": "export delivered"
+        },
+        {
+          "request_id": 4,
+          "at": "2026-10-03T09:00:40Z",
+          "event": "received",
+          "detail": "access (art. 15) and portability (art. 20), through the portal"
+        },
+        {
+          "request_id": 4,
+          "at": "2026-10-03T09:00:40Z",
+          "event": "identity verified",
+          "detail": "session re-authenticated 40s earlier (max 300s)"
+        }
+      ]
+    }
+  },
+  "withheld": [
+    {
+      "table": "beneficiaries",
+      "column": "birth_date",
+      "reason": "Personal data of another person (art. 15(4)): you designated them, so their name and share are shown, but not their date of birth."
+    },
+    {
+      "table": "credentials",
+      "column": "password_hash",
+      "reason": "A secret derived from your password: giving it out would weaken your account's security, and it says nothing about you."
+    },
+    {
+      "table": "sessions",
+      "column": "id_hash",
+      "reason": "A hash of a live credential: it is left out for your account's security."
+    },
+    {
+      "table": "legal_holds",
+      "column": null,
+      "reason": "May be restricted while a claim is pending where disclosure would prejudice it (art. 23 and national law); reviewed by the data protection officer case by case."
+    }
+  ]
+}

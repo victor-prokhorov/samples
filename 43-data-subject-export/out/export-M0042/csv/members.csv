@@ -1,0 +1,2 @@
+member_no,given_name,family_name,email,phone,birth_date,national_id,address_line,postcode,city,employer_id,joined_on,left_on
+M0042,Alex,Martin,alex.martin@example.org,+33 6 00 00 04 20,1984-05-17,1 84 05 99 042 000 00,12 rue des Lilas,75011,Paris,acme,2015-01-05,

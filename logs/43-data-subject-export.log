@@ -1,0 +1,221 @@
+# 43-data-subject-export run 2026-10-03T15:02:36Z
+== fresh Postgres (docker compose down -v && up) ==
+ Container 43-data-subject-export-postgres-1 Healthy 
+setup: 15 tables, 12 retention policies; members 200, contributions 39018, login_events 15808, support_tickets 300, sessions 398
+== demo: inventory check, re-authentication, export of M0042, deadline, retention purge (portal on :53053, clock fixed at 2026-10-03T09:00Z) ==
+
+## 1. A data inventory the schema is checked against
+   concept: every table and column is declared with its category, purpose and lawful basis; a column the inventory does not know fails the check, and the export refuses to run
+   12 tables with personal data, 75 columns classified (51 exported, the rest technical keys or withheld with a reason); 3 tables declared not personal: employers, retention_policies, purge_runs
+   check ok: the live schema matches the inventory
+   a hotfix migration adds members.preferred_name, a chat_messages table and purge_runs.operator_email, without touching the inventory
+   inventory: table chat_messages is in the database but not in the inventory
+   inventory: column members.preferred_name is in the database but not in the inventory
+   inventory: column purge_runs.operator_email looks personal, but purge_runs is declared not personal (counts only, no row-level data)
+   export attempted with the gap: refused (InventoryIncomplete)
+   check ok: the check names the new column, the new table and the personal-looking column, and the export fails closed
+   check ok: after the fix (here: the migration reverted) the check passes again
+
+## 2. Verify identity: a recent password, not just a session
+   concept: the member signed in 3 hours ago; a copy of everything needs a password typed in the last 5 minutes (max_age / auth_time, as in 26-sso), and the member is the session's member, never a parameter
+   POST /me/data-export with a 3-hour-old sign-in -> 401 {"error":"reauthentication_required","max_age":300,"auth_age":10800}
+   POST /reauth with a wrong password -> 401
+   POST /reauth with the right password -> 204
+   check ok: a stale session is refused with reauthentication_required; only the right password refreshes auth_time
+   check ok: no request was logged before identity was verified
+
+## 3. Collect everything from the inventory and export it
+   concept: one query per inventoried table with the table's subject predicate; data.json plus one CSV per table, a README with art. 15(1) information per file, an HTML index, a manifest of SHA-256 checksums, zipped
+   POST /me/data-export 40 s later -> 201 {"request_id":4,"due_on":"2026-11-03","extended_due_on":"2027-01-04","files":15,"download":"/me/data-export/4"}
+   GET /me/data-export/4 -> 200 application/zip, 16769 bytes
+   unzip -t: No errors detected in compressed data of out/export-M0042.zip.
+   members             1 rows  portable
+   contributions     141 rows  portable
+   bank_accounts       1 rows  portable
+   beneficiaries       2 rows  portable
+   consents            2 rows  
+   support_tickets     3 rows  portable
+   credentials         1 rows  
+   sessions            1 rows  
+   login_events      106 rows  
+   dsar_requests       2 rows  
+   dsar_events         4 rows  
+   withheld beneficiaries.birth_date: Personal data of another person (art. 15(4)): you designated them, so their name and share...
+   withheld credentials.password_hash: A secret derived from your password: giving it out would weaken your account's security, a...
+   withheld sessions.id_hash: A hash of a live credential: it is left out for your account's security.
+   withheld legal_holds: May be restricted while a claim is pending where disclosure would prejudice it (art. 23 an...
+   check ok: data.json has a section for every inventoried table, and a CSV each
+   check ok: 141 monthly contributions (2015-01 to 2026-09), 2 beneficiaries, 3 support tickets
+   check ok: no secret leaves: neither the password hash nor the session hash appears in any file
+   check ok: third parties' dates of birth are withheld (art. 15(4)), their names and shares are shown
+   check ok: every file's SHA-256 matches the manifest
+   check ok: the README explains every file: purpose, lawful basis, source, recipients and retention for each table
+   GET /me/data-export/1 (request #1 belongs to another member) -> 404
+   check ok: another member's export is a 404
+
+## 4. Log the request and its one-month deadline
+   concept: received -> due one month later (same day number, last day of a shorter month, next working day after a weekend); extendable by two months if the member is told within the first
+   request #4: access+portability, received 2026-10-03T09:00:40.000Z, due 2026-11-03, completed 2026-10-03T09:00:40.000Z, verified by password re-authentication 40s before the request, export sha256 f8244fa5a436565e...
+     2026-10-03T09:00:40.000Z  received           access (art. 15) and portability (art. 20), through the portal
+     2026-10-03T09:00:40.000Z  identity verified  session re-authenticated 40s earlier (max 300s)
+     2026-10-03T09:00:40.000Z  export generated   15 files, 16769 bytes, sha256 f8244fa5a436565e
+     2026-10-03T09:00:40.000Z  downloaded         16769 bytes
+   received 2026-10-03: one month -> 2026-11-03, due 2026-11-03, extended 2027-01-04
+   received 2026-01-31: one month -> 2026-02-28, due 2026-03-02, extended 2026-04-30
+   received 2026-03-31: one month -> 2026-04-30, due 2026-04-30, extended 2026-06-30
+   received 2026-05-15: one month -> 2026-06-15, due 2026-06-15, extended 2026-08-17
+   check ok: received 2026-10-03 is due 2026-11-03; 31 January ends on 28 February, a Saturday, so 2 March
+   check ok: the request was answered on the day, well inside its deadline
+
+## 5. Retention: a policy per table, a batched purge that respects legal holds
+   concept: each policy says how long and from when; the job deletes or anonymises expired rows 1000 at a time, each batch its own transaction, skipping members under a legal hold; a second run finds nothing
+   table             keep        from                             action     rows  expired  held
+   sessions          30 days     after the session started        delete       399      279     1
+   login_events      1 year      after the sign-in                delete     15810     7992     0
+   support_tickets   2 years     after the ticket was closed      anonymise    300      203     3
+   consents          5 years     after consent was withdrawn      delete       201       26     0
+   dsar_events       3 years     after the request was answered   delete        10        4     0
+   dsar_requests     3 years     after the request was answered   delete         4        2     0
+   bank_accounts     1 year      after leaving the scheme         delete       200       47     1
+   credentials       1 year      after leaving the scheme         delete       200       47     1
+   beneficiaries     10 years    after leaving the scheme         delete       136        0     0
+   contributions     10 years    after leaving the scheme         delete     39018     1382    61
+   legal_holds       1 year      after the hold was released      delete         2        1     0
+   members           10 years    after leaving the scheme         anonymise    200       20     1
+   deleted       279 from sessions         in 1 batch(es), 1 kept under a legal hold
+   deleted      7992 from login_events     in 8 batch(es)
+   anonymised    203 from support_tickets  in 1 batch(es), 3 kept under a legal hold
+   deleted        26 from consents         in 1 batch(es)
+   deleted         4 from dsar_events      in 1 batch(es)
+   deleted         2 from dsar_requests    in 1 batch(es)
+   deleted        47 from bank_accounts    in 1 batch(es), 1 kept under a legal hold
+   deleted        47 from credentials      in 1 batch(es), 1 kept under a legal hold
+   deleted      1382 from contributions    in 2 batch(es), 61 kept under a legal hold
+   deleted         1 from legal_holds      in 1 batch(es)
+   anonymised     20 from members          in 1 batch(es), 1 kept under a legal hold
+   after:
+   sessions          rows   399 ->   120, expired 0, held 1
+   login_events      rows 15810 ->  7818, expired 0, held 0
+   support_tickets   rows   300 ->   300, expired 0, held 3
+   consents          rows   201 ->   175, expired 0, held 0
+   dsar_events       rows    10 ->     6, expired 0, held 0
+   dsar_requests     rows     4 ->     2, expired 0, held 0
+   bank_accounts     rows   200 ->   153, expired 0, held 1
+   credentials       rows   200 ->   153, expired 0, held 1
+   beneficiaries     rows   136 ->   136, expired 0, held 0
+   contributions     rows 39018 -> 37636, expired 0, held 61
+   legal_holds       rows     2 ->     1, expired 0, held 0
+   members           rows   200 ->   200, expired 0, held 1
+   check ok: every expired row was purged, and nothing else
+   check ok: contributions were deleted in several batches of at most 1000
+   under a legal hold: M0004, left 2009-01-23, still 61 contributions and a named record
+   check ok: the member under a legal hold kept everything; the expired holds' own record was purged
+   anonymised members: 20, each with no name, email or national id and only the year of birth
+   check ok: anonymised members keep no direct identifier
+   check ok: M0042, an active member, lost nothing
+   check ok: a second run purges nothing
+
+all checks passed
+
+== proof: the inventory check as CI runs it, on the schema left by the demo ==
+inventory check passed
+== proof: dsar_requests and the timeline of the new request ==
+ id | member_id |        kind        |      received_at       |   due_on   |  status   |      completed_at      |  export_sha256   
+----+-----------+--------------------+------------------------+------------+-----------+------------------------+------------------
+  3 |        42 | access             | 2025-01-08 21:14:00+00 | 2025-02-10 | completed | 2025-01-09 07:30:00+00 | 
+  4 |        42 | access+portability | 2026-10-03 09:00:40+00 | 2026-11-03 | completed | 2026-10-03 09:00:40+00 | f8244fa5a436565e
+(2 rows)
+
+ request_id |           at           |       event       |                             detail                             
+------------+------------------------+-------------------+----------------------------------------------------------------
+          4 | 2026-10-03 09:00:40+00 | received          | access (art. 15) and portability (art. 20), through the portal
+          4 | 2026-10-03 09:00:40+00 | identity verified | session re-authenticated 40s earlier (max 300s)
+          4 | 2026-10-03 09:00:40+00 | export generated  | 15 files, 16769 bytes, sha256 f8244fa5a436565e
+          4 | 2026-10-03 09:00:40+00 | downloaded        | 16769 bytes
+(4 rows)
+
+== proof: the zip, listed by unzip, and the committed files ==
+Archive:  out/export-M0042.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+     9861  2026-10-03 09:00   export-M0042/README.md
+    14433  2026-10-03 09:00   export-M0042/index.html
+    54173  2026-10-03 09:00   export-M0042/data.json
+      266  2026-10-03 09:00   export-M0042/csv/members.csv
+     6384  2026-10-03 09:00   export-M0042/csv/contributions.csv
+       97  2026-10-03 09:00   export-M0042/csv/bank_accounts.csv
+       79  2026-10-03 09:00   export-M0042/csv/beneficiaries.csv
+      125  2026-10-03 09:00   export-M0042/csv/consents.csv
+      424  2026-10-03 09:00   export-M0042/csv/support_tickets.csv
+       34  2026-10-03 09:00   export-M0042/csv/credentials.csv
+      122  2026-10-03 09:00   export-M0042/csv/sessions.csv
+     9816  2026-10-03 09:00   export-M0042/csv/login_events.csv
+      290  2026-10-03 09:00   export-M0042/csv/dsar_requests.csv
+      307  2026-10-03 09:00   export-M0042/csv/dsar_events.csv
+     2225  2026-10-03 09:00   export-M0042/manifest.json
+---------                     -------
+    98636                     15 files
+f8244fa5a436565e63f19e3ae31798e5ecd191e051dacb6d836969c35852bf8b  out/export-M0042.zip
+== proof: out/export-M0042/csv/beneficiaries.csv (no third-party birth dates) and the head of contributions.csv ==
+full_name,relationship,share_pct
+Sam Martin,spouse,60
+Robin Martin,child,40
+period,employer_id,amount,recorded_at
+2015-01-01,acme,133.00,2015-02-06T00:00:00Z
+2015-02-01,acme,133.00,2015-03-06T00:00:00Z
+2015-03-01,acme,133.00,2015-04-06T00:00:00Z
+== proof: retention_policies ==
+ seq |   table_name    |   keep   |          anchor_label          |  action   |                               why                               
+-----+-----------------+----------+--------------------------------+-----------+-----------------------------------------------------------------
+   1 | sessions        | 30 days  | after the session started      | delete    | a session that old has expired anyway
+   2 | login_events    | 1 year   | after the sign-in              | delete    | long enough to investigate an incident
+   3 | support_tickets | 2 years  | after the ticket was closed    | anonymise | anonymised rows still count in support statistics
+   4 | consents        | 5 years  | after consent was withdrawn    | delete    | proof of consent and of its withdrawal (art. 7(1))
+   5 | dsar_events     | 3 years  | after the request was answered | delete    | accountability (art. 5(2)) for the period complaints are likely
+   6 | dsar_requests   | 3 years  | after the request was answered | delete    | accountability (art. 5(2)) for the period complaints are likely
+   7 | bank_accounts   | 1 year   | after leaving the scheme       | delete    | time to pay the last refunds
+   8 | credentials     | 1 year   | after leaving the scheme       | delete    | a member who left signs in rarely after a year
+   9 | beneficiaries   | 10 years | after leaving the scheme       | delete    | as long as benefits can be claimed
+  10 | contributions   | 10 years | after leaving the scheme       | delete    | pension and tax records
+  11 | legal_holds     | 1 year   | after the hold was released    | delete    | a record that the hold existed
+  12 | members         | 10 years | after leaving the scheme       | anonymise | keeps year of birth, area and dates for scheme statistics
+(12 rows)
+
+== proof: purge_runs, the first run per policy, then both runs' totals (the second purged nothing) ==
+ id |   table_name    |  action   | purged | held | batches 
+----+-----------------+-----------+--------+------+---------
+  1 | sessions        | delete    |    279 |    1 |       1
+  2 | login_events    | delete    |   7992 |    0 |       8
+  3 | support_tickets | anonymise |    203 |    3 |       1
+  4 | consents        | delete    |     26 |    0 |       1
+  5 | dsar_events     | delete    |      4 |    0 |       1
+  6 | dsar_requests   | delete    |      2 |    0 |       1
+  7 | bank_accounts   | delete    |     47 |    1 |       1
+  8 | credentials     | delete    |     47 |    1 |       1
+  9 | beneficiaries   | delete    |      0 |    0 |       0
+ 10 | contributions   | delete    |   1382 |   61 |       2
+ 11 | legal_holds     | delete    |      1 |    0 |       1
+ 12 | members         | anonymise |     20 |    1 |       1
+(12 rows)
+
+ run | purged | held | batches 
+-----+--------+------+---------
+   1 |  10003 |   68 |      19
+   2 |      0 |   68 |       0
+(2 rows)
+
+== proof: what an anonymised member looks like, and the member under a legal hold ==
+ id | member_no | given_name | email | national_id | birth_date | postcode | employer_id | joined_on  |  left_on   
+----+-----------+------------+-------+-------------+------------+----------+-------------+------------+------------
+  8 | anon-8    |            |       |             | 1962-01-01 | 75       | initech     | 2001-06-16 | 2010-02-15
+ 12 | anon-12   |            |       |             | 1965-01-01 | 75       | acme        | 2007-03-09 | 2011-03-10
+ 16 | anon-16   |            |       |             | 1969-01-01 | 75       | globex      | 2012-11-29 | 2014-01-03
+(3 rows)
+
+                    reason                    | member_no | given_name |  left_on   | contributions 
+----------------------------------------------+-----------+------------+------------+---------------
+ Dispute over a transfer value, file 2025-117 | M0004     | Robin      | 2009-01-23 |            61
+(1 row)
+
+== screenshot: out/export-M0042/index.html ==
+190985 screenshots/export-index.png
