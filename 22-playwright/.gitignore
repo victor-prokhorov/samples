@@ -1,3 +1,4 @@
-test-results/
-reports/
+# session cookies saved by the setup project: never commit
 .auth/
+# traces of the failing runs: they record every request, including the session cookie, so they stay local
+test-results/

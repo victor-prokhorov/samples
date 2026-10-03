@@ -2,6 +2,9 @@
   "name": "26-sso",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "tsx src/setup.ts",
     "idp": "tsx src/idp.ts",

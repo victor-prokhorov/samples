@@ -2,6 +2,9 @@
   "name": "09-outbox-polling",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "tsx src/setup.ts",
     "app": "tsx src/app.ts",

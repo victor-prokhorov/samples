@@ -2,6 +2,9 @@
   "name": "28-campaign",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "tsx src/setup.ts",
     "worker": "tsx src/worker.ts",

@@ -2,6 +2,9 @@
   "name": "08-saga",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "tsx src/setup.ts",
     "demo": "tsx src/demo.ts",
