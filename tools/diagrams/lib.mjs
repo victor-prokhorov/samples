@@ -23,6 +23,8 @@ function textSize(label, size) {
 }
 
 export function diagram(name, title) {
+  // Seeds depend only on the diagram name, so building one diagram never changes another.
+  seed = [...String(name)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 2147483647, 7) || 1;
   const shapes = [];
   const byId = new Map();
   const d = {
