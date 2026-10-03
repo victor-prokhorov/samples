@@ -12,7 +12,7 @@ A campaign table `statement_jobs` with one row per (year, member) and workers (`
 
 One shot with proof: `./run-28-campaign.sh` from the repo root (log in [`../logs/28-campaign.log`](../logs/28-campaign.log)).
 
-By hand, from this folder (ports: Postgres 55458, HTTP 52528 SMTP sink):
+By hand, from this folder (ports: Postgres 55458, SMTP sink 52528):
 
 ```sh
 docker compose up -d --wait
