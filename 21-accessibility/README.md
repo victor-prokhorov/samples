@@ -1,5 +1,7 @@
 # 21. Accessible forms, WCAG 2.2 AA and RGAA
 
+![Overview](diagrams/overview.svg)
+
 **Pain: a form that some members cannot use at all.** A placeholder that disappears once you type, a "button" the keyboard never reaches, an error shown only as a red border, focus left at the top of the page after a failed submit. Nobody on the team notices, because they all use a mouse and see colour, and the members who cannot complete the form call the help desk or give up.
 
 **Reach for it when** you build forms for the public or for members, which in many countries must meet WCAG 2.1 or 2.2 level AA by law (RGAA in France, EN 301 549 in the EU, Section 508 in the US, which references WCAG 2.0 AA). Put an automated scan and a keyboard journey in the test suite so regressions fail the build.

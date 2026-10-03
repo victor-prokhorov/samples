@@ -1,5 +1,7 @@
 # 15. Multi-tenancy: pool, bridge, silo
 
+![Overview](diagrams/overview.svg)
+
 **Pain: one tenant sees another's data.** A SaaS database holds many customers. One forgotten `WHERE tenant_id`, one pooled connection that kept the previous request's tenant, or one foreign key that points across tenants, and a customer reads or writes someone else's rows. One big tenant can also slow everyone down.
 
 **Reach for it when** many customers share one product and one codebase, and you have to choose, per tenant, how strongly their data is separated: pool (shared tables, `tenant_id`, Row-Level Security) for many small tenants, bridge (a schema per tenant) for tens to a few hundred, silo (a database per tenant) for the few that need their own restore, deletion, region or capacity.

@@ -1,5 +1,7 @@
 # 13. Partitioning, one server
 
+![Overview](diagrams/overview.svg)
+
 **Pain: table too big.** One huge table means huge indexes, slow vacuum and expensive retention deletes.
 
 **Reach for it when** one table got big enough that indexes, vacuum or retention hurt, and the hot queries filter on one key. Old data expires by time (`RANGE` by month, then `DROP` old partitions instead of a huge `DELETE`).

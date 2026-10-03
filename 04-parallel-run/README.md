@@ -1,5 +1,7 @@
 # 04. Parallel run, Scientist-style
 
+![Overview](diagrams/overview.svg)
+
 **Pain: blind rewrite.** Tests cannot show that a rewrite matches legacy on every real input, so you find the differences after cutover, through users.
 
 **Reach for it when** you replace logic whose exact behavior nobody fully knows (pricing, tax, permissions, a query against a new data store) and its outputs can be compared on real production inputs before the new code serves anyone.

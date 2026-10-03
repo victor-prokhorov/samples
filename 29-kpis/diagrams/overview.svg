@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1260" height="660" viewBox="0 0 1260 660" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">29. Product and service KPIs, defined once</text>
+<rect x="40" y="130" width="220" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="150.0" y="161.0" font-size="16" text-anchor="middle">Simulator</text><text x="150.0" y="181.0" font-size="16" text-anchor="middle">28 days, 120 members,</text><text x="150.0" y="201.0" font-size="16" text-anchor="middle">a 4-hour database</text><text x="150.0" y="221.0" font-size="16" text-anchor="middle">incident</text>
+<rect x="320" y="130" width="260" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="450.0" y="161.0" font-size="16" text-anchor="middle">Portal :53039</text><text x="450.0" y="181.0" font-size="16" text-anchor="middle">(separate process)</text><text x="450.0" y="201.0" font-size="16" text-anchor="middle">track() + a row</text><text x="450.0" y="221.0" font-size="16" text-anchor="middle">per request</text>
+<rect x="640" y="90" width="260" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="770.0" y="126.0" font-size="16" text-anchor="middle">events: login,</text><text x="770.0" y="146.0" font-size="16" text-anchor="middle">change_started, ...</text>
+<rect x="640" y="200" width="260" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="770.0" y="236.0" font-size="16" text-anchor="middle">request_log: route,</text><text x="770.0" y="256.0" font-size="16" text-anchor="middle">status, duration</text>
+<rect x="960" y="110" width="260" height="150" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1090.0" y="151.0" font-size="16" text-anchor="middle">kpis.ts</text><text x="1090.0" y="171.0" font-size="16" text-anchor="middle">one definition each:</text><text x="1090.0" y="191.0" font-size="16" text-anchor="middle">question, formula,</text><text x="1090.0" y="211.0" font-size="16" text-anchor="middle">unit, target,</text><text x="1090.0" y="231.0" font-size="16" text-anchor="middle">owner, SQL</text>
+<rect x="960" y="320" width="260" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1090.0" y="361.0" font-size="16" text-anchor="middle">out/dashboard.html</text><text x="1090.0" y="381.0" font-size="16" text-anchor="middle">static, no script</text>
+<polyline points="260,185 320,185" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="580,150 640,150" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="580,220 640,220" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="900,140 960,140" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="900,230 960,230" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1090,260 1090,320" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="40" y="460" width="540" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="310.0" y="501.0" font-size="16" text-anchor="middle">Before: 712 logins this month, mean latency 51 ms,</text><text x="310.0" y="521.0" font-size="16" text-anchor="middle">/health answering 200 all through the outage</text>
+<rect x="640" y="460" width="580" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="930.0" y="491.0" font-size="16" text-anchor="middle">After: adoption by employer (Initech 22%), p95 of the</text><text x="930.0" y="511.0" font-size="16" text-anchor="middle">slowest member route (356 ms), availability against</text><text x="930.0" y="531.0" font-size="16" text-anchor="middle">the 99.5% SLO: the error budget gone in one morning</text>
+<polyline points="580,505 640,505" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="596.0" font-size="16" text-anchor="start">Product KPIs read the usage events, service KPIs the request log. The report, the dashboard and the checks</text><text x="40.0" y="616.0" font-size="16" text-anchor="start">read the same definitions, so "adoption" cannot mean two things.</text></svg>

@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1220" height="650" viewBox="0 0 1220 650" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">22. Playwright: isolated, fast, trustworthy browser tests</text>
+<rect x="40" y="100" width="340" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="210.0" y="136.0" font-size="16" text-anchor="middle">Vitest: the rule checkRequest()</text><text x="210.0" y="156.0" font-size="16" text-anchor="middle">every boundary, in milliseconds</text>
+<rect x="440" y="100" width="260" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="570.0" y="136.0" font-size="16" text-anchor="middle">setup project: signs in</text><text x="570.0" y="156.0" font-size="16" text-anchor="middle">once, saves storageState</text>
+<rect x="780" y="100" width="400" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="980.0" y="136.0" font-size="16" text-anchor="middle">each worker: CREATE DATABASE ... TEMPLATE</text><text x="980.0" y="156.0" font-size="16" text-anchor="middle">+ its own app server on a free port</text>
+<polyline points="700,140 780,140" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="715.0" y="129.3" width="50.0" height="21.5" fill="#ffffff"/>
+<text x="740.0" y="145.3" font-size="14" text-anchor="middle">cookie</text>
+<text x="40.0" y="236.0" font-size="16" text-anchor="start" font-weight="bold">Flaky, brittle or leaky</text>
+<text x="660.0" y="236.0" font-size="16" text-anchor="start" font-weight="bold">Trustworthy</text>
+<rect x="40" y="260" width="500" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="290.0" y="293.5" font-size="16" text-anchor="middle">page.waitForTimeout(500), then read once:</text><text x="290.0" y="313.5" font-size="16" text-anchor="middle">passes at 100 ms, fails at 1500 ms</text>
+<rect x="660" y="260" width="520" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="920.0" y="293.5" font-size="16" text-anchor="middle">expect(locator).toHaveText(...)</text><text x="920.0" y="313.5" font-size="16" text-anchor="middle">retries: passes at both speeds</text>
+<polyline points="540,297.5 660,297.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="40" y="360" width="500" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="290.0" y="393.5" font-size="16" text-anchor="middle">CSS path #login-form &gt; div:nth-child(1):</text><text x="290.0" y="413.5" font-size="16" text-anchor="middle">breaks on a markup refactor</text>
+<rect x="660" y="360" width="520" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="920.0" y="393.5" font-size="16" text-anchor="middle">getByRole / getByLabel:</text><text x="920.0" y="413.5" font-size="16" text-anchor="middle">survive it, like a user would</text>
+<polyline points="540,397.5 660,397.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="40" y="460" width="500" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="290.0" y="493.5" font-size="16" text-anchor="middle">no per-test reset: the second test</text><text x="290.0" y="513.5" font-size="16" text-anchor="middle">counts the first one's row (3, not 2)</text>
+<rect x="660" y="460" width="520" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="920.0" y="493.5" font-size="16" text-anchor="middle">an automatic fixture truncates</text><text x="920.0" y="513.5" font-size="16" text-anchor="middle">the tables before every test</text>
+<polyline points="540,497.5 660,497.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="586.0" font-size="16" text-anchor="start">Traces are kept only for failed tests; they record the session cookie, so they stay out of git.</text><text x="40.0" y="606.0" font-size="16" text-anchor="start">The JSON report of every run is committed, and the HTML report of each run is rendered.</text></svg>

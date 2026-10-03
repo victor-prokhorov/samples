@@ -1,5 +1,7 @@
 # 22. End-to-end tests with Playwright
 
+![Overview](diagrams/overview.svg)
+
 **Pain: end-to-end tests nobody trusts.** They pass on a laptop and fail on CI because of a fixed `sleep`. They break when someone renames a CSS class. They pass alone and fail together because one test leaves rows that the next one counts. Every test signs in through the login page, so the suite is slow, and when one fails there is nothing to look at but a stack trace.
 
 **Reach for it when** a few user journeys must keep working release after release (sign in, see my contributions, request a change and see it pending) and you want them checked in a real browser, in parallel, on every change.

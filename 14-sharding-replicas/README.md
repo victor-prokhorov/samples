@@ -1,5 +1,7 @@
 # 14. Sharding with read replicas
 
+![Overview](diagrams/overview.svg)
+
 **Pain: one-machine ceiling.** Writes, storage and reads eventually exceed one Postgres server, and partitioning (13) does not help because it stays on that server.
 
 **Reach for it when** one server can no longer hold the data or absorb the writes, after a bigger machine, partitioning (13) and replicas, and almost every query stays within one key (tenant, customer).

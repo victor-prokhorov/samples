@@ -1,5 +1,7 @@
 # 29. Product and service KPIs
 
+![Overview](diagrams/overview.svg)
+
 **Pain: numbers that look good while members fail.** "712 logins this month" says nothing about the 58 eligible members who never came. A mean latency of 51 ms hides the long-serving members who wait 356 ms for their contribution history. A health check answers 200 all through an outage that failed member requests for four hours. Each team counts "active" or "resolved" its own way, nobody owns the number, and nobody knows what it should be.
 
 **Reach for it when** a service needs to show whether it is used, whether members get their task done, and whether it is reliable enough: a product review, a service level agreed with partner organisations, a monthly report to whoever funds the team.

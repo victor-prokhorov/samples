@@ -1,5 +1,7 @@
 # 20. Full-stack member portal
 
+![Overview](diagrams/overview.svg)
+
 **Pain: a portal whose pages need JavaScript, an API layer and trust in the client.** A form that only works through a client-side `fetch` does nothing for anyone whose script failed to load. Validation that runs only in the browser is skipped by anyone who posts directly. A query that takes the member id from the URL or a hidden field shows one member another member's data.
 
 **Reach for it when** you build a server-rendered React app that reads its own database: a member, customer or staff portal where most pages are "read my data" and a few forms change it, and where the pages must work for everyone, with or without JavaScript.

@@ -1,5 +1,7 @@
 # 25. Bilingual English/French
 
+![Overview](diagrams/overview.svg)
+
 **Pain: a "translated" page that is still English underneath.** The strings were translated, but the code concatenates `"€" + amount.toFixed(2)`, prints `date.toDateString()`, builds plurals as `"request(s)"`, hard-codes a few labels and sets no `lang`. French members see `€4111.06`, `Sat Jan 31 2026` and `You have 0 pending request(s)` on a page a screen reader reads with the wrong voice. A translator renames `{count}` to `{nombre}` and the page breaks at runtime; the French button label does not fit the fixed-width button.
 
 **Reach for it when** a product serves more than one language (bilingual regions often require it by law, or members live in several countries), or will: retrofitting catalogues, `Intl` formatting and `lang` later means touching every view.

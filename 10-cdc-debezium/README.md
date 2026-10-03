@@ -1,5 +1,7 @@
 # 10. CDC: WAL -> Debezium -> Kafka
 
+![Overview](diagrams/overview.svg)
+
 **Pain: derived data drift.** Search indexes, caches and the warehouse must mirror the database, but dual writes from app code race, fail halfway and miss writes that bypass the app (scripts, manual SQL), while nightly batch copies are hours stale.
 
 **Reach for it when** keeping derived copies in sync with the source of truth: search indexes (Elasticsearch, Meilisearch), cache invalidation, a data warehouse or lake, a new database during a migration (05), or publishing changes from code you cannot change. The consumer wants every row change, including ones made outside the app, and does not care why the row changed.

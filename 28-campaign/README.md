@@ -1,5 +1,7 @@
 # 28. Yearly statement campaign, a resumable batch job
 
+![Overview](diagrams/overview.svg)
+
 **Pain: a yearly mail-out that sends twice to some members and never to others.** The first version is a loop: render a PDF, send it, next member. It crashes at member 7 and is run again, so members 1 to 7 get a second statement. A greylisted mailbox answers `451 try again later`, the loop logs it and moves on, and that member never gets one. Afterwards nobody can say who received what, or why someone did not.
 
 **Reach for it when** one job performs the same side effect for many people (statements, notices, invoices, reminders, account migrations), it runs longer than a process can be trusted to stay up, and each person must get it once, with the exceptions listed and explained.

@@ -1,5 +1,7 @@
 # 27. Monthly data import from CSV files
 
+![Overview](diagrams/overview.svg)
+
 **Pain: a monthly data load that duplicates on rerun and half-applies on a bad row.** Employers send CSV files of members and contributions. The first version inserts row by row: running it twice doubles every contribution, and a typo on line 4 leaves lines 2 and 3 applied and the rest missing, so the corrected resend duplicates them. Nobody can say which file produced which row, or whether the table adds up to what the employer sent.
 
 **Reach for it when** files from outside (employers, partners, a legacy export) feed tables you own on a schedule, files can be resent, late, truncated or wrong, and someone has to answer "what did we load from whom, and does it add up".

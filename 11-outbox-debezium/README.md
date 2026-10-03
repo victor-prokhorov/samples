@@ -1,5 +1,7 @@
 # 11. Transactional outbox, CDC relay
 
+![Overview](diagrams/overview.svg)
+
 **Pain: polling overhead.** 09's relay adds poll latency and query load, and its outbox table keeps growing until something cleans it up.
 
 **Reach for it when** you have 09's need and poll latency, query load or table cleanup start to hurt, or Debezium is already running for 10.

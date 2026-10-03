@@ -1,5 +1,7 @@
 # 26. Single sign-on with OpenID Connect
 
+![Overview](diagrams/overview.svg)
+
 **Pain: every app keeps its own passwords, and a hand-rolled login trusts whatever comes back.** Members, employer HR staff and the IT team each have one more password per app, nobody can switch an account off in one place, and roles are granted by hand in each app. When an app does delegate login, the first version takes the `code` from the redirect and the claims from the token without checking which browser started the login, whether the code was already used, who the token was minted for, or whether it was altered.
 
 **Reach for it when** people already have an account in an identity provider (Entra ID, Keycloak, Okta, an organisation's own IdP) and the app should sign them in through it, with roles derived from groups the IdP manages, and several apps should share one sign-in.

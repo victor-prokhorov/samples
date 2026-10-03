@@ -1,5 +1,7 @@
 # 07. File upload API with ETags
 
+![Overview](diagrams/overview.svg)
+
 **Pain: a file API that loses writes, duplicates creates and serves torn downloads.** A client retries a create that timed out and gets two files. Two clients read version 1 and both write, and the second silently erases the first. A download resumed after the file changed splices the start of the old bytes onto the end of the new ones. A client syncing "what changed since" on `updated_at` never sees a change whose transaction committed late.
 
 **Reach for it when** clients create, overwrite and download files (or any resource) over HTTP, retry on timeouts, cache what they read, resume large downloads, or keep a local copy in sync with a change feed.
