@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1312" height="640" viewBox="0 0 1312 640" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">38. One image, every machine: build small, switch blue to green without a failed request</text>
+<rect x="40" y="90" width="420" height="400" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Multi-stage build</text>
+<rect x="60" y="140" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="150.0" y="166.0" font-size="16" text-anchor="middle">deps</text><text x="150.0" y="186.0" font-size="16" text-anchor="middle">npm ci (dev deps too)</text>
+<rect x="60" y="240" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="150.0" y="266.0" font-size="16" text-anchor="middle">build</text><text x="150.0" y="286.0" font-size="16" text-anchor="middle">tsc -&gt; dist/</text>
+<rect x="260" y="140" width="180" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="350.0" y="166.0" font-size="16" text-anchor="middle">prod-deps</text><text x="350.0" y="186.0" font-size="16" text-anchor="middle">npm ci --omit=dev</text>
+<rect x="140" y="350" width="300" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="290.0" y="381.0" font-size="16" text-anchor="middle">runtime image</text><text x="290.0" y="401.0" font-size="16" text-anchor="middle">node:22-slim pinned by digest</text><text x="290.0" y="421.0" font-size="16" text-anchor="middle">uid 1000, HEALTHCHECK /healthz</text><text x="290.0" y="441.0" font-size="16" text-anchor="middle">dist + production node_modules</text>
+<rect x="540" y="140" width="200" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="640.0" y="166.0" font-size="16" text-anchor="middle">load: 6 workers</text><text x="640.0" y="186.0" font-size="16" text-anchor="middle">+ 3 long exports</text>
+<rect x="540" y="260" width="200" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="640.0" y="291.0" font-size="16" text-anchor="middle">proxy :53048</text><text x="640.0" y="311.0" font-size="16" text-anchor="middle">flips on green /readyz 200</text>
+<rect x="800" y="170" width="220" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="910.0" y="201.0" font-size="16" text-anchor="middle">blue 1.0.0 :53148</text><text x="910.0" y="221.0" font-size="16" text-anchor="middle">SIGTERM: drain, exit 0</text>
+<rect x="800" y="330" width="220" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="910.0" y="361.0" font-size="16" text-anchor="middle">green 1.1.0 :53248</text><text x="910.0" y="381.0" font-size="16" text-anchor="middle">warm-up, then ready</text>
+<rect x="800" y="470" width="220" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="910.0" y="496.0" font-size="16" text-anchor="middle">Postgres :55468</text><text x="910.0" y="516.0" font-size="16" text-anchor="middle">(/readyz checks it)</text>
+<polyline points="150,200 150,240" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="190,300 190,350" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="350,200 350,350" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="440,375 800,375" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="581.0" y="364.3" width="78.0" height="21.5" fill="#ffffff"/>
+<text x="620.0" y="380.3" font-size="14" text-anchor="middle">docker run</text>
+<polyline points="640,200 640,260" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="740,261.7 805,240" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="747.5" y="240.1" width="50.0" height="21.5" fill="#ffffff"/>
+<text x="772.5" y="256.1" font-size="14" text-anchor="middle">before</text>
+<polyline points="740,320.9 800,336.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="748.5" y="318.0" width="43.0" height="21.5" fill="#ffffff"/>
+<text x="770.0" y="334.0" font-size="14" text-anchor="middle">after</text>
+<polyline points="910,400 910,470" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1020,205 1060,205 1060,500 1020,500" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<text x="40.0" y="576.0" font-size="16" text-anchor="start">Naive (one stage, flip at once, SIGKILL): 44 MB of build leftovers, a token in the history, hundreds of failed requests.</text><text x="40.0" y="596.0" font-size="16" text-anchor="start">Multi-stage + readiness + graceful SIGTERM: 1 MB on top of the base, nothing secret in the layers, zero failed requests.</text></svg>

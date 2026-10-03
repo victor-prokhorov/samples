@@ -1,0 +1,5 @@
+# Written by the run script on every run, never committed: a developer's local env file (the naive build copies it)
+# and the TLS CA the build environment needs to reach the npm registry.
+.env
+.npm-ca.crt
+dist

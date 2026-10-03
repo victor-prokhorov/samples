@@ -1,0 +1,17 @@
+# The "works on my machine" Dockerfile, kept to measure against: do not copy it.
+# - one stage: the compiler, the dev dependencies and the source all ship in the image;
+# - COPY . . with no ignore file (Dockerfile.naive.dockerignore is empty on purpose): the host's
+#   node_modules, a developer's .env and anything else lying around go into the build context and the image;
+# - a registry token passed as a build ARG: it is recorded in the image history for anyone who pulls the image;
+# - a floating tag, root user, no HEALTHCHECK, and npm as PID 1.
+ARG BASE=node:22-slim
+FROM ${BASE}
+ARG NPM_TOKEN
+WORKDIR /app
+COPY . .
+RUN echo "//npm.initech.example/:_authToken=${NPM_TOKEN}" > .npmrc \
+ && NODE_EXTRA_CA_CERTS=/app/.npm-ca.crt npm install --no-audit --no-fund \
+ && npm run build \
+ && rm .npmrc
+EXPOSE 8080
+CMD npm start
