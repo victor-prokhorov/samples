@@ -1,0 +1,44 @@
+[
+  {
+    "directive": "script-src-elem",
+    "blocked": "inline",
+    "document": "http://localhost:53152/",
+    "sample": "document.getElementById('notice').insert"
+  },
+  {
+    "directive": "script-src-elem",
+    "blocked": "inline",
+    "document": "http://localhost:53152/",
+    "sample": "document.getElementById('notice').insert"
+  },
+  {
+    "directive": "script-src-elem",
+    "blocked": "inline",
+    "document": "http://localhost:53152/",
+    "sample": "document.getElementById('notice').insert"
+  },
+  {
+    "directive": "script-src-elem",
+    "blocked": "inline",
+    "document": "http://localhost:53152/",
+    "sample": "document.getElementById('notice').insert"
+  },
+  {
+    "directive": "script-src-elem",
+    "blocked": "inline",
+    "document": "http://localhost:53152/",
+    "sample": "document.getElementById('notice').insert"
+  },
+  {
+    "directive": "script-src-elem",
+    "blocked": "inline",
+    "document": "http://localhost:53152/",
+    "sample": "document.getElementById('notice').insert"
+  },
+  {
+    "directive": "frame-ancestors",
+    "blocked": "http://localhost:53152/",
+    "document": "http://localhost:53152/",
+    "sample": ""
+  }
+]
