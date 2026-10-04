@@ -38,7 +38,7 @@ A small team runs the member portal for Acme, Globex and Initech: releases, mont
 | Risk | Guard, as the logs show it |
 | --- | --- |
 | An outage the probe does not see | Availability counts member requests; the incident burned the budget 84.6x faster than allowed over its four hours. |
-| A slow route with no explanation | The slowest log line leads to its trace: 605 spans, an N+1. One join: the Acme dashboard median goes from 1556 ms to 31 ms, and 30 of 30 requests are within 300 ms (19 of 30 before). |
+| A slow route with no explanation | The slowest log line leads to its trace: 605 spans, an N+1. One join: the Acme dashboard median goes from 559 ms to 32 ms, and 30 of 30 requests are within 300 ms (19 of 30 before). |
 | Untested or drifting changes reach production | The unit job fails on coverage; a drifted Azure copy that would deploy `v1.4.0-rc1` is caught. |
 | Requests dropped during a deploy | Green takes traffic only when `/readyz` answers 200; blue drains its 9 requests in flight. 354 requests, 0 failed. |
 | A release breaks the member page | The v3 smoke test gets a 500; the rollback runbook brings back v2 and schema 2 as a recorded child run. |
