@@ -1,0 +1,176 @@
+# 48-object-storage run 2026-10-03T14:46:02Z
+== fresh Postgres for upload metadata (docker compose down -v && up) ==
+ Container 48-object-storage-postgres-1 Healthy 
+uploads table ready
+== demo: storage (s3rver behind a SigV4 gate, :53158), the member app (:53058) and the scanner as separate processes; Chromium drives the page ==
+   [storage] s3rver on 127.0.0.1:34289 (private), SigV4 gate on :53158, bucket member-documents
+   [app] member app on :53058
+   [scanner] watching quarantine/
+
+## 1. The browser uploads straight to storage
+   concept: the page asks the app for a presigned PUT (one key, one content type, one length, 60 s), sends the file to the storage endpoint itself, then tells the app it is done; the app only signs, records and HEADs
+   [storage] OPTIONS /member-documents/quarantine/99bf3e68-3fe3-48fa-8077-eaf5decb9765?<presigned> (browser http://localhost:53058, preflight) -> 200
+   [storage] PUT /member-documents/quarantine/99bf3e68-3fe3-48fa-8077-eaf5decb9765?<presigned> (browser http://localhost:53058, query) -> 200 617 bytes in
+   [storage] HEAD /member-documents/quarantine/99bf3e68-3fe3-48fa-8077-eaf5decb9765 (sdk, header) -> 200
+   [storage] OPTIONS /member-documents/quarantine/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c?<presigned> (browser http://localhost:53058, preflight) -> 200
+   [storage] PUT /member-documents/quarantine/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c?<presigned> (browser http://localhost:53058, query) -> 200 82 bytes in
+   [storage] HEAD /member-documents/quarantine/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c (sdk, header) -> 200
+   [storage] GET /member-documents/quarantine/99bf3e68-3fe3-48fa-8077-eaf5decb9765?x-id=GetObject (sdk, header) -> 200 617 bytes out
+   [storage] PUT /member-documents/clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765?x-id=CopyObject (sdk, header) -> 200 0 bytes in
+   [storage] DELETE /member-documents/quarantine/99bf3e68-3fe3-48fa-8077-eaf5decb9765?x-id=DeleteObject (sdk, header) -> 204
+   [scanner] quarantine/99bf3e68-3fe3-48fa-8077-eaf5decb9765 -> clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765 (no signature found, 617 bytes read in 76 ms)
+   [storage] GET /member-documents/quarantine/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c?x-id=GetObject (sdk, header) -> 200 82 bytes out
+   [storage] PUT /member-documents/rejected/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c?x-id=CopyObject (sdk, header) -> 200 0 bytes in
+   [storage] DELETE /member-documents/quarantine/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c?x-id=DeleteObject (sdk, header) -> 204
+   [scanner] quarantine/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c -> rejected/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c (EICAR test signature, 82 bytes read in 29 ms)
+   browser request: POST http://localhost:53058/api/uploads
+   browser request: PUT http://localhost:53158/member-documents/quarantine/99bf3e68-3fe3-48fa-8077-eaf5decb9765?X-Amz-...(presigned)
+   browser request: POST http://localhost:53058/api/uploads/99bf3e68-3fe3-48fa-8077-eaf5decb9765/complete
+   browser request: POST http://localhost:53058/api/uploads
+   browser request: PUT http://localhost:53158/member-documents/quarantine/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c?X-Amz-...(presigned)
+   browser request: POST http://localhost:53058/api/uploads/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c/complete
+   app process during the browser uploads: 157 request-body bytes read (JSON only), 93 ms CPU
+   page shows: Relevé annuel 2025.pdf = clean; letter-from-employer.txt = rejected (EICAR test signature)
+   ok   the browser sent both files with PUT straight to the storage endpoint, not to the app
+   ok   the app read fewer request-body bytes than the PDF alone (157 < 617)
+   ok   the scanner promoted the statement and rejected the EICAR letter
+   [storage] GET /member-documents/clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765?<presigned> (client, query) -> 200 617 bytes out
+   download link: 302 -> http://localhost:53158/member-documents/clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765?X-Amz-...(presigned GET, 300 s)
+   storage answered 200, Content-Type: application/pdf, Content-Disposition: attachment; filename="Releve annuel 2025.pdf"; filename*=UTF-8''Relev%C3%A9%20annuel%202025.pdf
+   ok   the download is a redirect to a presigned GET on storage, which returns the same bytes as an attachment with the UTF-8 file name
+
+## 2. 50 MB through the app server versus presigned
+   concept: a proxied upload costs the app a socket, CPU for every byte and, if it buffers, the whole file in memory; a presigned upload costs it one signature
+   [storage] PUT /member-documents/proxied/buffer-f0388403-2165-421a-822f-18b4c72598a9?<presigned> (client, query) -> 200 52428800 bytes in
+   ok   proxied (buffer) 50 MB upload stored (201)
+   [storage] PUT /member-documents/proxied/stream-0781ad1d-0ea0-46a9-b07d-3c79f5d4a76f?<presigned> (client, query) -> 200 52428800 bytes in
+   ok   proxied (stream) 50 MB upload stored (201)
+   [storage] PUT /member-documents/quarantine/1498f199-2a90-4f07-8cf2-740722fb3f39?<presigned> (client, query) -> 200 52428800 bytes in
+   [storage] HEAD /member-documents/quarantine/1498f199-2a90-4f07-8cf2-740722fb3f39 (sdk, header) -> 200
+   ok   presigned 50 MB upload stored (200) and confirmed (uploaded)
+   mode        wall ms   app bytes read   app CPU ms   app peak memory +MB
+   buffer          791         52428800          411              150.6
+   stream          939         52428800          297               16.6
+   presigned       994               81           26                  1
+   ok   buffering holds the whole file: the app's peak live memory grows by more than 40 MB
+   ok   streaming keeps memory flat (under 25 MB) but the app still reads all 52,428,800 bytes
+   ok   presigned: the app reads under 1 KB, and uses under a fifth of the CPU of the cheaper proxied upload
+
+## 3. What a presigned URL allows, and what it does not
+   concept: the signature covers method, bucket, key, expiry and the signed headers (content-type, content-length, host); change one and storage computes a different signature
+   app, text/html: 400 type text/html is not accepted (allowed: application/pdf, image/png, image/jpeg, text/plain)
+   app, 200 MB: 400 size must be 1..104857600 bytes
+   ok   the app refuses to sign a type outside the allow-list or a size over 100 MB
+   [storage] HEAD /member-documents/quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50 (sdk, header) -> 404
+   complete before any PUT: 409 object not found in storage: upload it first
+   ok   the app does not take the browser's word: completing before uploading is refused after a HEAD
+   [storage] PUT /member-documents/quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50?<presigned> (client) -> 403 SignatureDoesNotMatch
+   wrong content type (text/html): 403 SignatureDoesNotMatch
+   ok   storage rejects wrong content type (text/html)
+   [storage] PUT /member-documents/quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50?<presigned> (client) -> 403 SignatureDoesNotMatch
+   wrong length (one byte more): 403 SignatureDoesNotMatch
+   ok   storage rejects wrong length (one byte more)
+   [storage] PUT /member-documents/clean/stolen?<presigned> (client) -> 403 SignatureDoesNotMatch
+   another key with the same signature: 403 SignatureDoesNotMatch
+   ok   storage rejects another key with the same signature
+   [storage] PUT /member-documents/quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50?<presigned> (client) -> 403 SignatureDoesNotMatch
+   longer expiry written into the URL: 403 SignatureDoesNotMatch
+   ok   storage rejects longer expiry written into the URL
+   [storage] GET /member-documents/quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50?<presigned> (client) -> 403 SignatureDoesNotMatch
+   GET with a PUT signature: 403 SignatureDoesNotMatch
+   ok   storage rejects GET with a PUT signature
+   [storage] PUT /member-documents/quarantine/expiry-test?<presigned> (client) -> 403 AccessDenied
+   URL signed for 1 s, used after 2.1 s: 403 Request has expired (issued 2026-10-03T14:46:15.000Z, valid 1s)
+   ok   storage rejects an expired URL
+   [storage] GET /member-documents/?list-type=2 (sdk, header) -> 200 1472 bytes out
+   [storage] GET /member-documents/clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765 (client) -> 403 AccessDenied
+   unsigned GET of an existing object: 403
+   ok   storage refuses an unsigned request: the bucket is private
+   [storage] PUT /member-documents/quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50?<presigned> (client, query) -> 200 23 bytes in
+   [storage] HEAD /member-documents/quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50 (sdk, header) -> 200
+   the same URL used as signed: 200; complete: 200 uploaded
+   ok   the URL as signed still works, once the guards are respected
+   the same wrong-type PUT sent to s3rver directly (port 34289, no gate): 200
+   ok   s3rver on its own accepts the wrong content type: the SigV4 gate is what enforces the signed headers
+
+## 4. Quarantine until scanned
+   concept: an upload lands in quarantine/; only a scanner that reads it from storage can move it to clean/ (downloadable) or rejected/ (never served)
+   [storage] PUT /member-documents/quarantine/57e275ef-d8ae-4420-8607-bd76155b0299?<presigned> (client, query) -> 200 604 bytes in
+   [storage] HEAD /member-documents/quarantine/57e275ef-d8ae-4420-8607-bd76155b0299 (sdk, header) -> 200
+   [storage] PUT /member-documents/quarantine/38590108-c27a-4485-8aef-a89361f0b884?<presigned> (client, query) -> 200 69 bytes in
+   [storage] HEAD /member-documents/quarantine/38590108-c27a-4485-8aef-a89361f0b884 (sdk, header) -> 200
+   objects with the scanner stopped:
+   [storage] GET /member-documents/?list-type=2 (sdk, header) -> 200 2409 bytes out
+     clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765 (617 B)
+     proxied/buffer-f0388403-2165-421a-822f-18b4c72598a9 (52428800 B)
+     proxied/stream-0781ad1d-0ea0-46a9-b07d-3c79f5d4a76f (52428800 B)
+     quarantine/1498f199-2a90-4f07-8cf2-740722fb3f39 (52428800 B)
+     quarantine/38590108-c27a-4485-8aef-a89361f0b884 (69 B)
+     quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50 (23 B)
+     quarantine/57e275ef-d8ae-4420-8607-bd76155b0299 (604 B)
+     rejected/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c (82 B)
+     tampered/raw-s3rver (25 B)
+   download before the scan: 409 not downloadable while uploaded
+   ok   a file in quarantine cannot be downloaded
+   ok   every member upload waiting for the scan is under quarantine/
+   [scanner] watching quarantine/
+   [storage] GET /member-documents/quarantine/1498f199-2a90-4f07-8cf2-740722fb3f39?x-id=GetObject (sdk, header) -> 200 52428800 bytes out
+   [storage] PUT /member-documents/clean/1498f199-2a90-4f07-8cf2-740722fb3f39?x-id=CopyObject (sdk, header) -> 200 0 bytes in
+   [storage] DELETE /member-documents/quarantine/1498f199-2a90-4f07-8cf2-740722fb3f39?x-id=DeleteObject (sdk, header) -> 204
+   [scanner] quarantine/1498f199-2a90-4f07-8cf2-740722fb3f39 -> clean/1498f199-2a90-4f07-8cf2-740722fb3f39 (no signature found, 52428800 bytes read in 780 ms)
+   [storage] GET /member-documents/quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50?x-id=GetObject (sdk, header) -> 200 23 bytes out
+   [storage] PUT /member-documents/clean/57b6d247-7ab6-4965-b4c0-fa4492eb6d50?x-id=CopyObject (sdk, header) -> 200 0 bytes in
+   [storage] DELETE /member-documents/quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50?x-id=DeleteObject (sdk, header) -> 204
+   [scanner] quarantine/57b6d247-7ab6-4965-b4c0-fa4492eb6d50 -> clean/57b6d247-7ab6-4965-b4c0-fa4492eb6d50 (no signature found, 23 bytes read in 38 ms)
+   [storage] GET /member-documents/quarantine/57e275ef-d8ae-4420-8607-bd76155b0299?x-id=GetObject (sdk, header) -> 200 604 bytes out
+   [storage] PUT /member-documents/clean/57e275ef-d8ae-4420-8607-bd76155b0299?x-id=CopyObject (sdk, header) -> 200 0 bytes in
+   [storage] DELETE /member-documents/quarantine/57e275ef-d8ae-4420-8607-bd76155b0299?x-id=DeleteObject (sdk, header) -> 204
+   [scanner] quarantine/57e275ef-d8ae-4420-8607-bd76155b0299 -> clean/57e275ef-d8ae-4420-8607-bd76155b0299 (no signature found, 604 bytes read in 34 ms)
+   [storage] GET /member-documents/quarantine/38590108-c27a-4485-8aef-a89361f0b884?x-id=GetObject (sdk, header) -> 200 69 bytes out
+   [storage] PUT /member-documents/rejected/38590108-c27a-4485-8aef-a89361f0b884?x-id=CopyObject (sdk, header) -> 200 0 bytes in
+   [storage] DELETE /member-documents/quarantine/38590108-c27a-4485-8aef-a89361f0b884?x-id=DeleteObject (sdk, header) -> 204
+   [scanner] quarantine/38590108-c27a-4485-8aef-a89361f0b884 -> rejected/38590108-c27a-4485-8aef-a89361f0b884 (EICAR test signature, 69 bytes read in 26 ms)
+   objects after the scan:
+   [storage] GET /member-documents/?list-type=2 (sdk, header) -> 200 2392 bytes out
+     clean/1498f199-2a90-4f07-8cf2-740722fb3f39 (52428800 B)
+     clean/57b6d247-7ab6-4965-b4c0-fa4492eb6d50 (23 B)
+     clean/57e275ef-d8ae-4420-8607-bd76155b0299 (604 B)
+     clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765 (617 B)
+     proxied/buffer-f0388403-2165-421a-822f-18b4c72598a9 (52428800 B)
+     proxied/stream-0781ad1d-0ea0-46a9-b07d-3c79f5d4a76f (52428800 B)
+     rejected/38590108-c27a-4485-8aef-a89361f0b884 (69 B)
+     rejected/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c (82 B)
+     tampered/raw-s3rver (25 B)
+   ok   nothing is left in quarantine/
+   [storage] GET /member-documents/clean/57e275ef-d8ae-4420-8607-bd76155b0299?<presigned> (client, query) -> 200 604 bytes out
+   clean file: 200, Content-Disposition: attachment; filename="Attestation employeur.pdf"; filename*=UTF-8''Attestation%20employeur.pdf
+   rejected file: 409 not downloadable while rejected
+   ok   the clean file downloads with its name; the EICAR one is refused
+
+== 25 checks passed, 0 failed ==
+
+== proof: uploads, the app's metadata and state machine (the bytes are not in Postgres) ==
+    id    |         filename          |  content_type   |   size   |  status  |       verdict        |                      key                      
+----------+---------------------------+-----------------+----------+----------+----------------------+-----------------------------------------------
+ 99bf3e68 | Relevé annuel 2025.pdf    | application/pdf |      617 | clean    |                      | clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765
+ c7aaeab1 | letter-from-employer.txt  | text/plain      |       82 | rejected | EICAR test signature | rejected/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c
+ 1498f199 | history-export.pdf        | application/pdf | 52428800 | clean    |                      | clean/1498f199-2a90-4f07-8cf2-740722fb3f39
+ 57b6d247 | letter.pdf                | application/pdf |       23 | clean    |                      | clean/57b6d247-7ab6-4965-b4c0-fa4492eb6d50
+ 57e275ef | Attestation employeur.pdf | application/pdf |      604 | clean    |                      | clean/57e275ef-d8ae-4420-8607-bd76155b0299
+ 38590108 | scan.txt                  | text/plain      |       69 | rejected | EICAR test signature | rejected/38590108-c27a-4485-8aef-a89361f0b884
+(6 rows)
+
+== proof: what s3rver wrote to disk, by prefix (quarantine/ is empty: every object was promoted or rejected) ==
+    52428800  clean/1498f199-2a90-4f07-8cf2-740722fb3f39
+          23  clean/57b6d247-7ab6-4965-b4c0-fa4492eb6d50
+         604  clean/57e275ef-d8ae-4420-8607-bd76155b0299
+         617  clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765
+    52428800  proxied/buffer-f0388403-2165-421a-822f-18b4c72598a9
+    52428800  proxied/stream-0781ad1d-0ea0-46a9-b07d-3c79f5d4a76f
+          69  rejected/38590108-c27a-4485-8aef-a89361f0b884
+          82  rejected/c7aaeab1-8dda-4250-9e4d-61e2ff5ada7c
+          25  tampered/raw-s3rver
+== proof: the object metadata s3rver keeps for the browser's PDF (content type as signed, ETag = MD5) ==
+clean/99bf3e68-3fe3-48fa-8077-eaf5decb9765: {"content-type":"application/pdf"}, md5 de31fdf9b4eebad180817c9fcf2ee054
+== proof: screenshots/upload-page.png ==
+100008 screenshots/upload-page.png

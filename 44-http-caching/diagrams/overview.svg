@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1260" height="640" viewBox="0 0 1260 640" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">44. HTTP caching: who may store what, and for how long</text>
+<rect x="40" y="110" width="260" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="170.0" y="141.0" font-size="16" text-anchor="middle">Browsers</text><text x="170.0" y="161.0" font-size="16" text-anchor="middle">private cache: assets,</text><text x="170.0" y="181.0" font-size="16" text-anchor="middle">304 for personal pages</text>
+<rect x="460" y="110" width="300" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="610.0" y="141.0" font-size="16" text-anchor="middle">Shared cache :53154</text><text x="610.0" y="161.0" font-size="16" text-anchor="middle">key = URL + Vary</text><text x="610.0" y="181.0" font-size="16" text-anchor="middle">HIT, STALE, MISS, PASS</text>
+<rect x="920" y="110" width="300" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1070.0" y="141.0" font-size="16" text-anchor="middle">Origin :53054</text><text x="1070.0" y="161.0" font-size="16" text-anchor="middle">Cache-Control per resource</text><text x="1070.0" y="181.0" font-size="16" text-anchor="middle">ETag, Cache-Tag</text>
+<rect x="920" y="330" width="300" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1070.0" y="361.0" font-size="16" text-anchor="middle">Postgres</text><text x="1070.0" y="381.0" font-size="16" text-anchor="middle">fund prices, members</text><text x="1070.0" y="401.0" font-size="16" text-anchor="middle">cache_invalidations outbox</text>
+<rect x="460" y="330" width="300" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="610.0" y="361.0" font-size="16" text-anchor="middle">Bug: public on /members/me</text><text x="610.0" y="381.0" font-size="16" text-anchor="middle">member 2 gets member 1's page</text><text x="610.0" y="401.0" font-size="16" text-anchor="middle">fix = private + purge</text>
+<polyline points="300,155 460,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="316.5" y="144.3" width="127.0" height="21.5" fill="#ffffff"/>
+<text x="380.0" y="160.3" font-size="14" text-anchor="middle">GET, cookie, lang</text>
+<polyline points="760,155 920,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="769.5" y="144.3" width="141.0" height="21.5" fill="#ffffff"/>
+<text x="840.0" y="160.3" font-size="14" text-anchor="middle">miss: If-None-Match</text>
+<polyline points="1070,200 1070,330" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="920,375 840,375 840,270 700,270 700,200" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="776.5" y="259.3" width="127.0" height="21.5" fill="#ffffff"/>
+<text x="840.0" y="275.3" font-size="14" text-anchor="middle">NOTIFY: purge tag</text>
+<polyline points="610,200 610,330" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<text x="40.0" y="536.0" font-size="16" text-anchor="start">assets: public, max-age=31536000, immutable (hashed names)</text><text x="40.0" y="556.0" font-size="16" text-anchor="start">personal: private, no-cache + ETag (browsers revalidate, shared caches never store)</text><text x="40.0" y="576.0" font-size="16" text-anchor="start">funds: public, max-age=0, s-maxage=300, stale-while-revalidate=60 + ETag + Cache-Tag: funds</text><text x="40.0" y="596.0" font-size="16" text-anchor="start">help: public, max-age=60, s-maxage=600 + Vary: Accept-Language (normalised to en | fr)</text></svg>
