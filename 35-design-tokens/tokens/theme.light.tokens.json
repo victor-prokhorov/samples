@@ -1,0 +1,38 @@
+{
+  "$description": "Semantic colours, light mode. Same names as theme.dark.tokens.json, different primitives.",
+  "color": {
+    "$type": "color",
+    "bg": {
+      "canvas": { "$value": "{color.gray.50}", "$description": "Page background." },
+      "surface": { "$value": "{color.gray.0}", "$description": "Cards, inputs, secondary buttons." },
+      "subtle": { "$value": "{color.gray.100}", "$description": "Card footers, table stripes." },
+      "accent": { "$value": "{color.blue.600}", "$description": "Primary button." },
+      "accent-hover": { "$value": "{color.blue.700}" },
+      "danger": { "$value": "{color.red.600}", "$description": "Destructive button." },
+      "danger-hover": { "$value": "{color.red.700}" },
+      "info-subtle": { "$value": "{color.blue.50}" },
+      "success-subtle": { "$value": "{color.green.50}" },
+      "warning-subtle": { "$value": "{color.amber.50}" },
+      "danger-subtle": { "$value": "{color.red.50}" }
+    },
+    "text": {
+      "default": { "$value": "{color.gray.900}" },
+      "muted": { "$value": "{color.gray.600}", "$description": "Hints, metadata. Still body text: 4.5:1." },
+      "on-accent": { "$value": "{color.gray.0}", "$description": "Text on accent and danger buttons." },
+      "link": { "$value": "{color.blue.600}" },
+      "info": { "$value": "{color.blue.700}" },
+      "success": { "$value": "{color.green.700}" },
+      "warning": { "$value": "{color.amber.700}" },
+      "danger": { "$value": "{color.red.700}", "$description": "Error messages and danger alert titles." }
+    },
+    "border": {
+      "default": { "$value": "{color.gray.200}", "$description": "Dividers. Decorative: no contrast requirement." },
+      "input": { "$value": "{color.gray.500}", "$description": "Input and secondary button outline: identifies the control (1.4.11)." },
+      "focus": { "$value": "{color.blue.600}" },
+      "danger": { "$value": "{color.red.600}" },
+      "info": { "$value": "{color.blue.600}" },
+      "success": { "$value": "{color.green.600}" },
+      "warning": { "$value": "{color.amber.600}" }
+    }
+  }
+}

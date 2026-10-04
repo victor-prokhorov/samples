@@ -1,0 +1,38 @@
+[
+  {
+    "page": "slow",
+    "score": 47,
+    "lcp": 30768,
+    "cls": 0.137,
+    "tbt": 456,
+    "fcp": 3918,
+    "si": 5342,
+    "scriptBytes": 467272,
+    "imageBytes": 5510997,
+    "totalBytes": 5980680,
+    "requests": 7,
+    "lcpElement": "body > main > img.hero",
+    "version": "13.5.0",
+    "renderBlocking": [
+      "/slow/tag.js",
+      "/slow/app.js",
+      "/slow/styles.css"
+    ]
+  },
+  {
+    "page": "fast",
+    "score": 99,
+    "lcp": 1295,
+    "cls": 0,
+    "tbt": 115,
+    "fcp": 815,
+    "si": 815,
+    "scriptBytes": 3746,
+    "imageBytes": 2430,
+    "totalBytes": 8007,
+    "requests": 6,
+    "lcpElement": "body > main > picture > img.hero",
+    "version": "13.5.0",
+    "renderBlocking": []
+  }
+]
