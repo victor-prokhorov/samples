@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="510" viewBox="0 0 980 510" font-family="Helvetica, Arial, sans-serif">
+<rect width="980" height="510" fill="#fcfcfb"/>
+<text x="24" y="32" font-size="18" fill="#0b0b0b" text-anchor="start" font-weight="600">Ramp: GET /members/:id/statement, one step every 4 s</text>
+<text x="24" y="54" font-size="12" fill="#52514e" text-anchor="start">Little's law: 4 connections / 40 ms per statement = 100 req/s at most. Past that, requests queue and latency climbs while throughput stays flat.</text>
+<text x="30" y="96" font-size="14" fill="#0b0b0b" text-anchor="start" font-weight="600">Throughput served vs offered</text>
+<line x1="80" x2="440" y1="390" y2="390" stroke="#dddcd7"/>
+<text x="74" y="394" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="80" x2="440" y1="325" y2="325" stroke="#dddcd7"/>
+<text x="74" y="329" font-size="11" fill="#52514e" text-anchor="end">50</text>
+<line x1="80" x2="440" y1="260" y2="260" stroke="#dddcd7"/>
+<text x="74" y="264" font-size="11" fill="#52514e" text-anchor="end">100</text>
+<line x1="80" x2="440" y1="195" y2="195" stroke="#dddcd7"/>
+<text x="74" y="199" font-size="11" fill="#52514e" text-anchor="end">150</text>
+<line x1="80" x2="440" y1="130" y2="130" stroke="#dddcd7"/>
+<text x="74" y="134" font-size="11" fill="#52514e" text-anchor="end">200</text>
+<text x="80" y="406" font-size="11" fill="#52514e" text-anchor="middle">0</text>
+<text x="170" y="406" font-size="11" fill="#52514e" text-anchor="middle">50</text>
+<text x="260" y="406" font-size="11" fill="#52514e" text-anchor="middle">100</text>
+<text x="350" y="406" font-size="11" fill="#52514e" text-anchor="middle">150</text>
+<text x="440" y="406" font-size="11" fill="#52514e" text-anchor="middle">200</text>
+<text x="260" y="426" font-size="12" fill="#52514e" text-anchor="middle">offered (req/s)</text>
+<text x="30" y="120" font-size="12" fill="#52514e" text-anchor="start">served (req/s)</text>
+<line x1="80" y1="390" x2="440" y2="130" stroke="#52514e" stroke-dasharray="4 4"/>
+<text x="436" y="146" font-size="11" fill="#52514e" text-anchor="end">served = offered</text>
+<line x1="80" x2="440" y1="260" y2="260" stroke="#0b0b0b" stroke-dasharray="2 4"/>
+<text x="86" y="254" font-size="11" fill="#0b0b0b" text-anchor="start">capacity by Little's law: 100/s</text>
+<polyline points="125.0,357.8 170.0,325.6 215.0,293.5 260.0,267.8 305.0,266.8 350.0,268.4 395.0,268.8" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="125.0" cy="357.8" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>served: 25 req/s, 25</title></circle>
+<circle cx="170.0" cy="325.6" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>served: 50 req/s, 50</title></circle>
+<circle cx="215.0" cy="293.5" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>served: 75 req/s, 74</title></circle>
+<circle cx="260.0" cy="267.8" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>served: 100 req/s, 94</title></circle>
+<circle cx="305.0" cy="266.8" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>served: 125 req/s, 95</title></circle>
+<circle cx="350.0" cy="268.4" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>served: 150 req/s, 94</title></circle>
+<circle cx="395.0" cy="268.8" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>served: 175 req/s, 93</title></circle>
+<text x="530" y="96" font-size="14" fill="#0b0b0b" text-anchor="start" font-weight="600">Latency vs throughput served</text>
+<line x1="580" x2="940" y1="390" y2="390" stroke="#dddcd7"/>
+<text x="574" y="394" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="580" x2="940" y1="325" y2="325" stroke="#dddcd7"/>
+<text x="574" y="329" font-size="11" fill="#52514e" text-anchor="end">200</text>
+<line x1="580" x2="940" y1="260" y2="260" stroke="#dddcd7"/>
+<text x="574" y="264" font-size="11" fill="#52514e" text-anchor="end">400</text>
+<line x1="580" x2="940" y1="195" y2="195" stroke="#dddcd7"/>
+<text x="574" y="199" font-size="11" fill="#52514e" text-anchor="end">600</text>
+<line x1="580" x2="940" y1="130" y2="130" stroke="#dddcd7"/>
+<text x="574" y="134" font-size="11" fill="#52514e" text-anchor="end">800</text>
+<text x="580" y="406" font-size="11" fill="#52514e" text-anchor="middle">0</text>
+<text x="652" y="406" font-size="11" fill="#52514e" text-anchor="middle">25</text>
+<text x="724" y="406" font-size="11" fill="#52514e" text-anchor="middle">50</text>
+<text x="796" y="406" font-size="11" fill="#52514e" text-anchor="middle">75</text>
+<text x="868" y="406" font-size="11" fill="#52514e" text-anchor="middle">100</text>
+<text x="940" y="406" font-size="11" fill="#52514e" text-anchor="middle">125</text>
+<text x="760" y="426" font-size="12" fill="#52514e" text-anchor="middle">served (req/s)</text>
+<text x="530" y="120" font-size="12" fill="#52514e" text-anchor="start">latency (ms)</text>
+<line x1="868" x2="868" y1="130" y2="390" stroke="#0b0b0b" stroke-dasharray="2 4"/>
+<line x1="580" x2="940" y1="292.5" y2="292.5" stroke="#52514e" stroke-dasharray="4 4"/>
+<text x="586" y="286.5" font-size="11" fill="#52514e" text-anchor="start">SLO: p95 &lt; 300 ms</text>
+<polyline points="651.3,376.2 722.6,376.3 793.8,376.3 850.7,352.0 852.9,285.0 849.3,223.6 848.6,192.0" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="651.3" cy="376.2" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>p50: 25 req/s, 43</title></circle>
+<circle cx="722.6" cy="376.3" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>p50: 50 req/s, 42</title></circle>
+<circle cx="793.8" cy="376.3" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>p50: 74 req/s, 42</title></circle>
+<circle cx="850.7" cy="352.0" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>p50: 94 req/s, 117</title></circle>
+<circle cx="852.9" cy="285.0" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>p50: 95 req/s, 323</title></circle>
+<circle cx="849.3" cy="223.6" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>p50: 94 req/s, 512</title></circle>
+<circle cx="848.6" cy="192.0" r="4" fill="#2a78d6" stroke="#fcfcfb" stroke-width="2"><title>p50: 93 req/s, 609</title></circle>
+<polyline points="651.3,374.9 722.6,375.0 793.8,375.3 850.7,338.2 852.9,205.8 849.3,181.0 848.6,183.8" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round"/>
+<circle cx="651.3" cy="374.9" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>p95: 25 req/s, 47</title></circle>
+<circle cx="722.6" cy="375.0" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>p95: 50 req/s, 46</title></circle>
+<circle cx="793.8" cy="375.3" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>p95: 74 req/s, 45</title></circle>
+<circle cx="850.7" cy="338.2" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>p95: 94 req/s, 159</title></circle>
+<circle cx="852.9" cy="205.8" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>p95: 95 req/s, 567</title></circle>
+<circle cx="849.3" cy="181.0" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>p95: 94 req/s, 643</title></circle>
+<circle cx="848.6" cy="183.8" r="4" fill="#eb6834" stroke="#fcfcfb" stroke-width="2"><title>p95: 93 req/s, 635</title></circle>
+<text x="838.56" y="187.75935142500003" font-size="12" fill="#0b0b0b" text-anchor="end">p95</text>
+<text x="838.56" y="195.99224719999998" font-size="12" fill="#0b0b0b" text-anchor="end">p50</text>
+<circle cx="540" cy="476" r="4" fill="#2a78d6"/>
+<text x="550" y="480" font-size="12" fill="#0b0b0b" text-anchor="start">p50 (median)</text>
+<circle cx="650" cy="476" r="4" fill="#eb6834"/>
+<text x="660" y="480" font-size="12" fill="#0b0b0b" text-anchor="start">p95</text>
+<text x="24" y="500" font-size="11" fill="#52514e" text-anchor="start">steps offered: 25, 50, 75, 100, 125, 150, 175 req/s; dropped by k6 when 60 requests were already waiting: 0, 0, 0, 8, 64, 169, 268</text>
+</svg>

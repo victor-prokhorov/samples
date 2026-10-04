@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1420" height="590" viewBox="0 0 1420 590" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">40. Feature flags: change behaviour without a deploy</text>
+<rect x="40" y="110" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="160.0" y="141.0" font-size="16" text-anchor="middle">Release manager, on-call</text><text x="160.0" y="161.0" font-size="16" text-anchor="middle">setFlag(actor, reason)</text>
+<rect x="380" y="110" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="510.0" y="141.0" font-size="16" text-anchor="middle">Postgres: flags</text><text x="510.0" y="161.0" font-size="16" text-anchor="middle">+ flag_audit (trigger)</text>
+<rect x="820" y="110" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="950.0" y="141.0" font-size="16" text-anchor="middle">Statement API</text><text x="950.0" y="161.0" font-size="16" text-anchor="middle">FlagClient, cache TTL 5 s</text>
+<rect x="1180" y="110" width="200" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1280.0" y="141.0" font-size="16" text-anchor="middle">Members of Acme,</text><text x="1280.0" y="161.0" font-size="16" text-anchor="middle">Globex, Initech</text>
+<rect x="820" y="250" width="260" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="825.0" y="276.0" font-size="16" text-anchor="start">Evaluate locally:</text><text x="825.0" y="296.0" font-size="16" text-anchor="start">release toggle</text><text x="825.0" y="316.0" font-size="16" text-anchor="start">% rollout (stable hash)</text><text x="825.0" y="336.0" font-size="16" text-anchor="start">tenant list, kill switch</text>
+<rect x="40" y="250" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="160.0" y="281.0" font-size="16" text-anchor="middle">src/registry.ts</text><text x="160.0" y="301.0" font-size="16" text-anchor="middle">key, kind, owner, expiry</text>
+<rect x="40" y="400" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="160.0" y="431.0" font-size="16" text-anchor="middle">lint-flags in CI</text><text x="160.0" y="451.0" font-size="16" text-anchor="middle">expired + referenced = fail</text>
+<rect x="380" y="400" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="510.0" y="431.0" font-size="16" text-anchor="middle">The code</text><text x="510.0" y="451.0" font-size="16" text-anchor="middle">getBooleanValue(key, ...)</text>
+<polyline points="280,145 380,145" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="305.0" y="134.3" width="50.0" height="21.5" fill="#ffffff"/>
+<text x="330.0" y="150.3" font-size="14" text-anchor="middle">UPDATE</text>
+<polyline points="640,145 820,145" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="680.5" y="134.3" width="99.0" height="21.5" fill="#ffffff"/>
+<text x="730.0" y="150.3" font-size="14" text-anchor="middle">NOTIFY + read</text>
+<polyline points="1180,145 1080,145" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="1115.5" y="134.3" width="29.0" height="21.5" fill="#ffffff"/>
+<text x="1130.0" y="150.3" font-size="14" text-anchor="middle">GET</text>
+<polyline points="950,180 950,250" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="280,285 510,285 510,180" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="488.5" y="274.3" width="43.0" height="21.5" fill="#ffffff"/>
+<text x="510.0" y="290.3" font-size="14" text-anchor="middle">seeds</text>
+<polyline points="160,320 160,400" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="280,435 380,435" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="308.5" y="424.3" width="43.0" height="21.5" fill="#ffffff"/>
+<text x="330.0" y="440.3" font-size="14" text-anchor="middle">scans</text>
+<text x="40.0" y="526.0" font-size="16" text-anchor="start">A flip is a row update: the trigger audits it and NOTIFY drops the cached copy, so the next evaluation sees it.</text><text x="40.0" y="546.0" font-size="16" text-anchor="start">bucket = sha256(flag key : member id) mod 10000, so a member keeps the feature as the percentage grows.</text></svg>

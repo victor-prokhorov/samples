@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="765" viewBox="0 0 980 765" font-family="Helvetica, Arial, sans-serif">
+<rect width="980" height="765" fill="#fcfcfb"/>
+<text x="24" y="32" font-size="18" fill="#0b0b0b" text-anchor="start" font-weight="600">One noisy tenant, without and with a token bucket per tenant and per API key</text>
+<text x="24" y="54" font-size="12" fill="#52514e" text-anchor="start">11 s of load: Acme's batch job (48 workers, ignores 429) and sync job (8 workers, honours Retry-After); Globex and Initech portals at 20 req/s each from 1 s</text>
+<line x1="24" x2="42" y1="76" y2="76" stroke="#2a78d6" stroke-width="2"/>
+<text x="48" y="80" font-size="12" fill="#0b0b0b" text-anchor="start">Acme (noisy)</text>
+<line x1="148" x2="166" y1="76" y2="76" stroke="#eb6834" stroke-width="2"/>
+<text x="172" y="80" font-size="12" fill="#0b0b0b" text-anchor="start">Globex</text>
+<line x1="230" x2="248" y1="76" y2="76" stroke="#1baf7a" stroke-width="2"/>
+<text x="254" y="80" font-size="12" fill="#0b0b0b" text-anchor="start">Initech</text>
+<text x="110" y="112" font-size="14" fill="#0b0b0b" text-anchor="start" font-weight="600">Without limits</text>
+<text x="600" y="112" font-size="14" fill="#0b0b0b" text-anchor="start" font-weight="600">With limits (tenant 50/s, key 30/s)</text>
+<text x="110" y="141" font-size="12" fill="#0b0b0b" text-anchor="start">Accepted (200) per second</text>
+<line x1="110" x2="470" y1="285" y2="285" stroke="#dddcd7"/>
+<text x="104" y="289" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="110" x2="470" y1="252.5" y2="252.5" stroke="#dddcd7"/>
+<text x="104" y="256.5" font-size="11" fill="#52514e" text-anchor="end">50</text>
+<line x1="110" x2="470" y1="220" y2="220" stroke="#dddcd7"/>
+<text x="104" y="224" font-size="11" fill="#52514e" text-anchor="end">100</text>
+<line x1="110" x2="470" y1="187.5" y2="187.5" stroke="#dddcd7"/>
+<text x="104" y="191.5" font-size="11" fill="#52514e" text-anchor="end">150</text>
+<line x1="110" x2="470" y1="155" y2="155" stroke="#dddcd7"/>
+<text x="104" y="159" font-size="11" fill="#52514e" text-anchor="end">200</text>
+<polyline points="110.0,161.5 146.0,182.3 182.0,192.7 218.0,189.4 254.0,191.4 290.0,190.8 326.0,190.8 362.0,192.1 398.0,190.1 434.0,192.7 470.0,189.4" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Acme (noisy): 190, 158, 142, 147, 144, 145, 145, 143, 146, 142, 147 req/s per second</title></polyline>
+<polyline points="110.0,285.0 146.0,271.4 182.0,272.6 218.0,271.4 254.0,272.6 290.0,271.4 326.0,272.6 362.0,272.0 398.0,272.0 434.0,271.4 470.0,272.0" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Globex: 0, 21, 19, 21, 19, 21, 19, 20, 20, 21, 20 req/s per second</title></polyline>
+<polyline points="110.0,285.0 146.0,271.4 182.0,272.0 218.0,272.6 254.0,271.4 290.0,272.0 326.0,272.0 362.0,272.0 398.0,272.6 434.0,271.4 470.0,272.0" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Initech: 0, 21, 20, 19, 21, 20, 20, 20, 19, 21, 20 req/s per second</title></polyline>
+<text x="110" y="300" font-size="11" fill="#52514e" text-anchor="middle">0s</text>
+<text x="182" y="300" font-size="11" fill="#52514e" text-anchor="middle">2s</text>
+<text x="254" y="300" font-size="11" fill="#52514e" text-anchor="middle">4s</text>
+<text x="326" y="300" font-size="11" fill="#52514e" text-anchor="middle">6s</text>
+<text x="398" y="300" font-size="11" fill="#52514e" text-anchor="middle">8s</text>
+<text x="470" y="300" font-size="11" fill="#52514e" text-anchor="middle">10s</text>
+<text x="600" y="141" font-size="12" fill="#0b0b0b" text-anchor="start">Accepted (200) per second</text>
+<line x1="600" x2="960" y1="285" y2="285" stroke="#dddcd7"/>
+<text x="594" y="289" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="600" x2="960" y1="252.5" y2="252.5" stroke="#dddcd7"/>
+<text x="594" y="256.5" font-size="11" fill="#52514e" text-anchor="end">50</text>
+<line x1="600" x2="960" y1="220" y2="220" stroke="#dddcd7"/>
+<text x="594" y="224" font-size="11" fill="#52514e" text-anchor="end">100</text>
+<line x1="600" x2="960" y1="187.5" y2="187.5" stroke="#dddcd7"/>
+<text x="594" y="191.5" font-size="11" fill="#52514e" text-anchor="end">150</text>
+<line x1="600" x2="960" y1="155" y2="155" stroke="#dddcd7"/>
+<text x="594" y="159" font-size="11" fill="#52514e" text-anchor="end">200</text>
+<polyline points="600.0,258.4 636.0,257.7 672.0,253.8 708.0,255.8 744.0,257.7 780.0,249.3 816.0,254.4 852.0,262.3 888.0,257.1 924.0,251.8 960.0,259.6" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Acme (noisy): 41, 42, 48, 45, 42, 55, 47, 35, 43, 51, 39 req/s per second</title></polyline>
+<polyline points="600.0,285.0 636.0,271.4 672.0,272.6 708.0,272.0 744.0,271.4 780.0,272.0 816.0,272.0 852.0,272.0 888.0,272.6 924.0,272.0 960.0,272.0" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Globex: 0, 21, 19, 20, 21, 20, 20, 20, 19, 20, 20 req/s per second</title></polyline>
+<polyline points="600.0,285.0 636.0,271.4 672.0,272.6 708.0,272.0 744.0,271.4 780.0,272.0 816.0,272.6 852.0,271.4 888.0,272.6 924.0,272.0 960.0,271.4" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Initech: 0, 21, 19, 20, 21, 20, 19, 21, 19, 20, 21 req/s per second</title></polyline>
+<text x="600" y="300" font-size="11" fill="#52514e" text-anchor="middle">0s</text>
+<text x="672" y="300" font-size="11" fill="#52514e" text-anchor="middle">2s</text>
+<text x="744" y="300" font-size="11" fill="#52514e" text-anchor="middle">4s</text>
+<text x="816" y="300" font-size="11" fill="#52514e" text-anchor="middle">6s</text>
+<text x="888" y="300" font-size="11" fill="#52514e" text-anchor="middle">8s</text>
+<text x="960" y="300" font-size="11" fill="#52514e" text-anchor="middle">10s</text>
+<text x="110" y="341" font-size="12" fill="#0b0b0b" text-anchor="start">Refused (429) per second</text>
+<line x1="110" x2="470" y1="485" y2="485" stroke="#dddcd7"/>
+<text x="104" y="489" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="110" x2="470" y1="452.5" y2="452.5" stroke="#dddcd7"/>
+<text x="104" y="456.5" font-size="11" fill="#52514e" text-anchor="end">100</text>
+<line x1="110" x2="470" y1="420" y2="420" stroke="#dddcd7"/>
+<text x="104" y="424" font-size="11" fill="#52514e" text-anchor="end">200</text>
+<line x1="110" x2="470" y1="387.5" y2="387.5" stroke="#dddcd7"/>
+<text x="104" y="391.5" font-size="11" fill="#52514e" text-anchor="end">300</text>
+<line x1="110" x2="470" y1="355" y2="355" stroke="#dddcd7"/>
+<text x="104" y="359" font-size="11" fill="#52514e" text-anchor="end">400</text>
+<polyline points="110.0,485.0 146.0,485.0 182.0,485.0 218.0,485.0 254.0,485.0 290.0,485.0 326.0,485.0 362.0,485.0 398.0,485.0 434.0,485.0 470.0,485.0" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Acme (noisy): 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 req/s per second</title></polyline>
+<polyline points="110.0,485.0 146.0,485.0 182.0,485.0 218.0,485.0 254.0,485.0 290.0,485.0 326.0,485.0 362.0,485.0 398.0,485.0 434.0,485.0 470.0,485.0" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Globex: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 req/s per second</title></polyline>
+<polyline points="110.0,485.0 146.0,485.0 182.0,485.0 218.0,485.0 254.0,485.0 290.0,485.0 326.0,485.0 362.0,485.0 398.0,485.0 434.0,485.0 470.0,485.0" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Initech: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 req/s per second</title></polyline>
+<text x="110" y="500" font-size="11" fill="#52514e" text-anchor="middle">0s</text>
+<text x="182" y="500" font-size="11" fill="#52514e" text-anchor="middle">2s</text>
+<text x="254" y="500" font-size="11" fill="#52514e" text-anchor="middle">4s</text>
+<text x="326" y="500" font-size="11" fill="#52514e" text-anchor="middle">6s</text>
+<text x="398" y="500" font-size="11" fill="#52514e" text-anchor="middle">8s</text>
+<text x="470" y="500" font-size="11" fill="#52514e" text-anchor="middle">10s</text>
+<text x="600" y="341" font-size="12" fill="#0b0b0b" text-anchor="start">Refused (429) per second</text>
+<line x1="600" x2="960" y1="485" y2="485" stroke="#dddcd7"/>
+<text x="594" y="489" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="600" x2="960" y1="452.5" y2="452.5" stroke="#dddcd7"/>
+<text x="594" y="456.5" font-size="11" fill="#52514e" text-anchor="end">100</text>
+<line x1="600" x2="960" y1="420" y2="420" stroke="#dddcd7"/>
+<text x="594" y="424" font-size="11" fill="#52514e" text-anchor="end">200</text>
+<line x1="600" x2="960" y1="387.5" y2="387.5" stroke="#dddcd7"/>
+<text x="594" y="391.5" font-size="11" fill="#52514e" text-anchor="end">300</text>
+<line x1="600" x2="960" y1="355" y2="355" stroke="#dddcd7"/>
+<text x="594" y="359" font-size="11" fill="#52514e" text-anchor="end">400</text>
+<polyline points="600.0,421.3 636.0,420.6 672.0,415.1 708.0,420.3 744.0,424.9 780.0,415.4 816.0,416.1 852.0,424.2 888.0,419.4 924.0,415.1 960.0,415.1" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Acme (noisy): 196, 198, 215, 199, 185, 214, 212, 187, 202, 215, 215 req/s per second</title></polyline>
+<polyline points="600.0,485.0 636.0,485.0 672.0,485.0 708.0,485.0 744.0,485.0 780.0,485.0 816.0,485.0 852.0,485.0 888.0,485.0 924.0,485.0 960.0,485.0" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Globex: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 req/s per second</title></polyline>
+<polyline points="600.0,485.0 636.0,485.0 672.0,485.0 708.0,485.0 744.0,485.0 780.0,485.0 816.0,485.0 852.0,485.0 888.0,485.0 924.0,485.0 960.0,485.0" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Initech: 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 req/s per second</title></polyline>
+<text x="600" y="500" font-size="11" fill="#52514e" text-anchor="middle">0s</text>
+<text x="672" y="500" font-size="11" fill="#52514e" text-anchor="middle">2s</text>
+<text x="744" y="500" font-size="11" fill="#52514e" text-anchor="middle">4s</text>
+<text x="816" y="500" font-size="11" fill="#52514e" text-anchor="middle">6s</text>
+<text x="888" y="500" font-size="11" fill="#52514e" text-anchor="middle">8s</text>
+<text x="960" y="500" font-size="11" fill="#52514e" text-anchor="middle">10s</text>
+<text x="110" y="541" font-size="12" fill="#0b0b0b" text-anchor="start">p95 latency of accepted requests (ms)</text>
+<line x1="110" x2="470" y1="685" y2="685" stroke="#dddcd7"/>
+<text x="104" y="689" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="110" x2="470" y1="652.5" y2="652.5" stroke="#dddcd7"/>
+<text x="104" y="656.5" font-size="11" fill="#52514e" text-anchor="end">100</text>
+<line x1="110" x2="470" y1="620" y2="620" stroke="#dddcd7"/>
+<text x="104" y="624" font-size="11" fill="#52514e" text-anchor="end">200</text>
+<line x1="110" x2="470" y1="587.5" y2="587.5" stroke="#dddcd7"/>
+<text x="104" y="591.5" font-size="11" fill="#52514e" text-anchor="end">300</text>
+<line x1="110" x2="470" y1="555" y2="555" stroke="#dddcd7"/>
+<text x="104" y="559" font-size="11" fill="#52514e" text-anchor="end">400</text>
+<polyline points="110.0,584.4 146.0,601.7 182.0,603.2 218.0,608.5 254.0,605.2 290.0,605.0 326.0,599.9 362.0,604.0 398.0,601.8 434.0,606.2 470.0,607.2" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Acme (noisy): 310, 256, 252, 235, 246, 246, 262, 249, 256, 242, 239 ms per second</title></polyline>
+<polyline points="146.0,602.2 182.0,603.0 218.0,607.4 254.0,604.2 290.0,607.5 326.0,600.8 362.0,604.9 398.0,605.9 434.0,606.1 470.0,606.8" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Globex: -, 255, 252, 239, 249, 239, 259, 246, 243, 243, 241 ms per second</title></polyline>
+<polyline points="146.0,602.4 182.0,606.5 218.0,609.0 254.0,606.3 290.0,604.4 326.0,601.1 362.0,606.4 398.0,601.6 434.0,607.3 470.0,606.6" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Initech: -, 254, 241, 234, 242, 248, 258, 242, 257, 239, 241 ms per second</title></polyline>
+<text x="110" y="700" font-size="11" fill="#52514e" text-anchor="middle">0s</text>
+<text x="182" y="700" font-size="11" fill="#52514e" text-anchor="middle">2s</text>
+<text x="254" y="700" font-size="11" fill="#52514e" text-anchor="middle">4s</text>
+<text x="326" y="700" font-size="11" fill="#52514e" text-anchor="middle">6s</text>
+<text x="398" y="700" font-size="11" fill="#52514e" text-anchor="middle">8s</text>
+<text x="470" y="700" font-size="11" fill="#52514e" text-anchor="middle">10s</text>
+<text x="600" y="541" font-size="12" fill="#0b0b0b" text-anchor="start">p95 latency of accepted requests (ms)</text>
+<line x1="600" x2="960" y1="685" y2="685" stroke="#dddcd7"/>
+<text x="594" y="689" font-size="11" fill="#52514e" text-anchor="end">0</text>
+<line x1="600" x2="960" y1="652.5" y2="652.5" stroke="#dddcd7"/>
+<text x="594" y="656.5" font-size="11" fill="#52514e" text-anchor="end">100</text>
+<line x1="600" x2="960" y1="620" y2="620" stroke="#dddcd7"/>
+<text x="594" y="624" font-size="11" fill="#52514e" text-anchor="end">200</text>
+<line x1="600" x2="960" y1="587.5" y2="587.5" stroke="#dddcd7"/>
+<text x="594" y="591.5" font-size="11" fill="#52514e" text-anchor="end">300</text>
+<line x1="600" x2="960" y1="555" y2="555" stroke="#dddcd7"/>
+<text x="594" y="559" font-size="11" fill="#52514e" text-anchor="end">400</text>
+<polyline points="600.0,652.9 636.0,666.4 672.0,668.7 708.0,667.5 744.0,669.1 780.0,665.5 816.0,666.8 852.0,670.7 888.0,671.4 924.0,670.2 960.0,672.4" fill="none" stroke="#2a78d6" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Acme (noisy): 99, 57, 50, 54, 49, 60, 56, 44, 42, 45, 39 ms per second</title></polyline>
+<polyline points="636.0,671.8 672.0,667.6 708.0,674.7 744.0,672.6 780.0,669.0 816.0,671.8 852.0,674.0 888.0,670.7 924.0,671.5 960.0,675.6" fill="none" stroke="#eb6834" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Globex: -, 41, 54, 32, 38, 49, 41, 34, 44, 41, 29 ms per second</title></polyline>
+<polyline points="636.0,668.0 672.0,667.3 708.0,675.2 744.0,670.4 780.0,670.2 816.0,666.4 852.0,673.8 888.0,673.1 924.0,675.4 960.0,674.6" fill="none" stroke="#1baf7a" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Initech: -, 52, 54, 30, 45, 45, 57, 34, 37, 29, 32 ms per second</title></polyline>
+<text x="600" y="700" font-size="11" fill="#52514e" text-anchor="middle">0s</text>
+<text x="672" y="700" font-size="11" fill="#52514e" text-anchor="middle">2s</text>
+<text x="744" y="700" font-size="11" fill="#52514e" text-anchor="middle">4s</text>
+<text x="816" y="700" font-size="11" fill="#52514e" text-anchor="middle">6s</text>
+<text x="888" y="700" font-size="11" fill="#52514e" text-anchor="middle">8s</text>
+<text x="960" y="700" font-size="11" fill="#52514e" text-anchor="middle">10s</text>
+</svg>

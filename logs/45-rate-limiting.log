@@ -1,0 +1,131 @@
+# 45-rate-limiting run 2026-10-04T01:02:14Z
+== fresh Postgres for the buckets and the member API (docker compose down -v && up) ==
+ Container 45-rate-limiting-postgres-1 Healthy 
+setup: tenants (3), api_keys (4), members (3000), buckets, take_tokens(), request_log
+== demo: a member API (a separate process) shared by three employers, flooded by one, without then with limits ==
+
+## 1. One bucket, many requests at once
+   concept: take_tokens() locks the bucket row, refills it by elapsed time and takes a token in one statement; a read-then-write in the app lets concurrent requests spend the same token
+   bucket of 10 tokens, 100 concurrent requests: read-then-write admitted 100, take_tokens() admitted 10
+   ok: the row-locked function admits exactly the bucket size
+   ok: the unlocked read-then-write admits more than the bucket holds
+
+## 2. Baseline: the quiet tenants alone
+   concept: Globex's and Initech's portals at a steady 20 requests a second each, nobody else; this is the latency to protect
+   [server] member API on :53055, limits OFF
+   client            sent    200    429  429 %  p50 ms  p95 ms  (latency of the 200s, measured by the client)
+   acme-batch           0      0      0    0.0       0       0
+   acme-sync            0      0      0    0.0       0       0
+   globex-portal       60     60      0    0.0      23      27
+   initech-portal      61     61      0    0.0      24      26
+   quiet tenants (Globex + Initech): p95 27 ms over 121 requests
+
+## 3. Without limits: Acme's batch job floods the shared API
+   concept: 48 workers of acme-batch plus 8 of acme-sync, against Globex's and Initech's portals at a steady 20 requests a second each (from second 1 to 11); one pool of 4 connections serves everyone
+   client            sent    200    429  429 %  p50 ms  p95 ms  (latency of the 200s, measured by the client)
+   acme-batch        1273   1273      0    0.0     227     251
+   acme-sync          376    376      0    0.0     226     252
+   globex-portal      201    201      0    0.0     229     250
+   initech-portal     201    201      0    0.0     228     250
+   quiet tenants (Globex + Initech): p95 250 ms over 402 requests
+
+## 4. The limiter's answers: headers on 200 and 429
+   concept: every response carries RateLimit-Policy (the quotas) and RateLimit (what is left, and when it is back); a 429 adds Retry-After and a problem+json body
+   [server] member API on :53055, limits ON
+   GET /members/3 (acme-sync) -> 200
+     ratelimit-policy: "tenant";q=50;w=1, "key";q=30;w=1
+     ratelimit: "tenant";r=9;t=1, "key";r=5;t=1
+   40 requests at once from acme-sync: 7 answered 200, 33 answered 429 (in 110 ms); one of the 429s:
+     retry-after: 1
+     ratelimit-policy: "tenant";q=50;w=1, "key";q=30;w=1
+     ratelimit: "tenant";r=0;t=1, "key";r=0;t=1
+     content-type: application/problem+json
+     body: {"type":"about:blank","title":"Too Many Requests","status":429,"detail":"quota exceeded for acme-sync, retry after 1 s"}
+   ok: the 429 carries Retry-After in whole seconds and both IETF headers
+   ok: a burst gets what is left in the key's bucket and no more (at most the burst of 6 + 30/s x 110 ms = 10)
+
+## 5. With limits: the same load
+   concept: Acme may use 50 requests a second (burst 10), each of its keys 30 (burst 6); Globex and Initech never come near theirs. The batch job keeps hammering, the sync job waits Retry-After plus jitter
+   client            sent    200    429  429 %  p50 ms  p95 ms  (latency of the 200s, measured by the client)
+   acme-batch        2489    321   2168   87.1      28      58
+   acme-sync          237    167     70   29.5      25      58
+   globex-portal      200    200      0    0.0      25      41
+   initech-portal     201    201      0    0.0      25      41
+   quiet tenants (Globex + Initech): p95 41 ms over 401 requests
+   server: 897 served, 154 refused by take_tokens(), 2117 refused from the local memory of the last refusal
+
+## 6. What changed
+   concept: the limit moves the queue out of the shared pool and back to the client that caused it
+   quiet tenants' p95: 27 ms alone, 250 ms next to Acme without limits, 41 ms with limits
+   ok: without limits the quiet tenants' p95 explodes (over 5x their baseline and over 100 ms)
+   ok: with limits the quiet tenants stay close to their baseline (under 3x, and under a third of the unlimited run) and never see a 429
+   Acme accepted 488 in 11 s (limit 50/s + a burst of 10 = 560); acme-batch 321 (key limit 30/s + 6 = 336)
+   ok: Acme gets no more than its quota
+   acme-batch: 87.1% of its requests got 429; acme-sync: 29.5%
+   ok: the client that hammers keeps getting 429 (over 80% of what it sends, 2.5x the polite client's share)
+   ok: the client that honours Retry-After rarely sees one (under 50%) and still gets work done
+   acme-sync waited 70 times, 1019..1499 ms (Retry-After 1 s plus up to 50% jitter)
+   ok: the polite client's retries are spread out, never earlier than Retry-After
+   ok: most refusals never reach Postgres: the local memory of the last refusal answers them
+
+## 7. Chart
+   concept: out/requests.svg: requests per second per tenant, accepted and 429, and the quiet tenants' p95, without and with limits
+   wrote out/requests.svg (15338 bytes)
+   ok: the chart was written
+
+== proof: the policy (tenants and api_keys) ==
+      key       | tenant  |               client               | key_rate | key_burst | tenant_rate | tenant_burst 
+----------------+---------+------------------------------------+----------+-----------+-------------+--------------
+ acme-batch     | acme    | nightly batch export (ignores 429) |       30 |         6 |          50 |           10
+ acme-sync      | acme    | HR sync (honours Retry-After)      |       30 |         6 |          50 |           10
+ globex-portal  | globex  | member portal                      |       30 |         6 |          50 |           10
+ initech-portal | initech | member portal                      |       30 |         6 |          50 |           10
+(4 rows)
+
+== proof: buckets after the limited run (tokens left, refilled lazily on the next request) ==
+        key         | tokens |  updated_at  
+--------------------+--------+--------------
+ key:acme-batch     |   2.33 | 01:02:52.988
+ key:acme-sync      |   0.44 | 01:02:52.989
+ key:globex-portal  |   5.00 | 01:02:52.940
+ key:initech-portal |   5.00 | 01:02:52.989
+ tenant:acme        |   1.64 | 01:02:52.989
+ tenant:globex      |   9.00 | 01:02:52.940
+ tenant:initech     |   9.00 | 01:02:52.989
+(7 rows)
+
+== proof: request_log per run and client, as the clients saw it ==
+      run       |     client     | sent |  ok  | limited | p50_ms | p95_ms | max_ms 
+----------------+----------------+------+------+---------+--------+--------+--------
+ without limits | acme-batch     | 1273 | 1273 |       0 |    227 |    251 |    332
+ without limits | acme-sync      |  376 |  376 |       0 |    226 |    252 |    349
+ without limits | globex-portal  |  201 |  201 |       0 |    229 |    250 |    259
+ without limits | initech-portal |  201 |  201 |       0 |    228 |    250 |    266
+ with limits    | acme-batch     | 2489 |  321 |    2168 |     28 |     58 |    114
+ with limits    | acme-sync      |  237 |  167 |      70 |     25 |     57 |    100
+ with limits    | globex-portal  |  200 |  200 |       0 |     25 |     41 |     70
+ with limits    | initech-portal |  201 |  201 |       0 |     25 |     41 |     84
+ baseline       | globex-portal  |   60 |   60 |       0 |     24 |     27 |     31
+ baseline       | initech-portal |   61 |   61 |       0 |     24 |     26 |     44
+(10 rows)
+
+== proof: Acme per second with limits (accepted stays near 60/s whatever it sends) ==
+ second | accepted | refused | sync_accepted 
+--------+----------+---------+---------------
+      0 |       41 |     195 |            12
+      1 |       42 |     199 |            17
+      2 |       48 |     215 |            17
+      3 |       45 |     199 |            16
+      4 |       42 |     185 |            13
+      5 |       55 |     214 |            24
+      6 |       47 |     212 |            17
+      7 |       35 |     187 |             6
+      8 |       43 |     202 |            15
+      9 |       51 |     215 |            19
+     10 |       39 |     215 |            11
+(11 rows)
+
+== proof: out/requests.svg ==
+15338 out/requests.svg
+== screenshot: screenshots/requests.png (the SVG rendered by tools/render.mjs) ==
+56775 screenshots/requests.png
