@@ -1,0 +1,17 @@
+{
+  "$description": "Performance budgets. Lab: one Lighthouse run per page, mobile, simulated slow 4G. Field: p75 of real visits, the thresholds Google calls good for Core Web Vitals. Bundle: the gzip size of each page's main script.",
+  "lab": {
+    "largest-contentful-paint": { "max": 2500, "unit": "ms" },
+    "cumulative-layout-shift": { "max": 0.1, "unit": "" },
+    "total-blocking-time": { "max": 200, "unit": "ms" },
+    "script-transfer-size": { "max": 100000, "unit": "bytes" }
+  },
+  "field": {
+    "LCP": { "max": 2500, "unit": "ms" },
+    "CLS": { "max": 0.1, "unit": "" },
+    "INP": { "max": 200, "unit": "ms" }
+  },
+  "bundle": {
+    "app.js": { "maxGzip": 30000 }
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "$description": "Semantic layer, same in every theme: what a value is for. Components read these, never the primitives.",
+  "space": {
+    "$type": "dimension",
+    "xs": { "$value": "{size.2}" },
+    "sm": { "$value": "{size.4}" },
+    "md": { "$value": "{size.6}" },
+    "lg": { "$value": "{size.8}" },
+    "xl": { "$value": "{size.9}" }
+  },
+  "radius": {
+    "$type": "dimension",
+    "control": { "$value": "{size.3}", "$description": "Buttons and inputs." },
+    "surface": { "$value": "{size.4}", "$description": "Cards and alerts." }
+  },
+  "border": {
+    "width": {
+      "$type": "dimension",
+      "default": { "$value": { "value": 1, "unit": "px" } },
+      "edge": { "$value": "{size.2}", "$description": "The alert's leading edge." }
+    }
+  },
+  "focus": {
+    "width": { "$type": "dimension", "$value": "{size.1}", "$description": "Outline width of the focus ring (WCAG 2.4.7, 2.4.13)." },
+    "offset": { "$type": "dimension", "$value": "{size.1}" }
+  },
+  "control": {
+    "height": { "$type": "dimension", "$value": "{size.10}", "$description": "40px: above the 24px minimum target size of WCAG 2.5.8." }
+  },
+  "text": {
+    "family": { "$type": "fontFamily", "$value": "{font.family.inter}" },
+    "body": {
+      "size": { "$type": "dimension", "$value": "{font.size.300}" },
+      "weight": { "$type": "fontWeight", "$value": "{font.weight.regular}" },
+      "line-height": { "$type": "number", "$value": "{font.line-height.normal}" }
+    },
+    "small": { "size": { "$type": "dimension", "$value": "{font.size.200}" } },
+    "label": {
+      "size": { "$type": "dimension", "$value": "{font.size.200}" },
+      "weight": { "$type": "fontWeight", "$value": "{font.weight.medium}" }
+    },
+    "heading": {
+      "size": { "$type": "dimension", "$value": "{font.size.500}" },
+      "weight": { "$type": "fontWeight", "$value": "{font.weight.semibold}" },
+      "line-height": { "$type": "number", "$value": "{font.line-height.tight}" }
+    },
+    "title": {
+      "size": { "$type": "dimension", "$value": "{font.size.400}" },
+      "weight": { "$type": "fontWeight", "$value": "{font.weight.semibold}" }
+    }
+  },
+  "motion": { "duration": { "$type": "duration", "$value": "{duration.fast}" } }
+}

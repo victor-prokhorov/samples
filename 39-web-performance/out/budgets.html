@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Performance budgets: slow and fast member page</title><style>
+body{font:15px/1.5 system-ui,sans-serif;margin:24px;color:#181c22;background:#fff;max-width:920px}
+h1{font-size:22px;margin:0 0 4px}p{margin:0 0 16px;color:#525a66}
+table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:8px 10px;border-bottom:1px solid #dde1e7}
+thead th{font-size:13px;color:#525a66}tbody th{font-weight:600;color:#525a66;font-size:13px;text-transform:uppercase}
+td.num,td.ok,td.bad{text-align:right;font-variant-numeric:tabular-nums}
+td span{display:block;font-size:12px;font-weight:600}td.ok span{color:#17623a}td.bad span{color:#a32222}td.bad{background:#fdf2f2}
+</style></head><body><h1>Performance budgets: the member page, slow and fast</h1>
+<p>Lab: Lighthouse 13.5.0, one run per page, mobile, simulated slow 4G, 4x CPU.<br>Field: p75 of 12 visits per page (desktop, 4G, slow 4G), reported by web-vitals with sendBeacon.</p>
+<table><thead><tr><th>Scope</th><th>Metric</th><th class="num">Budget</th><th class="num">Slow</th><th class="num">Fast</th></tr></thead><tbody>
+<tr><th>bundle</th><td>app.js (gzip)</td><td class="num">30.0 kB</td><td class="bad">114.4 kB<span>Over budget</span></td><td class="ok">3.2 kB<span>Pass</span></td></tr>
+<tr><th>lab</th><td>largest-contentful-paint</td><td class="num">2500 ms</td><td class="bad">30768 ms<span>Over budget</span></td><td class="ok">1295 ms<span>Pass</span></td></tr>
+<tr><th>lab</th><td>cumulative-layout-shift</td><td class="num">0.100</td><td class="bad">0.137<span>Over budget</span></td><td class="ok">0.000<span>Pass</span></td></tr>
+<tr><th>lab</th><td>total-blocking-time</td><td class="num">200 ms</td><td class="bad">456 ms<span>Over budget</span></td><td class="ok">115 ms<span>Pass</span></td></tr>
+<tr><th>lab</th><td>script-transfer-size</td><td class="num">100.0 kB</td><td class="bad">467.3 kB<span>Over budget</span></td><td class="ok">3.7 kB<span>Pass</span></td></tr>
+<tr><th>field</th><td>LCP p75</td><td class="num">2500 ms</td><td class="bad">12068 ms<span>Over budget</span></td><td class="ok">364 ms<span>Pass</span></td></tr>
+<tr><th>field</th><td>CLS p75</td><td class="num">0.100</td><td class="bad">0.137<span>Over budget</span></td><td class="ok">0.000<span>Pass</span></td></tr>
+<tr><th>field</th><td>INP p75</td><td class="num">200 ms</td><td class="bad">584 ms<span>Over budget</span></td><td class="ok">48 ms<span>Pass</span></td></tr>
+</tbody></table></body></html>
