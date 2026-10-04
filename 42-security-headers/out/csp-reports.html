@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>CSP reports</title><style>
+:root { --surface: #fcfcfb; --ink: #0b0b0b; --muted: #52514e; --line: #ddd; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --surface: #1a1a19; --ink: #fff; --muted: #c3c2b7; --line: #444; } }
+:root[data-theme="dark"] { --surface: #1a1a19; --ink: #fff; --muted: #c3c2b7; --line: #444; }
+body { margin: 0; padding: 16px 24px; background: var(--surface); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+h1 { font-size: 20px; margin: 0 0 4px; } p { color: var(--muted); margin: 0 0 10px; }
+table { border-collapse: collapse; } th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); } th { font-size: 13px; color: var(--muted); }
+</style></head><body><h1>CSP violation reports received by POST /csp-report (hardened build)</h1>
+<p>7 reports. The browser blocked the injected inline script on every page view, and the framing attempt.</p>
+<table><thead><tr><th>time (UTC)</th><th>directive</th><th>blocked</th><th>page</th><th>script sample (first 40 chars)</th></tr></thead><tbody>
+<tr><td>19:49:37.926</td><td><code>script-src-elem</code></td><td><code>inline</code></td><td>http://localhost:53152/</td><td><code>document.getElementById('notice').insert</code></td></tr>
+<tr><td>19:49:37.981</td><td><code>script-src-elem</code></td><td><code>inline</code></td><td>http://localhost:53152/</td><td><code>document.getElementById('notice').insert</code></td></tr>
+<tr><td>19:49:39.896</td><td><code>script-src-elem</code></td><td><code>inline</code></td><td>http://localhost:53152/</td><td><code>document.getElementById('notice').insert</code></td></tr>
+<tr><td>19:49:40.358</td><td><code>script-src-elem</code></td><td><code>inline</code></td><td>http://localhost:53152/</td><td><code>document.getElementById('notice').insert</code></td></tr>
+<tr><td>19:49:40.969</td><td><code>script-src-elem</code></td><td><code>inline</code></td><td>http://localhost:53152/</td><td><code>document.getElementById('notice').insert</code></td></tr>
+<tr><td>19:49:43.578</td><td><code>script-src-elem</code></td><td><code>inline</code></td><td>http://localhost:53152/</td><td><code>document.getElementById('notice').insert</code></td></tr>
+<tr><td>19:49:43.816</td><td><code>frame-ancestors</code></td><td><code>http://localhost:53152/</code></td><td>http://localhost:53152/</td><td><code></code></td></tr>
+</tbody></table></body></html>

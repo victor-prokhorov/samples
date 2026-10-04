@@ -1,0 +1,155 @@
+# 42-security-headers run 2026-10-03T19:49:31Z
+== no database needed: two portal builds and an attacker site, all in the demo process ==
+   insecure :53052, hardened :53152, attacker :53252 (also reached as 127.0.0.1:53252, another site)
+== secrets: the signing key comes from the environment (here a fresh random one); a developer's .env.local holds a token ==
+wrote .env.local (gitignored): SESSION_KEYS=<32 random bytes> NPM_TOKEN=npm_<36 random chars>
+secret scanner: ghcr.io/gitleaks/gitleaks:v8.30.1
+== demo: header scan, then XSS, CSRF and framing against both builds in Chromium (Playwright) ==
+
+## 1. Scan the headers
+   concept: sign in, fetch the account page, score each security header and the session cookie (Mozilla Observatory style, out of 100)
+   [insecure :53052] signed in Scanner
+   [hardened :53152] signed in Scanner
+   check                                              insecure   hardened
+   CSP present                                        FAIL 0/10  pass 10/10
+   CSP script-src: nonce or hash, no 'unsafe-inline'  FAIL 0/15  pass 15/15
+   CSP script-src: 'strict-dynamic'                   FAIL 0/5   pass 5/5  
+   CSP object-src 'none'                              FAIL 0/5   pass 5/5  
+   CSP base-uri restricted                            FAIL 0/5   pass 5/5  
+   CSP frame-ancestors (clickjacking)                 FAIL 0/10  pass 10/10
+   CSP violation reporting                            FAIL 0/5   pass 5/5  
+   HSTS max-age >= 1 year                             FAIL 0/10  pass 10/10
+   X-Content-Type-Options: nosniff                    FAIL 0/5   pass 5/5  
+   Referrer-Policy strict                             FAIL 0/5   pass 5/5  
+   Permissions-Policy                                 FAIL 0/5   pass 5/5  
+   Session cookie __Host- prefix                      FAIL 0/5   pass 5/5  
+   Session cookie Secure                              FAIL 0/5   pass 5/5  
+   Session cookie HttpOnly                            FAIL 0/5   pass 5/5  
+   Session cookie SameSite                            FAIL 0/5   pass 5/5  
+   score                                              0 F        100 A+
+   X-Powered-By: insecure "Express", hardened "(none)"
+   hardened Set-Cookie: __Host-session=<signed id>; Path=/; Secure; HttpOnly; SameSite=Lax
+   hardened CSP: default-src 'self'; script-src 'nonce-<random>' 'strict-dynamic' 'report-sample'; style-src 'self' 'nonce-<random>'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; report-uri /csp-report
+   ok: the insecure build grades F, the hardened build A+
+   ok: the nonce is new on every response (128 random bits)
+
+## 2. An injected inline script (stored XSS in the employer notice)
+   concept: both builds render the notice unescaped; on the hardened one CSP refuses any inline script without this response's nonce and reports the violation
+   [insecure :53052] signed in Alice Martin
+   [attacker :53252] received document.cookie "session=adW-nhkZJuRJ4Dc_3OJM_k44" from http://localhost:53052/
+   [attacker :53252] received document.cookie "session=adW-nhkZJuRJ4Dc_3OJM_k44" from http://localhost:53052/
+   insecure: injected script ran: YES; page scripts: "inline script ran", "widget.js loaded by the inline script (strict-dynamic)"; document.cookie visible to scripts: "session=..."
+   [hardened :53152] signed in Alice Martin
+   [hardened :53152] CSP report: script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   [hardened :53152] CSP report: script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   hardened: injected script ran: no; page scripts: "inline script ran (it carries the nonce)", "widget.js loaded by the inline script (strict-dynamic)"; document.cookie visible to scripts: ""
+   hardened console: Refused to execute inline script because it violates the following Content Security Policy directive: "script-src 'nonce-<random>' 'strict-dynamic' 'report-sample'". Either the 'unsafe-inline' keyword, a hash ('sha256-Xt7ETpeWQx3p
+   ok: insecure: the injected script ran and sent the session cookie to the attacker
+   ok: hardened: the injected script did not run and the attacker received nothing
+   ok: hardened: the page's own nonce'd script ran and the script it loaded ran too (strict-dynamic)
+   ok: hardened: the browser sent a CSP report naming the blocked inline script
+   ok: the hardened session cookie is HttpOnly: invisible to scripts even if one ran
+
+## 3. A cross-origin form post (CSRF)
+   concept: the attacker's page auto-submits a form to /bank; the browser attaches the portal's cookie; the hardened portal checks Origin and a CSRF token bound to the session
+   [insecure :53052] signed in Alice Martin
+   [attacker :53252] received document.cookie "session=c5dsItT_9trlVnZwUjMYuEE4" from http://localhost:53052/
+   [insecure :53052] bank details changed to "XX00 ATTACKER 0000 0000" (Origin http://localhost:53252)
+   insecure: POST /bank from http://localhost:53252 -> 200; IBAN before "FR76 3000 6000 0112 3456 7890 189", after "XX00 ATTACKER 0000 0000"
+   [hardened :53152] signed in Alice Martin
+   [hardened :53152] CSP report: script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   [hardened :53152] 403 POST /bank: cross-origin request (Origin http://localhost:53252), session cookie present
+   hardened: POST /bank from http://localhost:53252 -> 403; IBAN before "FR76 3000 6000 0112 3456 7890 189", after "FR76 3000 6000 0112 3456 7890 189"
+   ok: insecure: the forged post changed the bank details to the attacker's IBAN
+   ok: hardened: the forged post was rejected (403) and the IBAN is unchanged
+   ok: same site, other origin: SameSite=Lax still sent the cookie; the Origin check stopped it
+   [hardened :53152] signed in Alice Martin
+   [hardened :53152] CSP report: script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   [hardened :53152] 403 POST /bank: cross-origin request (Origin http://127.0.0.1:53252), session cookie absent
+   hardened: POST /bank from http://127.0.0.1:53252 (another site) -> 403
+   ok: cross-site: SameSite=Lax kept the session cookie off the forged POST
+   [hardened :53152] signed in Scanner
+   [hardened :53152] 403 POST /bank: missing or wrong CSRF token (http://localhost:53152)
+   hardened: POST /bank with a valid session and a matching Origin but no CSRF token -> 403
+   ok: hardened: without the CSRF token the post is refused even when the Origin matches
+   [hardened :53152] signed in Alice Martin
+   [hardened :53152] CSP report: script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   [hardened :53152] bank details changed to "FR76 1027 8060 4100 0202 0870 165" (Origin http://localhost:53152)
+   hardened: the member's own form (same origin, with the token) -> changed, IBAN now "FR76 1027 8060 4100 0202 0870 165"
+   ok: hardened: the legitimate form post with its CSRF token still works
+
+## 4. Framing (clickjacking)
+   concept: the attacker page loads the portal in a transparent iframe over a fake button; frame-ancestors 'none' (and X-Frame-Options: DENY) make the browser refuse to render it
+   [insecure :53052] signed in Alice Martin
+   [attacker :53252] received document.cookie "session=kLH495uyIGlKe0z0uhLn3-Fq" from http://localhost:53052/
+   [attacker :53252] received document.cookie "session=kLH495uyIGlKe0z0uhLn3-Fq" from http://localhost:53052/
+   insecure: iframe rendered the portal ("Welcome, Alice Martin")
+   [hardened :53152] signed in Alice Martin
+   [hardened :53152] CSP report: script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   [hardened :53152] CSP report: frame-ancestors blocked http://localhost:53152/ on http://localhost:53152/
+   hardened: iframe blocked (frame url chrome-error://chromewebdata/)
+   ok: the insecure portal renders inside the attacker's page; the hardened one does not
+   ok: hardened: the browser reported the frame-ancestors violation
+
+## 5. CSP reports collected
+   concept: every violation the browsers sent to POST /csp-report; in production they go to a log pipeline, and a new kind of report after a deploy is a bug or an attack
+   script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   script-src-elem blocked inline on http://localhost:53152/ sample "document.getElementById('notice').insert"
+   frame-ancestors blocked http://localhost:53152/ on http://localhost:53152/
+   wrote out/csp-reports.json and out/csp-reports.html
+
+## 6. Secrets: from the environment, rotated with a key ring
+   concept: SESSION_KEYS='new,old': the first key signs, all keys verify; rotation is add-new, wait out the sessions, drop-old
+   cookie signed with k1: verifies under "k2,k1": yes; under "k2" alone: no; a new cookie signed under "k2,k1" verifies under "k2": yes
+   ok: rotation: old cookies stay valid while both keys are loaded and stop working once the old key is dropped
+   gitleaks, working tree: 2 finding(s)
+      generic-api-key in .env.local
+      npm-access-token in .env.local
+   gitleaks, files git would commit: 0 finding(s); .env.local ignored by git: yes
+   ok: the secret scanner finds the local .env.local, which git ignores; nothing secret is committable
+
+== proof: raw response headers of the signed-in account page, insecure build (nonce and cookie value cut) ==
+   [insecure :53052] signed in Scanner
+set-cookie (at sign-in): session=<value>; Path=/
+connection: keep-alive
+content-type: text/html; charset=utf-8
+keep-alive: timeout=5
+transfer-encoding: chunked
+x-powered-by: Express
+== proof: raw response headers of the signed-in account page, hardened build (nonce and cookie value cut) ==
+   [hardened :53152] signed in Scanner
+set-cookie (at sign-in): __Host-session=<value>; Path=/; Secure; HttpOnly; SameSite=Lax
+cache-control: no-store
+connection: keep-alive
+content-security-policy: default-src 'self'; script-src 'nonce-<random>' 'strict-dynamic' 'report-sample'; style-src 'self' 'nonce-<random>'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; report-uri /csp-report
+content-type: text/html; charset=utf-8
+cross-origin-opener-policy: same-origin
+cross-origin-resource-policy: same-origin
+keep-alive: timeout=5
+permissions-policy: camera=(), microphone=(), geolocation=(), payment=(), usb=()
+referrer-policy: strict-origin-when-cross-origin
+strict-transport-security: max-age=63072000; includeSubDomains
+transfer-encoding: chunked
+x-content-type-options: nosniff
+x-frame-options: DENY
+== proof: out/csp-reports.json (what the browser sent to POST /csp-report) ==
+{"directive":"script-src-elem","blocked":"inline","document":"http://localhost:53152/","sample":"document.getElementById('notice').insert"}
+{"directive":"script-src-elem","blocked":"inline","document":"http://localhost:53152/","sample":"document.getElementById('notice').insert"}
+{"directive":"script-src-elem","blocked":"inline","document":"http://localhost:53152/","sample":"document.getElementById('notice').insert"}
+{"directive":"script-src-elem","blocked":"inline","document":"http://localhost:53152/","sample":"document.getElementById('notice').insert"}
+{"directive":"script-src-elem","blocked":"inline","document":"http://localhost:53152/","sample":"document.getElementById('notice').insert"}
+{"directive":"script-src-elem","blocked":"inline","document":"http://localhost:53152/","sample":"document.getElementById('notice').insert"}
+{"directive":"frame-ancestors","blocked":"http://localhost:53152/","document":"http://localhost:53152/","sample":""}
+== proof: screenshots ==
+78142 screenshots/csp-reports.png
+18725 screenshots/csrf-hardened.png
+18143 screenshots/csrf-insecure.png
+20138 screenshots/frame-hardened.png
+61516 screenshots/frame-insecure.png
+136561 screenshots/header-grades.png
+38050 screenshots/xss-hardened.png
+44144 screenshots/xss-insecure.png

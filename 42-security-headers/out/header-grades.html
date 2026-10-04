@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Header grades</title><style>
+:root { --surface: #fcfcfb; --ink: #0b0b0b; --muted: #52514e; --good: #0ca30c; --bad: #d03b3b; --line: #ddd; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --surface: #1a1a19; --ink: #fff; --muted: #c3c2b7; --line: #444; } }
+:root[data-theme="dark"] { --surface: #1a1a19; --ink: #fff; --muted: #c3c2b7; --line: #444; }
+body { margin: 0; padding: 16px 24px; background: var(--surface); color: var(--ink); font: 14px/1.4 system-ui, sans-serif; }
+h1 { font-size: 20px; margin: 0 0 10px; } table { border-collapse: collapse; width: 100%; max-width: 1000px; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); vertical-align: top; } thead th { font-size: 13px; color: var(--muted); }
+.mark { font-weight: 600; } .pass .mark { color: var(--good); } .fail .mark { color: var(--bad); } .pass .mark::before { content: "\2713 "; } .fail .mark::before { content: "\2717 "; }
+.seen { color: var(--muted); font-size: 12px; font-family: ui-monospace, monospace; word-break: break-all; }
+.total th, .total td { font-size: 16px; font-weight: 700; border-bottom: 0; white-space: nowrap; }
+</style></head><body><h1>Security header scan: insecure build versus hardened build</h1>
+<table><thead><tr><th>Check</th><th>insecure :53052</th><th>hardened :53152</th></tr></thead><tbody>
+<tr><th scope="row">CSP present</th><td class="fail"><span class="mark">fail</span> 0/10<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 10/10<div class="seen">287 chars</div></td></tr>
+<tr><th scope="row">CSP script-src: nonce or hash, no 'unsafe-inline'</th><td class="fail"><span class="mark">fail</span> 0/15<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 15/15<div class="seen">'nonce-/DSyFevHlhCA3uuk97ZdKg==' 'strict-dynamic' 'report-sample'</div></td></tr>
+<tr><th scope="row">CSP script-src: 'strict-dynamic'</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">'strict-dynamic'</div></td></tr>
+<tr><th scope="row">CSP object-src 'none'</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">'none'</div></td></tr>
+<tr><th scope="row">CSP base-uri restricted</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">'none'</div></td></tr>
+<tr><th scope="row">CSP frame-ancestors (clickjacking)</th><td class="fail"><span class="mark">fail</span> 0/10<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 10/10<div class="seen">'none'</div></td></tr>
+<tr><th scope="row">CSP violation reporting</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">/csp-report</div></td></tr>
+<tr><th scope="row">HSTS max-age &gt;= 1 year</th><td class="fail"><span class="mark">fail</span> 0/10<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 10/10<div class="seen">max-age=63072000; includeSubDomains</div></td></tr>
+<tr><th scope="row">X-Content-Type-Options: nosniff</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">nosniff</div></td></tr>
+<tr><th scope="row">Referrer-Policy strict</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">strict-origin-when-cross-origin</div></td></tr>
+<tr><th scope="row">Permissions-Policy</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">camera=(), microphone=(), geolocation=(), payment=(), usb=()</div></td></tr>
+<tr><th scope="row">Session cookie __Host- prefix</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">session</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">__Host-session</div></td></tr>
+<tr><th scope="row">Session cookie Secure</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">Secure</div></td></tr>
+<tr><th scope="row">Session cookie HttpOnly</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">HttpOnly</div></td></tr>
+<tr><th scope="row">Session cookie SameSite</th><td class="fail"><span class="mark">fail</span> 0/5<div class="seen">(missing)</div></td><td class="pass"><span class="mark">pass</span> 5/5<div class="seen">samesite=lax</div></td></tr>
+<tr class="total"><th scope="row">Score and grade</th><td>0/100 grade F</td><td>100/100 grade A+</td></tr>
+</tbody></table></body></html>
