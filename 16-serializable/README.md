@@ -12,7 +12,7 @@ When SERIALIZABLE is a must and when it is not, on the "never sell more than we 
 
 ## Run
 
-One shot with proof: `./run-16-serializable.sh` from the repo root (log in [`../logs/16-serializable.log`](../logs/16-serializable.log)).
+One shot with proof: `./run.sh` in this folder, or `./16-serializable/run.sh` from the repo root (log in [`../logs/16-serializable.log`](../logs/16-serializable.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

@@ -12,7 +12,7 @@ A member API (`src/server.ts`, node:http, a pool of 4 Postgres connections) over
 
 ## Run
 
-One shot with proof: `./run-46-load-test.sh` from the repo root (log in [`../logs/46-load-test.log`](../logs/46-load-test.log)). It downloads k6 v2.1.0 into `.bin/` (not committed) the first time. The whole run takes about two minutes, setup included.
+One shot with proof: `./run.sh` in this folder, or `./46-load-test/run.sh` from the repo root (log in [`../logs/46-load-test.log`](../logs/46-load-test.log)). It downloads k6 v2.1.0 into `.bin/` (not committed) the first time. The whole run takes about two minutes, setup included.
 
 By hand (Postgres on 55476, the member API on 53056):
 

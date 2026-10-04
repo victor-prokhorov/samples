@@ -12,7 +12,7 @@ Places an order across inventory, payments and shipping without a distributed tr
 
 ## Run
 
-One shot with proof: `./run-08-saga.sh` from the repo root (log in [`../logs/08-saga.log`](../logs/08-saga.log)).
+One shot with proof: `./run.sh` in this folder, or `./08-saga/run.sh` from the repo root (log in [`../logs/08-saga.log`](../logs/08-saga.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

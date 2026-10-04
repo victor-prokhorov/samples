@@ -1,5 +1,5 @@
 // Screenshots of a real sign-in in Chromium: the IdP's sign-in page, then the app's pages once signed in as alice.
-// Run by ../../run-26-sso.sh while the IdP (:53036) and the app (:53037) run; it adds one session for alice, after the proofs.
+// Run by ../run.sh while the IdP (:53036) and the app (:53037) run; it adds one session for alice, after the proofs.
 import { withPage } from "../../tools/render.mjs";
 
 const APP = "http://localhost:53037";

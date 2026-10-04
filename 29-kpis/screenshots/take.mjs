@@ -1,5 +1,5 @@
 // Screenshots of out/dashboard.html, the static dashboard the demo wrote: the KPI tiles first, then the whole page.
-// Run by ../../run-29-kpis.sh after the demo.
+// Run by ../run.sh after the demo.
 import { pathToFileURL } from "node:url";
 import { withPage } from "../../tools/render.mjs";
 

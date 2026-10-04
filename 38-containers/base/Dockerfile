@@ -1,4 +1,4 @@
-# Fallback base, used by ../../run-38-containers.sh ONLY when node:22-slim cannot be pulled
+# Fallback base, used by ../run.sh ONLY when node:22-slim cannot be pulled
 # (for example a CI runner behind a registry rate limit, where postgres:16 is the one image cached).
 # postgres:16 is Debian with glibc, so the host's own Node 22 binary runs on it unchanged.
 # It is bigger than node:22-slim (it carries PostgreSQL); a reader should build on the pinned

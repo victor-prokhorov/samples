@@ -12,7 +12,7 @@ A loader (`src/importer.ts`) for files named `<employer>-<YYYY-MM>-<members|cont
 
 ## Run
 
-One shot with proof: `./run-27-import.sh` from the repo root (log in [`../logs/27-import.log`](../logs/27-import.log)).
+One shot with proof: `./run.sh` in this folder, or `./27-import/run.sh` from the repo root (log in [`../logs/27-import.log`](../logs/27-import.log)).
 
 By hand, from this folder (ports: Postgres 55457):
 

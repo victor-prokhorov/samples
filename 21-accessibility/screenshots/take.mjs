@@ -1,5 +1,5 @@
 // Screenshots of both forms after a failed submit (out/*-errors.html, as the server sent them) and a table of the axe results
-// (out/axe-*.json). Run by ../../run-21-accessibility.sh after the demo has written out/.
+// (out/axe-*.json). Run by ../run.sh after the demo has written out/.
 import { readFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { withPage } from "../../tools/render.mjs";

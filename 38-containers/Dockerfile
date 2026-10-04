@@ -6,7 +6,7 @@
 # The tag stays in front of the digest for humans; Docker uses the digest. Find it with
 #   docker buildx imagetools inspect node:22-slim      (the multi-arch index digest, below)
 # and let Renovate or Dependabot open the bump pull requests.
-# The run script overrides BASE only when this image cannot be pulled (see ../run-38-containers.sh).
+# The run script overrides BASE only when this image cannot be pulled (see ./run.sh).
 ARG BASE=node:22-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c
 
 # 1. deps: every dependency, dev ones included, because the build needs TypeScript.

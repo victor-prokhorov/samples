@@ -1,5 +1,5 @@
 // Screenshots of the Playwright HTML reports (reports/html/<run>/index.html, opened from disk): the green run's summary, and the
-// slow-API run's summary and failed test. Run by ../../run-22-playwright.sh after the demo. The reports themselves stay out of git:
+// slow-API run's summary and failed test. Run by ../run.sh after the demo. The reports themselves stay out of git:
 // the failing runs' reports embed their traces, which record the session cookie.
 import { pathToFileURL } from "node:url";
 import { withPage } from "../../tools/render.mjs";

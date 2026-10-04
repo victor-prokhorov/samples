@@ -12,7 +12,7 @@ A data inventory (`src/inventory.ts`) declares every table and column: category,
 
 ## Run
 
-One shot with proof: `./run-43-data-subject-export.sh` from the repo root (log in [`../logs/43-data-subject-export.log`](../logs/43-data-subject-export.log)).
+One shot with proof: `./run.sh` in this folder, or `./43-data-subject-export/run.sh` from the repo root (log in [`../logs/43-data-subject-export.log`](../logs/43-data-subject-export.log)).
 
 By hand, from this folder:
 

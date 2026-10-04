@@ -12,7 +12,7 @@ A Next.js 16 App Router app on Postgres: profile, contributions, a change-of-add
 
 ## Run
 
-One shot with proof: `./run-20-portal.sh` from the repo root (log in [`../logs/20-portal.log`](../logs/20-portal.log)).
+One shot with proof: `./run.sh` in this folder, or `./20-portal/run.sh` from the repo root (log in [`../logs/20-portal.log`](../logs/20-portal.log)).
 
 By hand, from this folder (ports: Postgres 55451, HTTP 53030 portal (next start)):
 
@@ -34,7 +34,7 @@ npm run demo      # starts next start itself (stop the one above first), runs th
 - `src/lib/session.ts` the signed cookie and `requireMember()`; `src/lib/members.ts` every query, each filtered on the member id; `src/lib/address.ts` the zod schema; `src/lib/db.ts` the pool.
 - `src/setup.ts` schema and seed, including the partial unique index that allows one pending change per member.
 - `src/demo.ts` the JS-off client and its checks.
-- `screenshots/take.mjs` signs in as alice in Chromium and takes the pages below; `run-20-portal.sh` runs it against `next start` on 53030.
+- `screenshots/take.mjs` signs in as alice in Chromium and takes the pages below; `run.sh` runs it against `next start` on 53030.
 
 ## Concepts
 
@@ -111,7 +111,7 @@ One row survives four address submissions (invalid, valid, duplicate, cross-orig
 
 ## Screenshots
 
-Taken in Chromium by `screenshots/take.mjs` at the end of `run-20-portal.sh`, signed in as alice (the portal is English only).
+Taken in Chromium by `screenshots/take.mjs` at the end of `run.sh`, signed in as alice (the portal is English only).
 
 The sign-in page.
 

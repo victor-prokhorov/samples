@@ -12,7 +12,7 @@ A fake CRM (`src/crm/`, a separate process on :53151) serves an OData v4-style A
 
 ## Run
 
-One shot with proof: `./run-41-crm-integration.sh` from the repo root (log in [`../logs/41-crm-integration.log`](../logs/41-crm-integration.log)).
+One shot with proof: `./run.sh` in this folder, or `./41-crm-integration/run.sh` from the repo root (log in [`../logs/41-crm-integration.log`](../logs/41-crm-integration.log)).
 
 By hand, from this folder:
 

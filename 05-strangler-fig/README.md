@@ -12,7 +12,7 @@ Replaces a monolith one capability at a time, behind a routing facade that clien
 
 ## Run
 
-One shot with proof: `./run-05-strangler-fig.sh` from the repo root (log in [`../logs/05-strangler-fig.log`](../logs/05-strangler-fig.log)).
+One shot with proof: `./run.sh` in this folder, or `./05-strangler-fig/run.sh` from the repo root (log in [`../logs/05-strangler-fig.log`](../logs/05-strangler-fig.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

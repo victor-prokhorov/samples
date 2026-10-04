@@ -12,7 +12,7 @@ Flags live in a Postgres table; a trigger writes every change to `flag_audit` (r
 
 ## Run
 
-One shot with proof: `./run-40-feature-flags.sh` from the repo root (log in [`../logs/40-feature-flags.log`](../logs/40-feature-flags.log)).
+One shot with proof: `./run.sh` in this folder, or `./40-feature-flags/run.sh` from the repo root (log in [`../logs/40-feature-flags.log`](../logs/40-feature-flags.log)).
 
 By hand (Postgres on 55470, the statement API on 53050):
 

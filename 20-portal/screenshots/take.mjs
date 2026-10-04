@@ -1,4 +1,4 @@
-// Screenshots of the member pages in Chromium, signed in as alice. Run by ../../run-20-portal.sh while `next start` serves :53030,
+// Screenshots of the member pages in Chromium, signed in as alice. Run by ../run.sh while `next start` serves :53030,
 // after the demo (so alice's request 1 exists). Nothing is written: the address form is submitted invalid on purpose.
 import { withPage } from "../../tools/render.mjs";
 

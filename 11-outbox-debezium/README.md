@@ -12,7 +12,7 @@ Same outbox idea as 09, but the relay is Debezium reading the WAL (10) instead o
 
 ## Run
 
-One shot with proof: `./run-11-outbox-debezium.sh` from the repo root (log in [`../logs/11-outbox-debezium.log`](../logs/11-outbox-debezium.log)).
+One shot with proof: `./run.sh` in this folder, or `./11-outbox-debezium/run.sh` from the repo root (log in [`../logs/11-outbox-debezium.log`](../logs/11-outbox-debezium.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

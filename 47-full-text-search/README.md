@@ -12,7 +12,7 @@
 
 ## Run
 
-One shot with proof: `./run-47-full-text-search.sh` from the repo root (log in [`../logs/47-full-text-search.log`](../logs/47-full-text-search.log)).
+One shot with proof: `./run.sh` in this folder, or `./47-full-text-search/run.sh` from the repo root (log in [`../logs/47-full-text-search.log`](../logs/47-full-text-search.log)).
 
 By hand, from this folder:
 

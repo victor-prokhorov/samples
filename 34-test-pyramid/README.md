@@ -12,7 +12,7 @@ One small feature, a member changing their contribution rate, tested at each lev
 
 ## Run
 
-One shot with proof: `./run-34-test-pyramid.sh` from the repo root (log in [`../logs/34-test-pyramid.log`](../logs/34-test-pyramid.log)).
+One shot with proof: `./run.sh` in this folder, or `./34-test-pyramid/run.sh` from the repo root (log in [`../logs/34-test-pyramid.log`](../logs/34-test-pyramid.log)).
 
 By hand (Postgres on 55464, the app on 53044):
 

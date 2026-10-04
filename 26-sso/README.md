@@ -12,7 +12,7 @@ Two processes and a client: an OpenID Provider (`src/idp.ts`, `oidc-provider`, i
 
 ## Run
 
-One shot with proof: `./run-26-sso.sh` from the repo root (log in [`../logs/26-sso.log`](../logs/26-sso.log)).
+One shot with proof: `./run.sh` in this folder, or `./26-sso/run.sh` from the repo root (log in [`../logs/26-sso.log`](../logs/26-sso.log)).
 
 By hand, from this folder (ports: Postgres 55456, HTTP 53036 IdP, 53037 app):
 
@@ -43,7 +43,7 @@ POST /logout                 session deleted -> 303 to the IdP's end_session_end
 - `src/idp.ts` the provider: one confidential client, PKCE required, a `portal` scope with `groups` and `member_no`, a login page, no consent screen for this first-party client, RP-initiated logout.
 - `src/browser.ts` a cookie jar per host and a redirect follower that logs each hop.
 - `src/demo.ts` the 8 steps and their checks; `src/config.ts` ports, URLs, client credentials; `src/setup.ts` the tables.
-- `screenshots/take.mjs` signs in as alice through the IdP in Chromium; `run-26-sso.sh` runs it after the proofs, since it adds a session.
+- `screenshots/take.mjs` signs in as alice through the IdP in Chromium; `run.sh` runs it after the proofs, since it adds a session.
 
 ## Concepts
 
@@ -150,7 +150,7 @@ Logout: the app session row is deleted, the IdP ends its session after a confirm
 
 ## Screenshots
 
-Taken in Chromium by `screenshots/take.mjs` at the end of `run-26-sso.sh`: a real sign-in through the authorization code flow with PKCE.
+Taken in Chromium by `screenshots/take.mjs` at the end of `run.sh`: a real sign-in through the authorization code flow with PKCE.
 
 The IdP's sign-in page (:53036), where the app sent the browser.
 

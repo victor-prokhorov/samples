@@ -12,7 +12,7 @@ A tiny TypeScript app (an annual statement page, `src/`) with a `.gitlab-ci.yml`
 
 ## Run
 
-One shot with proof: `./run-30-pipeline.sh` from the repo root (log in [`../logs/30-pipeline.log`](../logs/30-pipeline.log)).
+One shot with proof: `./run.sh` in this folder, or `./30-pipeline/run.sh` from the repo root (log in [`../logs/30-pipeline.log`](../logs/30-pipeline.log)).
 
 By hand, from this folder (ports: HTTP 53040 app (npm start, hand run)):
 

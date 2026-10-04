@@ -14,7 +14,7 @@ Storage is [s3rver](https://github.com/jamhall/s3rver), an S3 emulator on npm, s
 
 ## Run
 
-One shot with proof: `./run-48-object-storage.sh` from the repo root (log in [`../logs/48-object-storage.log`](../logs/48-object-storage.log)).
+One shot with proof: `./run.sh` in this folder, or `./48-object-storage/run.sh` from the repo root (log in [`../logs/48-object-storage.log`](../logs/48-object-storage.log)).
 
 By hand, from this folder:
 

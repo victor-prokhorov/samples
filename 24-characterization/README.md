@@ -12,7 +12,7 @@ The legacy function (`sql/legacy.sql`) is loaded into Postgres as found. The dem
 
 ## Run
 
-One shot with proof: `./run-24-characterization.sh` from the repo root (log in [`../logs/24-characterization.log`](../logs/24-characterization.log)).
+One shot with proof: `./run.sh` in this folder, or `./24-characterization/run.sh` from the repo root (log in [`../logs/24-characterization.log`](../logs/24-characterization.log)).
 
 By hand, from this folder (ports: Postgres 55454):
 

@@ -12,7 +12,7 @@ A small member-portal API (`src/app.ts`, node:http and `pg`) is built twice: by 
 
 ## Run
 
-One shot with proof: `./run-38-containers.sh` from the repo root (log in [`../logs/38-containers.log`](../logs/38-containers.log)).
+One shot with proof: `./run.sh` in this folder, or `./38-containers/run.sh` from the repo root (log in [`../logs/38-containers.log`](../logs/38-containers.log)).
 
 By hand:
 

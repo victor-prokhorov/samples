@@ -12,7 +12,7 @@ Each customer (data subject) gets a random data key (DEK). Personal fields in th
 
 ## Run
 
-One shot with proof: `./run-18-crypto-shredding.sh` from the repo root (log in [`../logs/18-crypto-shredding.log`](../logs/18-crypto-shredding.log)).
+One shot with proof: `./run.sh` in this folder, or `./18-crypto-shredding/run.sh` from the repo root (log in [`../logs/18-crypto-shredding.log`](../logs/18-crypto-shredding.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

@@ -12,7 +12,7 @@ The same "change of address" form in two versions, rendered with `react-dom/serv
 
 ## Run
 
-One shot with proof: `./run-21-accessibility.sh` from the repo root (log in [`../logs/21-accessibility.log`](../logs/21-accessibility.log)).
+One shot with proof: `./run.sh` in this folder, or `./21-accessibility/run.sh` from the repo root (log in [`../logs/21-accessibility.log`](../logs/21-accessibility.log)).
 
 By hand, from this folder (ports: HTTP 53031 forms):
 
@@ -99,7 +99,7 @@ The findings, and how each was found:
 
 ## Screenshots
 
-Taken in Chromium by `screenshots/take.mjs` at the end of `run-21-accessibility.sh`, from the files the run saves in `out/`.
+Taken in Chromium by `screenshots/take.mjs` at the end of `run.sh`, from the files the run saves in `out/`.
 
 The inaccessible form after a failed submit: placeholders instead of labels, red borders and no message, low-contrast text.
 

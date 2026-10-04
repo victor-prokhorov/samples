@@ -19,7 +19,7 @@ The origin (`src/origin.ts`, node:http on :53054) serves member pages and an API
 
 ## Run
 
-One shot with proof: `./run-44-http-caching.sh` from the repo root (log in [`../logs/44-http-caching.log`](../logs/44-http-caching.log)).
+One shot with proof: `./run.sh` in this folder, or `./44-http-caching/run.sh` from the repo root (log in [`../logs/44-http-caching.log`](../logs/44-http-caching.log)).
 
 By hand, from this folder:
 

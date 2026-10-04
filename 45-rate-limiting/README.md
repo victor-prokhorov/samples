@@ -12,7 +12,7 @@ A member API (`src/server.ts`, node:http, a separate process) shared by Acme, Gl
 
 ## Run
 
-One shot with proof: `./run-45-rate-limiting.sh` from the repo root (log in [`../logs/45-rate-limiting.log`](../logs/45-rate-limiting.log)).
+One shot with proof: `./run.sh` in this folder, or `./45-rate-limiting/run.sh` from the repo root (log in [`../logs/45-rate-limiting.log`](../logs/45-rate-limiting.log)).
 
 By hand (Postgres on 55475, the member API on 53055):
 

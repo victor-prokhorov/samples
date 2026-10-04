@@ -12,7 +12,7 @@ A `node:http` server (`src/server.ts`) renders the same member page in English a
 
 ## Run
 
-One shot with proof: `./run-25-bilingual.sh` from the repo root (log in [`../logs/25-bilingual.log`](../logs/25-bilingual.log)).
+One shot with proof: `./run.sh` in this folder, or `./25-bilingual/run.sh` from the repo root (log in [`../logs/25-bilingual.log`](../logs/25-bilingual.log)).
 
 By hand, from this folder (ports: HTTP 53035 member page):
 
@@ -34,7 +34,7 @@ npm run check    # the catalogue check alone, exits 1 on any problem (for CI)
 - `src/pages.ts` the page (`lang`, a language switcher marked with its own `lang`, `translate="no"` on data) and the naive page.
 - `src/scan.ts` a minimal HTML text-node scanner for the checks.
 - `fixtures/fr.broken.json` a French catalogue with seven typical translation mistakes.
-- `screenshots/take.mjs` takes the member page for bob in each locale in Chromium; `run-25-bilingual.sh` runs it while the server is up.
+- `screenshots/take.mjs` takes the member page for bob in each locale in Chromium; `run.sh` runs it while the server is up.
 
 ## Concepts
 
@@ -106,7 +106,7 @@ Pseudo-localisation finds what skipped the catalogue on the naive page, and the 
 
 ## Screenshots
 
-Taken in Chromium by `screenshots/take.mjs` at the end of `run-25-bilingual.sh`: bob's member page, the same server and data in each locale.
+Taken in Chromium by `screenshots/take.mjs` at the end of `run.sh`: bob's member page, the same server and data in each locale.
 
 English.
 

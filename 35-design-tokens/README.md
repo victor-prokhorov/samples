@@ -12,7 +12,7 @@ The tokens live in `tokens/` in the W3C Design Tokens format (DTCG 2025.10), the
 
 ## Run
 
-One shot with proof: `./run-35-design-tokens.sh` from the repo root (log in [`../logs/35-design-tokens.log`](../logs/35-design-tokens.log)). No Docker; Chromium comes from `PLAYWRIGHT_BROWSERS_PATH` (`/opt/pw-browsers` by default).
+One shot with proof: `./run.sh` in this folder, or `./35-design-tokens/run.sh` from the repo root (log in [`../logs/35-design-tokens.log`](../logs/35-design-tokens.log)). No Docker; Chromium comes from `PLAYWRIGHT_BROWSERS_PATH` (`/opt/pw-browsers` by default).
 
 By hand, in `35-design-tokens/`:
 

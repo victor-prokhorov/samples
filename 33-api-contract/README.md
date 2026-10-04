@@ -12,7 +12,7 @@ The spec (`openapi/v2.yaml`, OpenAPI 3.1) is written first and linted with Redoc
 
 ## Run
 
-One shot with proof: `./run-33-api-contract.sh` from the repo root (log in [`../logs/33-api-contract.log`](../logs/33-api-contract.log)).
+One shot with proof: `./run.sh` in this folder, or `./33-api-contract/run.sh` from the repo root (log in [`../logs/33-api-contract.log`](../logs/33-api-contract.log)).
 
 By hand (no Docker needed):
 

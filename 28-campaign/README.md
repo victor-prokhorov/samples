@@ -12,7 +12,7 @@ A campaign table `statement_jobs` with one row per (year, member) and workers (`
 
 ## Run
 
-One shot with proof: `./run-28-campaign.sh` from the repo root (log in [`../logs/28-campaign.log`](../logs/28-campaign.log)).
+One shot with proof: `./run.sh` in this folder, or `./28-campaign/run.sh` from the repo root (log in [`../logs/28-campaign.log`](../logs/28-campaign.log)).
 
 By hand, from this folder (ports: Postgres 55458, SMTP sink 52528):
 
@@ -37,7 +37,7 @@ npm run demo                      # the whole scenario, with its own sink (stop 
 - `src/sink.ts` the SMTP sink with scripted faults; `src/naive.ts` the loop that shows the pain.
 - `src/demo.ts` the 8 steps and their checks; `src/setup.ts` the tables and seed.
 - `out/` the dry-run sample PDFs from the last run.
-- `screenshots/statement-2025-M0003.png` the first page of one generated statement, rendered by `run-28-campaign.sh` with `tools/render.mjs`.
+- `screenshots/statement-2025-M0003.png` the first page of one generated statement, rendered by `run.sh` with `tools/render.mjs`.
 
 ## Concepts
 
@@ -175,7 +175,7 @@ Every attempt, by worker, for the members with a story (from the `statement_atte
 
 ## Screenshots
 
-Rendered from `out/statement-2025-M0003.pdf` by `run-28-campaign.sh` (`node ../tools/render.mjs pdf`). The emails are plain text in the sink, so there is nothing to render for them.
+Rendered from `out/statement-2025-M0003.pdf` by `run.sh` (`node ../tools/render.mjs pdf`). The emails are plain text in the sink, so there is nothing to render for them.
 
 The first page of carol's 2025 statement: twelve months of contributions and the total.
 

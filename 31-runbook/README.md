@@ -12,7 +12,7 @@ Five runbooks in Markdown in `runbooks/` (scheduled release, rollback, monthly d
 
 ## Run
 
-One shot with proof: `./run-31-runbook.sh` from the repo root (log in [`../logs/31-runbook.log`](../logs/31-runbook.log)).
+One shot with proof: `./run.sh` in this folder, or `./31-runbook/run.sh` from the repo root (log in [`../logs/31-runbook.log`](../logs/31-runbook.log)).
 
 By hand, from this folder (ports: Postgres 55461, HTTP 53041 member service; the drill's restore container has no port):
 

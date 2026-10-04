@@ -12,7 +12,7 @@
 
 ## Run
 
-One shot with proof: `./run-12-choreographed-saga.sh` from the repo root (log in [`../logs/12-choreographed-saga.log`](../logs/12-choreographed-saga.log)).
+One shot with proof: `./run.sh` in this folder, or `./12-choreographed-saga/run.sh` from the repo root (log in [`../logs/12-choreographed-saga.log`](../logs/12-choreographed-saga.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

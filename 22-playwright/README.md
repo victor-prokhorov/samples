@@ -12,7 +12,7 @@ A small member portal (`node:http`, server-rendered HTML, Postgres) with two tes
 
 ## Run
 
-One shot with proof: `./run-22-playwright.sh` from the repo root (log in [`../logs/22-playwright.log`](../logs/22-playwright.log)).
+One shot with proof: `./run.sh` in this folder, or `./22-playwright/run.sh` from the repo root (log in [`../logs/22-playwright.log`](../logs/22-playwright.log)).
 
 By hand, from this folder (ports: Postgres 55452, HTTP 53032 portal (hand run; test workers use free ports)):
 
@@ -38,7 +38,7 @@ npm run demo       # the runs the log shows: green, leaking, flaky, brittle
 - `e2e/waiting.spec.ts` a fixed sleep next to a web-first assertion; `e2e/locators.spec.ts` CSS selectors next to role and label locators.
 - `src/demo.ts` runs the suites in the configurations the log shows and checks each outcome.
 - `reports/*.json` the Playwright JSON report of each run in the log, committed. `reports/html/<run>/` (the HTML report of each run), `test-results/` (the traces of the failing runs) and `.auth/` (the saved session) stay local: all three carry the session cookie.
-- `screenshots/take.mjs` opens two of the HTML reports from disk in Chromium; `run-22-playwright.sh` runs it after the demo.
+- `screenshots/take.mjs` opens two of the HTML reports from disk in Chromium; `run.sh` runs it after the demo.
 
 ## Concepts
 
@@ -131,7 +131,7 @@ The per-worker databases are gone after the runs; only the template and the hand
 
 ## Screenshots
 
-Taken in Chromium by `screenshots/take.mjs` at the end of `run-22-playwright.sh`. The HTML reports themselves (`reports/html/<run>/`) stay local: the failing runs' reports embed their traces, which record the session cookie.
+Taken in Chromium by `screenshots/take.mjs` at the end of `run.sh`. The HTML reports themselves (`reports/html/<run>/`) stay local: the failing runs' reports embed their traces, which record the session cookie.
 
 The green run: setup plus five journeys, all passed.
 

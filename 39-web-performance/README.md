@@ -12,7 +12,7 @@ A member page served by `node:http` on :53049 in two versions with the same cont
 
 ## Run
 
-One shot with proof: `./run-39-web-performance.sh` from the repo root (log in [`../logs/39-web-performance.log`](../logs/39-web-performance.log)). No Docker. Chromium comes from `PLAYWRIGHT_BROWSERS_PATH` (`/opt/pw-browsers` by default); Lighthouse uses `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` unless `CHROME_PATH` is set. Takes about four minutes, mostly the slow page loading on simulated slow networks.
+One shot with proof: `./run.sh` in this folder, or `./39-web-performance/run.sh` from the repo root (log in [`../logs/39-web-performance.log`](../logs/39-web-performance.log)). No Docker. Chromium comes from `PLAYWRIGHT_BROWSERS_PATH` (`/opt/pw-browsers` by default); Lighthouse uses `/opt/pw-browsers/chromium-1194/chrome-linux/chrome` unless `CHROME_PATH` is set. Takes about four minutes, mostly the slow page loading on simulated slow networks.
 
 By hand, in `39-web-performance/`:
 

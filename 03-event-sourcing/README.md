@@ -12,7 +12,7 @@ Bank account aggregate. Commands (`open`, `deposit`, `withdraw`) validate agains
 
 ## Run
 
-One shot with proof: `./run-03-event-sourcing.sh` from the repo root (log in [`../logs/03-event-sourcing.log`](../logs/03-event-sourcing.log)).
+One shot with proof: `./run.sh` in this folder, or `./03-event-sourcing/run.sh` from the repo root (log in [`../logs/03-event-sourcing.log`](../logs/03-event-sourcing.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

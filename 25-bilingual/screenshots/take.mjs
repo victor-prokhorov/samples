@@ -1,5 +1,5 @@
 // Screenshots of the member page in English, French, the en-XA pseudo-locale and the naive page in French.
-// Run by ../../run-25-bilingual.sh while the server answers on :53035.
+// Run by ../run.sh while the server answers on :53035.
 import { withPage } from "../../tools/render.mjs";
 
 const BASE = "http://localhost:53035";

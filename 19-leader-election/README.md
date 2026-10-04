@@ -12,7 +12,7 @@ Three real OS processes (`src/replica.ts`, spawned by the run script) compete fo
 
 ## Run
 
-One shot with proof: `./run-19-leader-election.sh` from the repo root (log in [`../logs/19-leader-election.log`](../logs/19-leader-election.log)).
+One shot with proof: `./run.sh` in this folder, or `./19-leader-election/run.sh` from the repo root (log in [`../logs/19-leader-election.log`](../logs/19-leader-election.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

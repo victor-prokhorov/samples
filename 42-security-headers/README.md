@@ -14,7 +14,7 @@ Why node:http and not Next.js: every header and check is a few visible lines her
 
 ## Run
 
-One shot with proof: `./run-42-security-headers.sh` from the repo root (log in [`../logs/42-security-headers.log`](../logs/42-security-headers.log)).
+One shot with proof: `./run.sh` in this folder, or `./42-security-headers/run.sh` from the repo root (log in [`../logs/42-security-headers.log`](../logs/42-security-headers.log)).
 
 By hand (no database):
 

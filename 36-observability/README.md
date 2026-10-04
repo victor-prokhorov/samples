@@ -12,7 +12,7 @@ Three processes: a web backend-for-frontend (`src/web.ts`, :53046), an API (`src
 
 ## Run
 
-One shot with proof: `./run-36-observability.sh` from the repo root (log in [`../logs/36-observability.log`](../logs/36-observability.log)).
+One shot with proof: `./run.sh` in this folder, or `./36-observability/run.sh` from the repo root (log in [`../logs/36-observability.log`](../logs/36-observability.log)).
 
 By hand, from this folder:
 

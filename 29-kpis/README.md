@@ -12,7 +12,7 @@ A member portal (`src/server.ts`, node:http, a separate process) writes a usage 
 
 ## Run
 
-One shot with proof: `./run-29-kpis.sh` from the repo root (log in [`../logs/29-kpis.log`](../logs/29-kpis.log)).
+One shot with proof: `./run.sh` in this folder, or `./29-kpis/run.sh` from the repo root (log in [`../logs/29-kpis.log`](../logs/29-kpis.log)).
 
 By hand, from this folder (ports: Postgres 55459, HTTP 53039 portal):
 
@@ -34,7 +34,7 @@ npm run report   # recompute the KPI table and the dashboard from what is in the
 - `src/dashboard.ts` renders `out/dashboard.html`: tiles, inline SVG bars, the definitions table. No script, no external library.
 - `src/demo.ts` the eight steps and their checks.
 - `out/dashboard.html` the dashboard from the last run.
-- `screenshots/take.mjs` takes `out/dashboard.html` in Chromium; `run-29-kpis.sh` runs it after the proofs.
+- `screenshots/take.mjs` takes `out/dashboard.html` in Chromium; `run.sh` runs it after the proofs.
 
 ## Concepts
 
@@ -120,7 +120,7 @@ The report, every row from a definition's SQL:
 
 ## Screenshots
 
-Taken in Chromium by `screenshots/take.mjs` at the end of `run-29-kpis.sh`.
+Taken in Chromium by `screenshots/take.mjs` at the end of `run.sh`.
 
 The top of the dashboard: each KPI against its target and owner, the change-request funnel and the failed requests per day, with the incident on 09-17.
 

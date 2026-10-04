@@ -12,7 +12,7 @@ The code has one function, `can(user, action, resource)`, in `src/policy.ts`: a 
 
 ## Run
 
-One shot with proof: `./run-37-authorization.sh` from the repo root (log in [`../logs/37-authorization.log`](../logs/37-authorization.log)).
+One shot with proof: `./run.sh` in this folder, or `./37-authorization/run.sh` from the repo root (log in [`../logs/37-authorization.log`](../logs/37-authorization.log)).
 
 By hand, from this folder:
 

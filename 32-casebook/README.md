@@ -12,7 +12,7 @@ A worked design case, a self-set exercise on a fictional organisation, time-boxe
 
 ## Run
 
-One shot with proof: `./run-32-casebook.sh` from the repo root (log in [`../logs/32-casebook.log`](../logs/32-casebook.log)).
+One shot with proof: `./run.sh` in this folder, or `./32-casebook/run.sh` from the repo root (log in [`../logs/32-casebook.log`](../logs/32-casebook.log)).
 
 By hand, from this folder (ports: Postgres 55462):
 
@@ -26,7 +26,7 @@ npm run schema                    # DDL + seed + journey queries on an empty dat
 npm run demo                      # all of it, the flawed draft first
 ```
 
-Rendering needs a Chromium. Puppeteer reads its path from `PUPPETEER_EXECUTABLE_PATH`; `../run-32-casebook.sh` sets it, when it is not set already, to the newest Playwright Chromium it finds (`$PLAYWRIGHT_BROWSERS_PATH`, `~/.cache/ms-playwright`, `/opt/pw-browsers`). Without one, install with downloads enabled (`npm i`) and puppeteer uses its own.
+Rendering needs a Chromium. Puppeteer reads its path from `PUPPETEER_EXECUTABLE_PATH`; `./run.sh` sets it, when it is not set already, to the newest Playwright Chromium it finds (`$PLAYWRIGHT_BROWSERS_PATH`, `~/.cache/ms-playwright`, `/opt/pw-browsers`). Without one, install with downloads enabled (`npm i`) and puppeteer uses its own.
 
 ## Files
 

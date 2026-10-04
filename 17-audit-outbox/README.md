@@ -12,7 +12,7 @@
 
 ## Run
 
-One shot with proof: `./run-17-audit-outbox.sh` from the repo root (log in [`../logs/17-audit-outbox.log`](../logs/17-audit-outbox.log)).
+One shot with proof: `./run.sh` in this folder, or `./17-audit-outbox/run.sh` from the repo root (log in [`../logs/17-audit-outbox.log`](../logs/17-audit-outbox.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

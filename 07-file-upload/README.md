@@ -12,7 +12,7 @@ An Express 5 API (`src/server.ts`), a separate process with metadata and content
 
 ## Run
 
-One shot with proof: `./run-07-file-upload.sh` from the repo root (log in [`../logs/07-file-upload.log`](../logs/07-file-upload.log)).
+One shot with proof: `./run.sh` in this folder, or `./07-file-upload/run.sh` from the repo root (log in [`../logs/07-file-upload.log`](../logs/07-file-upload.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

@@ -12,7 +12,7 @@ Three isolation models on one Postgres, named as in the AWS SaaS whitepapers: po
 
 ## Run
 
-One shot with proof: `./run-15-multi-tenancy.sh` from the repo root (log in [`../logs/15-multi-tenancy.log`](../logs/15-multi-tenancy.log)).
+One shot with proof: `./run.sh` in this folder, or `./15-multi-tenancy/run.sh` from the repo root (log in [`../logs/15-multi-tenancy.log`](../logs/15-multi-tenancy.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

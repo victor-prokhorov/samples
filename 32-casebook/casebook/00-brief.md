@@ -16,7 +16,7 @@ The exercise: plan the rebuild. Find out what users need, decide what the new po
 | 1:30-2:10 | Architecture, data model, change request lifecycle | [04-architecture.md](04-architecture.md), [05-data-model.md](05-data-model.md), [06-change-request-lifecycle.md](06-change-request-lifecycle.md) |
 | 2:10-2:30 | Accessibility and security approach | [07-accessibility-security.md](07-accessibility-security.md) |
 | 2:30-2:50 | Migration plan, risks, KPIs | [08-migration-plan.md](08-migration-plan.md), [09-risks.md](09-risks.md), [10-kpis.md](10-kpis.md) |
-| 2:50-3:00 | Review: traceability check, diagrams render, DDL applies | `../run-32-casebook.sh` |
+| 2:50-3:00 | Review: traceability check, diagrams render, DDL applies | `../run.sh` |
 
 The last ten minutes are not optional: a plan whose requirements have no acceptance criteria, or whose journeys need data the model cannot answer, is not finished.
 

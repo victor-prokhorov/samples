@@ -1,2 +1,2 @@
-# the k6 release binary, downloaded by ../run-46-load-test.sh
+# the k6 release binary, downloaded by ./run.sh
 .bin/

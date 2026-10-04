@@ -12,7 +12,7 @@ Change data capture: the app writes to Postgres normally; Debezium tails the WAL
 
 ## Run
 
-One shot with proof: `./run-10-cdc-debezium.sh` from the repo root (log in [`../logs/10-cdc-debezium.log`](../logs/10-cdc-debezium.log)).
+One shot with proof: `./run.sh` in this folder, or `./10-cdc-debezium/run.sh` from the repo root (log in [`../logs/10-cdc-debezium.log`](../logs/10-cdc-debezium.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

@@ -12,7 +12,7 @@ A caller process against `payments`, a separate HTTP process with its own Postgr
 
 ## Run
 
-One shot with proof: `./run-06-service-reliability.sh` from the repo root (log in [`../logs/06-service-reliability.log`](../logs/06-service-reliability.log)).
+One shot with proof: `./run.sh` in this folder, or `./06-service-reliability/run.sh` from the repo root (log in [`../logs/06-service-reliability.log`](../logs/06-service-reliability.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 

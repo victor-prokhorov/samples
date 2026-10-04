@@ -12,7 +12,7 @@
 
 ## Run
 
-One shot with proof: `./run-23-specs.sh` from the repo root (log in [`../logs/23-specs.log`](../logs/23-specs.log)).
+One shot with proof: `./run.sh` in this folder, or `./23-specs/run.sh` from the repo root (log in [`../logs/23-specs.log`](../logs/23-specs.log)).
 
 By hand, from this folder (ports: Postgres 55453):
 

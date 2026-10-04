@@ -12,7 +12,7 @@ The four partitions of `13-partitioning`, reduced to two, each moved onto its ow
 
 ## Run
 
-One shot with proof: `./run-14-sharding-replicas.sh` from the repo root (log in [`../logs/14-sharding-replicas.log`](../logs/14-sharding-replicas.log)).
+One shot with proof: `./run.sh` in this folder, or `./14-sharding-replicas/run.sh` from the repo root (log in [`../logs/14-sharding-replicas.log`](../logs/14-sharding-replicas.log)).
 
 Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
 
