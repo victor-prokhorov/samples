@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1140" height="860" viewBox="0 0 1140 860" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">49. Capstone: the samples' pieces as one member portal</text>
+<rect x="40" y="250" width="220" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="150.0" y="281.0" font-size="16" text-anchor="middle">Browser</text><text x="150.0" y="301.0" font-size="16" text-anchor="middle">EN / FR (25)</text><text x="150.0" y="321.0" font-size="16" text-anchor="middle">light / dark (35)</text><text x="150.0" y="341.0" font-size="16" text-anchor="middle">desktop / 390 px</text>
+<rect x="360" y="220" width="330" height="170" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="525.0" y="271.0" font-size="16" text-anchor="middle">Next.js portal (20)</text><text x="525.0" y="291.0" font-size="16" text-anchor="middle">server components + actions</text><text x="525.0" y="311.0" font-size="16" text-anchor="middle">tokens + components (35)</text><text x="525.0" y="331.0" font-size="16" text-anchor="middle">error summary, axe = 0 (21)</text><text x="525.0" y="351.0" font-size="16" text-anchor="middle">ICU messages, Intl (25)</text>
+<rect x="820" y="70" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="960.0" y="111.0" font-size="16" text-anchor="middle">IdP: oidc-provider (26)</text><text x="960.0" y="131.0" font-size="16" text-anchor="middle">code flow + PKCE</text>
+<rect x="820" y="260" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="960.0" y="301.0" font-size="16" text-anchor="middle">Postgres as role app (37)</text><text x="960.0" y="321.0" font-size="16" text-anchor="middle">RLS + four eyes</text>
+<rect x="820" y="450" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="960.0" y="491.0" font-size="16" text-anchor="middle">events table (29)</text><text x="960.0" y="511.0" font-size="16" text-anchor="middle">one row per action</text>
+<rect x="820" y="620" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="960.0" y="661.0" font-size="16" text-anchor="middle">KPI page, staff (29)</text><text x="960.0" y="681.0" font-size="16" text-anchor="middle">tiles: target, owner</text>
+<rect x="360" y="500" width="330" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="525.0" y="541.0" font-size="16" text-anchor="middle">Tests (34, 22)</text><text x="525.0" y="561.0" font-size="16" text-anchor="middle">Vitest units, Playwright journeys</text>
+<polyline points="260,305 360,305" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="292.0" y="294.3" width="36.0" height="21.5" fill="#ffffff"/>
+<text x="310.0" y="310.3" font-size="14" text-anchor="middle">HTTP</text>
+<polyline points="150,250 150,115 820,115" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="83.0" y="104.3" width="134.0" height="21.5" fill="#ffffff"/>
+<text x="150.0" y="120.3" font-size="14" text-anchor="middle">sign in at the IdP</text>
+<polyline points="690,232.9 857,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="720.5" y="185.7" width="106.0" height="21.5" fill="#ffffff"/>
+<text x="773.5" y="201.7" font-size="14" text-anchor="middle">code -&gt; tokens</text>
+<polyline points="690,305 820,305" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="698.5" y="294.3" width="113.0" height="21.5" fill="#ffffff"/>
+<text x="755.0" y="310.3" font-size="14" text-anchor="middle">SQL as the user</text>
+<polyline points="690,377.1 857,450" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="745.0" y="402.8" width="57.0" height="21.5" fill="#ffffff"/>
+<text x="773.5" y="418.8" font-size="14" text-anchor="middle">track()</text>
+<polyline points="960,540 960,620" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="945.5" y="569.3" width="29.0" height="21.5" fill="#ffffff"/>
+<text x="960.0" y="585.3" font-size="14" text-anchor="middle">SQL</text>
+<polyline points="454.7,500 235.9,360" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="320.3" y="419.3" width="50.0" height="21.5" fill="#ffffff"/>
+<text x="345.3" y="435.3" font-size="14" text-anchor="middle">drives</text>
+<text x="40.0" y="776.0" font-size="16" text-anchor="start">Three journeys through one product: a member changes bank details (errors, then success) and switches to French;</text><text x="40.0" y="796.0" font-size="16" text-anchor="start">an employer admin sees her organisation's members; staff approve the change, never their own, and read the KPIs.</text><text x="40.0" y="816.0" font-size="16" text-anchor="start">The number in each box is the sample that teaches that piece in depth.</text></svg>
