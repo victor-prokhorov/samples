@@ -111,7 +111,7 @@ The bug only RLS catches: the loader takes the requester from the member the req
 The tests: 108 matrix cells against the hand-written table, 63 cells against the database, the loader bug:
 
 ```
- ✓ test/rls.test.ts > a bug only RLS catches > the buggy loader makes the code allow a self-approval that the database refuses 12ms
+ ✓ test/rls.test.ts > a bug only RLS catches > the buggy loader makes the code allow a self-approval that the database refuses 11ms
  Test Files  2 passed (2)
       Tests  178 passed (178)
 ```

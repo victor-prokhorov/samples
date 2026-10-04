@@ -2,7 +2,7 @@
 
 ![Overview](diagrams/overview.svg)
 
-**Pain: an incident nobody can trace.** Members say the Acme employer dashboard is slow. The web process logs "slow request, 3415 ms", the API logs "slow request, 3395 ms", Postgres logs every statement in well under a millisecond, and nothing ties the three together: which API call, which queries, which of the 130 requests? With a trace id in every log line, the slowest warning leads to one trace of 605 spans: one web request, one API call and 602 queries, 600 of them the same `SELECT ... WHERE member_id = $1`, each fast (median 0.95 ms), run one after another. An N+1. Fixed with one join, the Acme dashboard takes 31 ms instead of 1556 ms (median of 10), and the dashboard route goes from 19 of 30 requests within the 300 ms objective to 30 of 30. (The run that produced the log shared 4 CPUs with other jobs, which is why the slow numbers are this slow; the ratios hold on a quiet machine.)
+**Pain: an incident nobody can trace.** Members say the Acme employer dashboard is slow. The web process logs "slow request, 970 ms", the API logs "slow request, 967 ms", Postgres logs every statement in well under a millisecond, and nothing ties the three together: which API call, which queries, which of the 130 requests? With a trace id in every log line, the slowest warning leads to one trace of 605 spans: one web request, one API call and 602 queries, 600 of them the same `SELECT ... WHERE member_id = $1`, each fast (median 0.81 ms), run one after another. An N+1. Fixed with one join, the Acme dashboard takes 32 ms instead of 559 ms (median of 10), and the dashboard route goes from 19 of 30 requests within the 300 ms objective to 30 of 30. (Absolute timings move from run to run with the load on the machine; the ratios hold.)
 
 **Reach for it when** a request crosses more than one process (a BFF and an API, a queue and a worker, any service and its database) and "why was this slow" or "why did this fail" needs an answer you can point at. When you have an SLO (29-kpis) and need to know which route spends the error budget, and then why.
 
@@ -50,11 +50,11 @@ curl localhost:4318/api/red; curl localhost:4318/api/traces/<trace_id from the l
 - **Log correlation**: the pino instrumentation adds `trace_id`, `span_id` and `trace_flags` to every line logged inside a span. Structured JSON lines make the join a filter (`jq 'select(.trace_id == ...)'`), not a regex.
 - **OTLP**: the OpenTelemetry protocol. Over HTTP it is `POST /v1/traces` and `POST /v1/metrics`, protobuf or JSON; ids are hex and timestamps nanoseconds. Any backend that speaks it can replace the collector here without touching the services.
 - **Waterfall**: every span of a trace as a bar on one time axis, indented under its parent. An N+1 looks like a comb of short identical bars; one slow query looks like one long bar; waiting on a lock or a pool looks like a gap.
-- **N+1 query**: one query for a list, then one per item. Each query is fast (Postgres' log says 208 ms for all 602 executions), but 600 round trips one after another cost over three seconds here. The fix is one query that joins and aggregates.
+- **N+1 query**: one query for a list, then one per item. Each query is fast (Postgres' log says 42 ms for all 602 executions), but 600 round trips one after another cost close to a second here. The fix is one query that joins and aggregates.
 - **RED**: Rate (requests per second), Errors (failed requests), Duration (latency distribution), per route. Here all three come from one standard histogram, `http.server.request.duration`, which the HTTP instrumentation records with `http.route` once the router tells it the route template. The processes export it with delta temporality (each export is what happened since the last), so the collector can start counting at any moment: here, after one warm-up request per route, the way a readiness check warms a process before it takes traffic.
 - **Histogram buckets and SLOs**: a histogram keeps counts per bucket, so a p95 is only known as a range ("50-100 ms", or "> 2000 ms" past the last edge). Putting a bucket edge exactly at the objective (300 ms) makes "requests within the objective" an exact count, which is what the SLI of 29-kpis needs: the route meets "95% within 300 ms" or it does not.
 - **From SLO to trace**: 29-kpis computes the SLO and the error budget monthly from a request log. RED is the live version of the same SLI per route; when the budget burns, RED says which route, a slow-request log line gives a trace id, and the trace says why.
-- **Trade-offs**: instrumentation costs a little per span (the query spans add up to 3270 ms of the API span's 3396 ms, most of it the client round trips the N+1 itself causes). Statement logging with `log_min_duration_statement=0` is for a demo; in production log only slow statements. The collector keeps everything in memory and one JSON file: fine for a run, not for a week.
+- **Trade-offs**: instrumentation costs a little per span (the query spans add up to 892 ms of the API span's 968 ms, most of it the client round trips the N+1 itself causes). Statement logging with `log_min_duration_statement=0` is for a demo; in production log only slow statements. The collector keeps everything in memory and one JSON file: fine for a run, not for a week.
 
 ## Proof (`logs/36-observability.log`)
 
@@ -62,9 +62,9 @@ RED per route before the fix, counted after one warm-up request per route: only 
 
 ```
    service route                              requests  rate/s  errors  p50           p95           within 300 ms
-   web     GET /employers/:code/dashboard           30     1.9       0  200-300 ms    > 2000 ms     19 of 30 (63%)
-   web     GET /members/:id                         60     3.8       0  5-10 ms       25-50 ms      60 of 60 (100%)
-   web     GET /members/:id/statement               40     2.6       2  0-5 ms        10-25 ms      40 of 40 (100%)
+   web     GET /employers/:code/dashboard           30     3.7       0  50-100 ms     500-1000 ms   19 of 30 (63%)
+   web     GET /members/:id                         60     7.6       0  0-5 ms        10-25 ms      60 of 60 (100%)
+   web     GET /members/:id/statement               40     5.1       2  0-5 ms        25-50 ms      40 of 40 (100%)
    GET /employers/:code/dashboard: 19 of 30 within 300 ms (63%), objective 95%: MISSED
 ```
 
@@ -72,14 +72,14 @@ Every log line written inside a request carries the trace id; the slowest warnin
 
 ```
    299 of 299 log lines written while serving a request carry trace_id and span_id (web and api)
-   {"level":40,...,"service":"web","trace_id":"31a657ad7a88828dfa181162a96bca53","span_id":"ea9634f90dc15765",...,"path":"/employers/acme/dashboard","status":200,"duration_ms":3415,"msg":"slow request"}
-   {"level":40,...,"service":"api","trace_id":"31a657ad7a88828dfa181162a96bca53","span_id":"4a3f8c7ec80d8fbc",...,"path":"/api/employers/acme/members","status":200,"duration_ms":3395,"msg":"slow request"}
-   postgres log, grep 31a657ad7a88828dfa181162a96bca53: 602 statements, e.g.
-   ... LOG:  duration: 0.117 ms  execute <unnamed>: SELECT coalesce(sum(amount), 0) AS total, ... WHERE member_id = $1 /*traceparent='00-31a657ad7a88828dfa181162a96bca53-ef186dcbfccec4a1-01'*/
-   collector, GET /api/traces/31a657ad7a88828dfa181162a96bca53: 605 spans
-     web  SERVER GET /employers/:code/dashboard  3415.9 ms
+   {"level":40,"time":"2026-10-04T05:53:41.606Z","service":"web","trace_id":"e21912b1f2984342bcfb075827d514d3","span_id":"0b4882abb18d30f2","trace_flags":"01","method":"GET","route":"/employers/:code/dashboard","path":"/employers/acme/dashboard","status":200,"duration_ms":970,"msg":"slow request"}
+   {"level":40,"time":"2026-10-04T05:53:41.604Z","service":"api","trace_id":"e21912b1f2984342bcfb075827d514d3","span_id":"6133ff38c9e3404e","trace_flags":"01","method":"GET","route":"/api/employers/:code/members","path":"/api/employers/acme/members","status":200,"duration_ms":967,"msg":"slow request"}
+   postgres log, grep e21912b1f2984342bcfb075827d514d3: 602 statements, e.g.
+   2026-10-04 05:53:40.642 UTC [115] LOG:  duration: 0.093 ms  execute <unnamed>: SELECT coalesce(sum(amount), 0) AS total, count(*)::int AS months, max(period)::text AS last_period FROM contributions WHERE member_id = $1 /*traceparent='00-e21912b1f2984342bcfb075827d514d3-e81504e6f80d4a67-01'*/
+   collector, GET /api/traces/e21912b1f2984342bcfb075827d514d3: 605 spans
+     web  SERVER GET /employers/:code/dashboard  973.7 ms
      web  CLIENT GET /api/employers/acme/members  parent = web SERVER: true
-     api  SERVER GET /api/employers/:code/members  3395.8 ms  parent = web CLIENT: true
+     api  SERVER GET /api/employers/:code/members  967.9 ms  parent = web CLIENT: true
      api  CLIENT pg.query x 602, all children of the api SERVER span: true
 ```
 
@@ -87,23 +87,23 @@ The waterfall's diagnosis: hundreds of fast queries, the time spent in round tri
 
 ```
    602 queries; the most repeated, 600 times: SELECT coalesce(sum(amount), 0) AS total, count(*)::int AS months, max(period)::text AS last_period FROM contributions WHERE member_id = $1
-   the API span lasts 3396 ms; its query spans add up to 3270 ms, median 0.95 ms each
-   Postgres' own log says executing all 602 took 208 ms: the rest is 600 round trips, one after another
+   the API span lasts 968 ms; its query spans add up to 892 ms, median 0.81 ms each
+   Postgres' own log says executing all 602 took 42 ms: the rest is 600 round trips, one after another
 ```
 
 After the fix, the same traffic:
 
 ```
-   web     GET /employers/:code/dashboard           30    18.9       0  10-25 ms      50-100 ms     30 of 30 (100%)
+   web     GET /employers/:code/dashboard           30    23.0       0  10-25 ms      50-100 ms     30 of 30 (100%)
    GET /employers/:code/dashboard: 30 of 30 within 300 ms (100%), objective 95%: met
-   trace dcab29b7afb3e940c77d63689057e7f1: 5 spans, 2 queries, 92.7 ms (before: 605 spans, 602 queries, 3415.9 ms)
-   Acme dashboard, median of 10 requests: 1556 ms before, 31 ms after (web log duration_ms)
+   trace f62840e38f0094a9212630b0411205de: 5 spans, 2 queries, 52.9 ms (before: 605 spans, 602 queries, 973.7 ms)
+   Acme dashboard, median of 10 requests: 559 ms before, 32 ms after (web log duration_ms)
 ```
 
 An error, from its log line to the exception on the span that threw:
 
 ```
-   {"level":50,...,"service":"web","trace_id":"9559b3e445858b75410ebf233d65f473",...,"path":"/members/758/statement","status":502,"duration_ms":10,"msg":"request failed"}
+   {"level":50,"time":"2026-10-04T05:53:53.570Z","service":"web","trace_id":"fda7a5c63bdfb96ce21fda480a88e7a6","span_id":"6e93c43c701e13aa","trace_flags":"01","method":"GET","route":"/members/:id/statement","path":"/members/758/statement","status":502,"duration_ms":9,"msg":"request failed"}
    span api GET /api/members/:id/statement status ERROR, event exception: TypeError: Cannot read properties of undefined (reading 'period')
 ```
 

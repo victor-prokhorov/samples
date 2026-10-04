@@ -48,13 +48,13 @@ The buggy rewrite disagrees on 567 of 1000 orders, yet every user got the legacy
    users unaffected: served total 1980900 === legacy total 1980900: true
 ```
 
-The mismatches group into three distinct bugs; each mismatch keeps its input, so any one reproduces (one shown, abbreviated):
+The mismatches group into three distinct bugs; each mismatch keeps its input, so any one reproduces (one shown):
 
 ```
    188 candidate exceptions, swallowed by the experiment: "order has no items" (legacy quotes empty carts at the 1 kg minimum)
    17 at exactly the free-shipping threshold: legacy uses >= 5000, rewrite uses > 5000
    362 from weight rounding: legacy rounds the order total up to kg, rewrite rounds each item
-   example: {"zone":"eu","items":[{"sku":"sku-0","grams":1293,...},{"sku":"sku-1","grams":344,...}]} -> control 1800, candidate 2700
+   example: {"zone":"eu","items":[{"sku":"sku-0","grams":1293,"priceCents":2500},{"sku":"sku-1","grams":344,"priceCents":2000}]} -> control 1800, candidate 2700
 ```
 
 After the fix, the rewrite matches, takes over, and legacy becomes the check:

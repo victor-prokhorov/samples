@@ -99,10 +99,10 @@ Nine diagrams rendered:
    casebook/01-discovery.md:32                -> diagrams/01-stakeholder-map.svg          quadrantChart, 7831 bytes
    casebook/02-personas-journeys.md:38        -> diagrams/02-journey-change-address.svg   journey, 18262 bytes
    casebook/04-architecture.md:8              -> diagrams/04-c4-context.svg               c4, 38546 bytes
-   casebook/04-architecture.md:33             -> diagrams/04-c4-container.svg             flowchart-v2, 132457 bytes
+   casebook/04-architecture.md:33             -> diagrams/04-c4-container.svg             flowchart-v2, 132437 bytes
    casebook/04-architecture.md:62             -> diagrams/04-sequence-login.svg           sequence, 32895 bytes
    casebook/04-architecture.md:86             -> diagrams/04-sequence-change-request.svg  sequence, 34893 bytes
-   casebook/05-data-model.md:6                -> diagrams/05-er-model.svg                 er, 195258 bytes
+   casebook/05-data-model.md:6                -> diagrams/05-er-model.svg                 er, 195284 bytes
    casebook/06-change-request-lifecycle.md:6  -> diagrams/06-state-change-request.svg     stateDiagram, 50176 bytes
    casebook/08-migration-plan.md:16           -> diagrams/08-gantt-migration.svg          gantt, 13100 bytes
 ```
@@ -123,7 +123,7 @@ The journeys' queries against the DDL, the user's steps as `portal_app` under ro
    J4.1 expect 2               ok  2 row(s), first: reference=CR-1001 type=bank_details status=awaiting_second_approval submitted_at=2026-09-29 sla_due=2026-10-02
    J4.2 expect 1               ok  1 row(s), first: reference=CR-1002 status=applied address=12 rue Garibaldi, 69003 Lyon
    J4.3 expect error four_eyes ok  new row for relation "change_requests" violates check constraint "four_eyes"
-   J4.4 expect 1               ok  1 row(s), first: at=2026-10-03 actor=idp|dan reference=CR-1002 before=8 avenue Foch, 69006 Lyon after=12 rue Garibaldi, 69003 Lyon
+   J4.4 expect 1               ok  1 row(s), first: at=2026-10-04 actor=idp|dan reference=CR-1002 before=8 avenue Foch, 69006 Lyon after=12 rue Garibaldi, 69003 Lyon
    the same model without "GRANT USAGE ON ALL SEQUENCES IN SCHEMA public TO portal_app;": J2.4 expected 1, got permission denied for sequence change_requests_id_seq
 ```
 

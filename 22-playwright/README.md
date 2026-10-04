@@ -57,13 +57,13 @@ npm run demo       # the runs the log shows: green, leaking, flaky, brittle
 Six tests (setup plus five journeys) on two workers, each worker with its own database and app server; the setup signs in once and the journeys start from the saved state:
 
 ```
-   [worker 0] database portal_w0, app on http://localhost:42995
-  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (685ms)
-   [worker 1] database portal_w1, app on http://localhost:44493
-   [worker 2] database portal_w2, app on http://localhost:35071
-  ✓  2 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (774ms)
-  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (531ms)
-  ✓  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (489ms)
+   [worker 0] database portal_w0, app on http://localhost:46075
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (726ms)
+   [worker 2] database portal_w2, app on http://localhost:35573
+   [worker 1] database portal_w1, app on http://localhost:33677
+  ✓  2 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (1.1s)
+  ✓  3 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (979ms)
+  ✓  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (487ms)
 ...
    storageState .auth/alice.json: cookie sid=1.DyFqWL... httpOnly=true sameSite=Lax; journeys ran on workers 1, 2
 ```
@@ -71,10 +71,10 @@ Six tests (setup plus five journeys) on two workers, each worker with its own da
 Without the reset, on one worker, the second writer sees the first one's row; the worker that replaces it starts clean:
 
 ```
-  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (531ms)
-  ✘  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (5.3s)
-   [worker 2] database portal_w2, app on http://localhost:46577
-  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (771ms)
+  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (558ms)
+  ✘  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (5.4s)
+   [worker 2] database portal_w2, app on http://localhost:32953
+  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (1.3s)
 ...
     Error: expect(locator).toHaveCount(expected) failed
 
@@ -86,8 +86,8 @@ Without the reset, on one worker, the second writer sees the first one's row; th
 The fixed sleep fails once the API takes 1500 ms; the web-first assertion waits and passes:
 
 ```
-  ✘  3 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (1.2s)
-  ✓  2 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (2.5s)
+  ✘  2 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (1.2s)
+  ✓  3 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (2.7s)
 ...
     Expected: "Total: 1,350.00"
     Received: "Loading total..."
@@ -96,8 +96,8 @@ The fixed sleep fails once the API takes 1500 ms; the web-first assertion waits 
 After the markup refactor, the CSS test cannot find its input; the role and label test still passes:
 
 ```
-  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (848ms)
-  ✘  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (5.5s)
+  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (1.2s)
+  ✘  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (5.9s)
     TimeoutError: locator.fill: Timeout 5000ms exceeded.
     Call log:
       - waiting for locator('#login-form > div:nth-child(1) > input')
@@ -115,7 +115,7 @@ test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trac
   step: Get text content getByRole('status')
   step: Expect "toBe"
 ...
-  GET /contributions -> 200 in 55 ms
+  GET /contributions -> 200 in 123 ms
   GET /api/contributions/total -> no response yet when the test ended
 ```
 
