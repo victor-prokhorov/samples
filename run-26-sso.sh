@@ -22,3 +22,16 @@ echo "== proof: sessions. Only the sha256 of each cookie. alice has three: step 
 psql -c "SELECT left(s.id_hash, 16) AS id_hash, u.sub, s.expires_at - s.created_at AS lifetime, length(s.id_token) AS id_token_bytes FROM sessions s JOIN users u ON u.id = s.user_id ORDER BY s.created_at"
 echo "== proof: login_transactions. Every one was consumed by its callback (none left behind) =="
 psql -c "SELECT count(*) AS left_behind FROM login_transactions"
+echo "== screenshots: a real sign-in in Chromium (IdP and app started again in the background) =="
+(cd ../tools && npm install --silent --no-audit --no-fund)
+rm -f screenshots/*.png
+node --import tsx src/idp.ts >/dev/null 2>&1 &
+IDP=$!
+trap 'kill $IDP $APP 2>/dev/null || true' EXIT
+for _ in $(seq 100); do curl -sf -o /dev/null http://127.0.0.1:53036/.well-known/openid-configuration && break; sleep 0.2; done
+node --import tsx src/app.ts >/dev/null 2>&1 &
+APP=$!
+for _ in $(seq 100); do curl -s -o /dev/null http://localhost:53037/ && break; sleep 0.2; done
+node screenshots/take.mjs
+kill $IDP $APP
+for f in screenshots/*.png; do echo "$f $(wc -c < "$f") bytes"; done

@@ -1,5 +1,7 @@
 # 32. A design case, checked
 
+![Overview](diagrams/overview.svg)
+
 **Pain: a design document that reads well and does not hold together.** A requirement has no acceptance criteria, so nobody can say when it is done. A journey step needs something no requirement asks for. The ER diagram shows a table the DDL does not create, the state diagram has a state the database refuses, a sequence diagram does not even parse, and the data model lets one person approve a bank details change twice. Each document was reviewed on its own; nobody checked them against each other.
 
 **Reach for it when** you plan a rebuild or a new service on paper first (a discovery, a design review, a time-boxed design case) and want its parts to agree: requirements with testable criteria, journeys that map to them, diagrams that render, a data model that answers the journeys' questions.

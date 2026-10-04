@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1300" height="530" viewBox="0 0 1300 530" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">23. Executable specifications with a traceability matrix</text>
+<rect x="40" y="140" width="260" height="120" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="170.0" y="166.0" font-size="16" text-anchor="middle">change-bank-details</text><text x="170.0" y="186.0" font-size="16" text-anchor="middle">.feature</text><text x="170.0" y="206.0" font-size="16" text-anchor="middle">5 Rules, @REQ-01..05</text><text x="170.0" y="226.0" font-size="16" text-anchor="middle">13 scenarios at the</text><text x="170.0" y="246.0" font-size="16" text-anchor="middle">boundaries</text>
+<rect x="360" y="140" width="240" height="120" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="480.0" y="166.0" font-size="16" text-anchor="middle">Cucumber +</text><text x="480.0" y="186.0" font-size="16" text-anchor="middle">steps.ts</text><text x="480.0" y="206.0" font-size="16" text-anchor="middle">fixed today,</text><text x="480.0" y="226.0" font-size="16" text-anchor="middle">TRUNCATE per</text><text x="480.0" y="246.0" font-size="16" text-anchor="middle">scenario</text>
+<rect x="680" y="100" width="300" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="830.0" y="136.0" font-size="16" text-anchor="middle">IMPL=naive, from the ticket</text><text x="830.0" y="156.0" font-size="16" text-anchor="middle">6 of 13 scenarios fail</text>
+<rect x="680" y="220" width="300" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="830.0" y="256.0" font-size="16" text-anchor="middle">IMPL=domain, from the rules</text><text x="830.0" y="276.0" font-size="16" text-anchor="middle">13 of 13 pass</text>
+<rect x="360" y="340" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="480.0" y="376.0" font-size="16" text-anchor="middle">--format message</text><text x="480.0" y="396.0" font-size="16" text-anchor="middle">reports/*.ndjson</text>
+<rect x="680" y="340" width="300" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="830.0" y="376.0" font-size="16" text-anchor="middle">trace.ts: requirement -&gt;</text><text x="830.0" y="396.0" font-size="16" text-anchor="middle">scenarios -&gt; worst step</text>
+<rect x="1060" y="340" width="200" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1160.0" y="376.0" font-size="16" text-anchor="middle">spec_results</text><text x="1160.0" y="396.0" font-size="16" text-anchor="middle">in Postgres</text>
+<polyline points="300,200 360,200" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="600,160 680,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="600,240 680,240" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="480,260 480,340" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="600,380 680,380" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="980,380 1060,380" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="466.0" font-size="16" text-anchor="start">Same feature file, two implementations: the naive one fails REQ-02 (one approval applied above 1,000.00),</text><text x="40.0" y="486.0" font-size="16" text-anchor="start">REQ-03 (self-approval) and REQ-04 (today counted as the past). A requirement with no scenario shows NOT COVERED.</text></svg>

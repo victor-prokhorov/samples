@@ -1,5 +1,7 @@
 # 24. Characterization tests and a golden master
 
+![Overview](diagrams/overview.svg)
+
 **Pain: rewriting rules nobody can state.** The contribution calculation lives in a PL/pgSQL function written years ago. The booklet describes it in one sentence, and the code does something else: it truncates instead of rounding, skips the month for members who join after the 15th, caps the salary before the offset instead of after, drops amounts under 10.00, and counts age as days / 365. A rewrite from the booklet differs on half the cases, and without a record of what legacy does, those differences reach members' statements first.
 
 **Reach for it when** you rewrite or refactor logic whose behaviour is only known by running it (a calculation, an eligibility rule, a stored procedure), the logic is deterministic, and you can call it with inputs you choose.

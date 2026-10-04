@@ -21,3 +21,9 @@ echo "== proof: statement_attempts. Every SMTP attempt, by worker; the in_doubt 
 psql -c "SELECT a.id, m.member_no, a.attempt, a.worker, a.outcome, a.detail FROM statement_attempts a JOIN members m ON m.id = a.member_id ORDER BY m.member_no, a.id"
 echo "== proof: the dry-run sample PDFs in out/ (same sha256 as the PDF later sent to the same member, as long as the data did not change) =="
 for f in out/*.pdf; do echo "$f $(wc -c < "$f") bytes, starts with $(head -c 8 "$f"), sha256 $(sha256sum "$f" | cut -c1-12)"; done
+echo "== screenshots: the first page of a dry-run statement (out/statement-2025-M0003.pdf), rendered with pdftoppm =="
+(cd ../tools && npm install --silent --no-audit --no-fund)
+rm -f screenshots/*.png
+mkdir -p screenshots
+node ../tools/render.mjs pdf out/statement-2025-M0003.pdf screenshots/statement-2025-M0003.png
+for f in screenshots/*.png; do echo "$f $(wc -c < "$f") bytes"; done

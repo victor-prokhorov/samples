@@ -22,3 +22,8 @@ echo "== proof: raw pseudo-localised page (/?lang=en-XA), main =="
 curl -s 'http://localhost:53035/?lang=en-XA' | sed -n '/<main>/,/<\/main>/p'
 echo "== proof: raw naive page in French (/naive?lang=fr), main =="
 curl -s 'http://localhost:53035/naive?lang=fr' | sed -n '/<main>/,/<\/main>/p'
+echo "== screenshots: the member page in English, French, en-XA and the naive page in French, in Chromium =="
+(cd ../tools && npm install --silent --no-audit --no-fund)
+rm -f screenshots/*.png
+node screenshots/take.mjs
+for f in screenshots/*.png; do echo "$f $(wc -c < "$f") bytes"; done

@@ -1,5 +1,7 @@
 # 02. Expand / contract schema change
 
+![Overview](diagrams/overview.svg)
+
 **Pain: deploy breakage.** During a rolling deploy or a rollback, old and new app versions run against the same schema, so a plain `RENAME` or type change breaks whichever version expects the other shape.
 
 **Reach for it when** you change a schema (rename, split, type change) on a system where old and new app versions, or other readers of the table, run at the same time.

@@ -2,3 +2,5 @@
 .auth/
 # traces of the failing runs: they record every request, including the session cookie, so they stay local
 test-results/
+# HTML reports: the failing runs' reports carry those traces too, so only screenshots of them are committed (screenshots/)
+reports/html/

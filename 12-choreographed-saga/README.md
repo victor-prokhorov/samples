@@ -1,5 +1,7 @@
 # 12. Saga, choreographed
 
+![Overview](diagrams/overview.svg)
+
 **Pain: one coordinator owns every reaction.** 08's orchestrator calls every service's API and holds the whole flow, so anything else that should happen after a step (an email, loyalty points, an analytics feed) is a change to that one component, and the team that owns it becomes the queue. Removing it naively (services calling each other, or publishing to Kafka straight from code) brings back partial failure and dual writes.
 
 **Reach for it when** a few services, owned by different teams, react to each other's business events in a short, stable flow (three or four steps, one or two failure paths), and the events are useful beyond this one flow.

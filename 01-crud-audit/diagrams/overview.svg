@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1020" height="520" viewBox="0 0 1020 520" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">01. CRUD with an audit log in the same transaction</text>
+<rect x="40" y="90" width="360" height="330" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Before: plain CRUD</text>
+<rect x="60" y="140" width="320" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="220.0" y="176.0" font-size="16" text-anchor="middle">App: UPDATE price 49 -&gt; 39</text>
+<rect x="60" y="230" width="320" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="220.0" y="256.0" font-size="16" text-anchor="middle">products</text><text x="220.0" y="276.0" font-size="16" text-anchor="middle">current state only</text>
+<rect x="60" y="350" width="320" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="220.0" y="386.0" font-size="16" text-anchor="middle">old value, who, when: gone</text>
+<polyline points="220,200 220,230" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="220,290 220,350" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="177.5" y="309.3" width="85.0" height="21.5" fill="#ffffff"/>
+<text x="220.0" y="325.3" font-size="14" text-anchor="middle">overwritten</text>
+<rect x="440" y="90" width="540" height="330" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="450.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">After: one transaction, tx()</text>
+<rect x="460" y="140" width="500" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="710.0" y="176.0" font-size="16" text-anchor="middle">App: update(id, patch, actor)</text>
+<rect x="460" y="240" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="580.0" y="266.0" font-size="16" text-anchor="middle">products</text><text x="580.0" y="286.0" font-size="16" text-anchor="middle">SELECT ... FOR UPDATE</text><text x="580.0" y="306.0" font-size="16" text-anchor="middle">(before), then UPDATE</text>
+<rect x="720" y="240" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="840.0" y="266.0" font-size="16" text-anchor="middle">audit_log, append-only</text><text x="840.0" y="286.0" font-size="16" text-anchor="middle">actor, action,</text><text x="840.0" y="306.0" font-size="16" text-anchor="middle">before, after (JSONB)</text>
+<rect x="720" y="340" width="240" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="840.0" y="366.0" font-size="16" text-anchor="middle">history(id): who changed</text><text x="840.0" y="386.0" font-size="16" text-anchor="middle">what, from what, when</text>
+<polyline points="580,200 580,240" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="840,200 840,240" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="840,320 840,340" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="456.0" font-size="16" text-anchor="start">The data change and its audit row commit or roll back together: an audit insert that fails</text><text x="40.0" y="476.0" font-size="16" text-anchor="start">(empty actor) rolls the price change back, and the history survives a DELETE.</text></svg>

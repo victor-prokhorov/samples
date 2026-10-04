@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/playwright.config.ts",
-    "rootDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e",
+    "configFile": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/playwright.config.ts",
+    "rootDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
     "forbidOnly": false,
     "fullyParallel": true,
     "globalSetup": null,
@@ -24,6 +24,13 @@
         {
           "outputFile": "reports/waiting-slow.json"
         }
+      ],
+      [
+        "html",
+        {
+          "open": "never",
+          "outputFolder": "reports/html/waiting-slow"
+        }
       ]
     ],
     "reportSlowTests": {
@@ -33,7 +40,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/test-results/waiting-slow",
+        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-slow",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -41,7 +48,7 @@
         },
         "id": "setup",
         "name": "setup",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e",
+        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/auth\\.setup\\.ts/"
@@ -49,7 +56,7 @@
         "timeout": 10000
       },
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/test-results/waiting-slow",
+        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-slow",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -57,7 +64,7 @@
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e",
+        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/\\.spec\\.ts/"
@@ -95,16 +102,16 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 506,
+                  "duration": 703,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 0] database portal_w0, app on http://localhost:44953\n"
+                      "text": "   [worker 0] database portal_w0, app on http://localhost:33703\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-03T11:26:29.288Z",
+                  "startTime": "2026-10-04T05:41:41.241Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -141,12 +148,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "failed",
-                  "duration": 1100,
+                  "duration": 1155,
                   "error": {
                     "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m",
-                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m\n    at /home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e/waiting.spec.ts:7:56",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m\n    at /home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts:7:56",
                     "location": {
-                      "file": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e/waiting.spec.ts",
+                      "file": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts",
                       "column": 56,
                       "line": 7
                     },
@@ -155,36 +162,36 @@
                   "errors": [
                     {
                       "location": {
-                        "file": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e/waiting.spec.ts",
+                        "file": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts",
                         "column": 56,
                         "line": 7
                       },
-                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m\n\n   5 |   await page.goto(\"/contributions\");\n   6 |   await page.waitForTimeout(500);\n>  7 |   expect(await page.getByRole(\"status\").textContent()).toBe(\"Total: 1,350.00\");\n     |                                                        ^\n   8 | });\n   9 |\n  10 | test(\"total with a web-first assertion\", async ({ page }) => {\n    at /home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e/waiting.spec.ts:7:56"
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m\n\n   5 |   await page.goto(\"/contributions\");\n   6 |   await page.waitForTimeout(500);\n>  7 |   expect(await page.getByRole(\"status\").textContent()).toBe(\"Total: 1,350.00\");\n     |                                                        ^\n   8 | });\n   9 |\n  10 | test(\"total with a web-first assertion\", async ({ page }) => {\n    at /home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts:7:56"
                     }
                   ],
                   "stdout": [
                     {
-                      "text": "   [worker 1] database portal_w1, app on http://localhost:39797\n"
+                      "text": "   [worker 1] database portal_w1, app on http://localhost:43063\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-03T11:26:32.392Z",
+                  "startTime": "2026-10-04T05:41:44.656Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "error-context",
                       "contentType": "text/markdown",
-                      "path": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/error-context.md"
+                      "path": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/error-context.md"
                     },
                     {
                       "name": "trace",
                       "contentType": "application/zip",
-                      "path": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip"
+                      "path": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip"
                     }
                   ],
                   "errorLocation": {
-                    "file": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e/waiting.spec.ts",
+                    "file": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts",
                     "column": 56,
                     "line": 7
                   }
@@ -214,16 +221,16 @@
                   "workerIndex": 2,
                   "parallelIndex": 1,
                   "status": "passed",
-                  "duration": 2346,
+                  "duration": 2473,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 2] database portal_w2, app on http://localhost:35147\n"
+                      "text": "   [worker 2] database portal_w2, app on http://localhost:34015\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-03T11:26:32.450Z",
+                  "startTime": "2026-10-04T05:41:44.635Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -241,8 +248,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-03T11:26:28.396Z",
-    "duration": 6712.691,
+    "startTime": "2026-10-04T05:41:40.207Z",
+    "duration": 7215.012,
     "expected": 2,
     "skipped": 0,
     "unexpected": 1,

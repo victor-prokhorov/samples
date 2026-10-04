@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1000" height="630" viewBox="0 0 1000 630" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">13. Partitioning: one table split in four, on one server</text>
+<rect x="40" y="200" width="200" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="140.0" y="231.0" font-size="16" text-anchor="middle">App</text><text x="140.0" y="251.0" font-size="16" text-anchor="middle">only ever talks</text><text x="140.0" y="271.0" font-size="16" text-anchor="middle">to orders</text>
+<rect x="310" y="200" width="260" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="440.0" y="231.0" font-size="16" text-anchor="middle">orders (no storage)</text><text x="440.0" y="251.0" font-size="16" text-anchor="middle">PARTITION BY HASH</text><text x="440.0" y="271.0" font-size="16" text-anchor="middle">(customer_id)</text>
+<rect x="680" y="100" width="280" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="820.0" y="136.0" font-size="16" text-anchor="middle">orders_p0: dave, erin</text>
+<rect x="680" y="180" width="280" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="820.0" y="216.0" font-size="16" text-anchor="middle">orders_p1: alice, carol</text>
+<rect x="680" y="260" width="280" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="820.0" y="296.0" font-size="16" text-anchor="middle">orders_p2: bob</text>
+<rect x="680" y="340" width="280" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="820.0" y="376.0" font-size="16" text-anchor="middle">orders_p3: empty (few keys)</text>
+<polyline points="240,245 310,245" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="570,205.7 720.9,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="570,220 680,220" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="570,275 680,275" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="570,287.8 728.8,340" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="40" y="450" width="440" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="260.0" y="481.0" font-size="16" text-anchor="middle">WHERE customer_id = 'alice'</text><text x="260.0" y="501.0" font-size="16" text-anchor="middle">-&gt; pruned: scans orders_p1 only</text>
+<rect x="520" y="450" width="440" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="740.0" y="481.0" font-size="16" text-anchor="middle">WHERE item = 'lamp' (no key)</text><text x="740.0" y="501.0" font-size="16" text-anchor="middle">-&gt; Append over all 4 partitions</text>
+<text x="40.0" y="566.0" font-size="16" text-anchor="start">Still one server: a transaction across partitions rolls back atomically, a row moves when its key changes.</text><text x="40.0" y="586.0" font-size="16" text-anchor="start">No global index: a UNIQUE must include customer_id. 14 moves each piece to its own server.</text></svg>

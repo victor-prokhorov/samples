@@ -1,5 +1,7 @@
 # 08. Saga, orchestrated
 
+![Overview](diagrams/overview.svg)
+
 **Pain: partial failure.** Each service owns its database, so no transaction covers the whole order. A failure halfway leaves stock reserved and money taken for an order that will never ship.
 
 **Reach for it when** one business operation spans services that each own their data, including long-running flows that wait (the `fraudHold` timer here).

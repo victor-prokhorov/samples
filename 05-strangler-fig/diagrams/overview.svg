@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1010" height="580" viewBox="0 0 1010 580" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">05. Strangler fig: move one route at a time behind a proxy</text>
+<rect x="40" y="180" width="160" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="120.0" y="211.0" font-size="16" text-anchor="middle">Clients</text><text x="120.0" y="231.0" font-size="16" text-anchor="middle">(never change)</text>
+<rect x="280" y="180" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="400.0" y="211.0" font-size="16" text-anchor="middle">Routing proxy :53000</text><text x="400.0" y="231.0" font-size="16" text-anchor="middle">PUT /_proxy/routes</text>
+<rect x="640" y="100" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="790.0" y="131.0" font-size="16" text-anchor="middle">Legacy monolith :53001</text><text x="790.0" y="151.0" font-size="16" text-anchor="middle">unmatched paths</text>
+<rect x="640" y="260" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="790.0" y="291.0" font-size="16" text-anchor="middle">New service :53002</text><text x="790.0" y="311.0" font-size="16" text-anchor="middle">own model, legacy shape</text>
+<polyline points="200,215 280,215" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="520,200 580,200 580,135 640,135" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<polyline points="520,230 580,230 580,295 640,295" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="534.0" y="251.8" width="92.0" height="21.5" fill="#ffffff"/>
+<text x="580.0" y="267.8" font-size="14" text-anchor="middle">moved routes</text>
+<rect x="40" y="400" width="210" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="145.0" y="436.0" font-size="16" text-anchor="middle">1 /orders -&gt; new</text><text x="145.0" y="456.0" font-size="16" text-anchor="middle">legacy: 2/3</text>
+<rect x="280" y="400" width="210" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="385.0" y="436.0" font-size="16" text-anchor="middle">2 roll back, one call</text><text x="385.0" y="456.0" font-size="16" text-anchor="middle">legacy: 3/3</text>
+<rect x="520" y="400" width="210" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="625.0" y="436.0" font-size="16" text-anchor="middle">3 + /invoices</text><text x="625.0" y="456.0" font-size="16" text-anchor="middle">legacy: 1/3</text>
+<rect x="760" y="400" width="210" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="865.0" y="436.0" font-size="16" text-anchor="middle">4 + /users</text><text x="865.0" y="456.0" font-size="16" text-anchor="middle">legacy: 0/3</text>
+<polyline points="250,440 280,440" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="490,440 520,440" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="730,440 760,440" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="381.0" font-size="16" text-anchor="start">Requests legacy still handles, step by step:</text>
+<text x="40.0" y="516.0" font-size="16" text-anchor="start">Every proxied response is checked against legacy's recorded contract (status and body).</text><text x="40.0" y="536.0" font-size="16" text-anchor="start">When legacy handles 0 requests and nothing bypasses the proxy, it can be switched off.</text></svg>

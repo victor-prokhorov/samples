@@ -1,5 +1,7 @@
 # 26. Single sign-on with OpenID Connect
 
+![Overview](diagrams/overview.svg)
+
 **Pain: every app keeps its own passwords, and a hand-rolled login trusts whatever comes back.** Members, employer HR staff and the IT team each have one more password per app, nobody can switch an account off in one place, and roles are granted by hand in each app. When an app does delegate login, the first version takes the `code` from the redirect and the claims from the token without checking which browser started the login, whether the code was already used, who the token was minted for, or whether it was altered.
 
 **Reach for it when** people already have an account in an identity provider (Entra ID, Keycloak, Okta, an organisation's own IdP) and the app should sign them in through it, with roles derived from groups the IdP manages, and several apps should share one sign-in.
@@ -41,6 +43,7 @@ POST /logout                 session deleted -> 303 to the IdP's end_session_end
 - `src/idp.ts` the provider: one confidential client, PKCE required, a `portal` scope with `groups` and `member_no`, a login page, no consent screen for this first-party client, RP-initiated logout.
 - `src/browser.ts` a cookie jar per host and a redirect follower that logs each hop.
 - `src/demo.ts` the 8 steps and their checks; `src/config.ts` ports, URLs, client credentials; `src/setup.ts` the tables.
+- `screenshots/take.mjs` signs in as alice through the IdP in Chromium; `run-26-sso.sh` runs it after the proofs, since it adds a session.
 
 ## Concepts
 
@@ -63,12 +66,12 @@ POST /logout                 session deleted -> 303 to the IdP's end_session_end
 Alice signs in. The authorization request carries state, nonce and the S256 code challenge, never the verifier; the IdP asks for her password, then redirects back with a code; the app sets its own HttpOnly session cookie:
 
 ```
-   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=cojUcQbnDK...&nonce=5rmgg2e4xB...&code_challenge=rkipKjgzec...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
-   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=cojUcQbnDK...&nonce=5rmgg2e4xB...&code_challenge=rkipKjgzec...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> 127.0.0.1:53036/interaction/<uid> [set-cookie: _interaction (HttpOnly), _interaction.sig (HttpOnly), _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly)]
+   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=KA_qyLqPHz...&nonce=4zDSgIiQ1j...&code_challenge=MgbPuPQ-j-...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
+   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=KA_qyLqPHz...&nonce=4zDSgIiQ1j...&code_challenge=MgbPuPQ-j-...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> 127.0.0.1:53036/interaction/<uid> [set-cookie: _interaction (HttpOnly), _interaction.sig (HttpOnly), _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly)]
    alice: GET 127.0.0.1:53036/interaction/<uid> -> 200
    alice: POST 127.0.0.1:53036/interaction/<uid>/login -> 303 -> 127.0.0.1:53036/auth/<uid>
-   alice: GET 127.0.0.1:53036/auth/<uid> -> 303 -> localhost:53037/callback?code=99ikucdi_f...&state=cojUcQbnDK...&iss=http://127... [set-cookie: _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly), _session (HttpOnly), _session.sig (HttpOnly)]
-   alice: GET localhost:53037/callback?code=99ikucdi_f...&state=cojUcQbnDK...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
+   alice: GET 127.0.0.1:53036/auth/<uid> -> 303 -> localhost:53037/callback?code=Nm0DXyUZE7...&state=KA_qyLqPHz...&iss=http://127... [set-cookie: _interaction_resume (HttpOnly), _interaction_resume.sig (HttpOnly), _session (HttpOnly), _session.sig (HttpOnly)]
+   alice: GET localhost:53037/callback?code=Nm0DXyUZE7...&state=KA_qyLqPHz...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
    alice: GET localhost:53037/me -> 200
    alice /me -> 200 {"member_no":"M0001","employer":"acme","name":"Alice Martin","address":"1 rue des Lilas, Lyon"}
    app cookie sid is opaque (43 chars), HttpOnly, SameSite=Lax; Postgres stores only its sha256. Login transactions left: 0
@@ -78,7 +81,7 @@ The ID token, and the same validation run on modified copies: changing the group
 
 ```
    header: {"alg":"RS256","kid":"idp-key-1"}
-   claims: {"iss":"http://127.0.0.1:53036","aud":"member-portal","sub":"alice","nonce":"5rmgg2e4xB...","groups":["portal-members"],"member_no":"M0001","lifetime_s":300}
+   claims: {"iss":"http://127.0.0.1:53036","aud":"member-portal","sub":"alice","nonce":"4zDSgIiQ1j...","groups":["portal-members"],"member_no":"M0001","lifetime_s":300}
    the token as issued                                        -> valid
    groups changed to it-staff, original signature             -> rejected: signature verification failed
    presented to another app (audience other-app)              -> rejected: unexpected "aud" claim value
@@ -88,9 +91,9 @@ The ID token, and the same validation run on modified copies: changing the group
 Single sign-on: with the app session gone but the IdP session alive, the IdP answers with a code at once:
 
 ```
-   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=6sZ8IF3PU5...&nonce=5xJiFFzz_h...&code_challenge=4rsrAQYJD5...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
-   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=6sZ8IF3PU5...&nonce=5xJiFFzz_h...&code_challenge=4rsrAQYJD5...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> localhost:53037/callback?code=HeyCV6rWBT...&state=6sZ8IF3PU5...&iss=http://127... [set-cookie: _session (HttpOnly), _session.sig (HttpOnly)]
-   alice: GET localhost:53037/callback?code=HeyCV6rWBT...&state=6sZ8IF3PU5...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
+   alice: GET localhost:53037/login?returnTo=/me -> 302 -> 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=QBIF7HZhTa...&nonce=vTZBjJt8bm...&code_challenge=LLwo5GnVWY...&code_challenge_method=S256&client_id=member-portal&response_type=code [set-cookie: login_tx (HttpOnly)]
+   alice: GET 127.0.0.1:53036/auth?redirect_uri=http://localhost:53037/callback&scope=openid ema...&state=QBIF7HZhTa...&nonce=vTZBjJt8bm...&code_challenge=LLwo5GnVWY...&code_challenge_method=S256&client_id=member-portal&response_type=code -> 303 -> localhost:53037/callback?code=wV5nhd2uaK...&state=QBIF7HZhTa...&iss=http://127... [set-cookie: _session (HttpOnly), _session.sig (HttpOnly)]
+   alice: GET localhost:53037/callback?code=wV5nhd2uaK...&state=QBIF7HZhTa...&iss=http://127... -> 302 -> localhost:53037/me [set-cookie: login_tx, sid (HttpOnly)]
    alice: GET localhost:53037/me -> 200
    password asked: false
 ```
@@ -144,6 +147,22 @@ Logout: the app session row is deleted, the IdP ends its session after a confirm
    the old sid cookie replayed: GET /me -> 302 /login?returnTo=%2Fme
    signing in again: password asked: true
 ```
+
+## Screenshots
+
+Taken in Chromium by `screenshots/take.mjs` at the end of `run-26-sso.sh`: a real sign-in through the authorization code flow with PKCE.
+
+The IdP's sign-in page (:53036), where the app sent the browser.
+
+![idp-sign-in](screenshots/idp-sign-in.png)
+
+Back on the app (:53037), signed in: `/me` answers with alice's member record.
+
+![signed-in-me](screenshots/signed-in-me.png)
+
+`/` shows the session: the subject and the role the app mapped from the groups claim.
+
+![signed-in-roles](screenshots/signed-in-roles.png)
 
 ## Origins and further reading
 

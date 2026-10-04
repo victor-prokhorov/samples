@@ -1,21 +1,21 @@
-# 20-portal run 2026-10-02T17:09:32Z
+# 20-portal run 2026-10-03T19:48:28Z
 == fresh Postgres for the portal (docker compose down -v && up) and no earlier build ==
  Container 20-portal-postgres-1 Healthy 
 setup: employers, members (alice, bob, carol), addresses, contributions, change_requests (at most one pending address change per member)
 == build: next build. Pages that read the session cookie are dynamic (ƒ), rendered per request on the server ==
 ▲ Next.js 16.3.8 (Turbopack)
-✓ Running next.config.ts took 53ms
+✓ Running next.config.ts took 64ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 18.1s
+✓ Compiled successfully in 25.7s
   Running TypeScript ...
-  Finished TypeScript in 3.0s ...
+  Finished TypeScript in 10.8s ...
   Collecting page data using 3 workers ...
   Generating static pages using 3 workers (0/7) ...
   Generating static pages using 3 workers (1/7) 
   Generating static pages using 3 workers (3/7) 
   Generating static pages using 3 workers (5/7) 
-✓ Generating static pages using 3 workers (7/7) in 230ms
+✓ Generating static pages using 3 workers (7/7) in 798ms
   Finalizing page optimization ...
 
 Route (app)
@@ -35,9 +35,9 @@ Route (app)
 ▲ Next.js 16.3.8
 - Local:         http://localhost:53030
 - Network:       http://192.0.2.2:53030
-✓ Ready in 217ms
-✓ Running next.config.ts took 52ms
-client pid 28648 -> next start (pid 28784) on :53030; the client has no JavaScript engine for pages, only HTTP and a cookie jar
+✓ Ready in 279ms
+✓ Running next.config.ts took 284ms
+client pid 10327 -> next start (pid 10595) on :53030; the client has no JavaScript engine for pages, only HTTP and a cookie jar
 
 ## 1. A signed-out request to a server component
    concept: the page is an async server component; requireMember() reads the cookie on the server and redirects before anything renders
@@ -65,7 +65,7 @@ client pid 28648 -> next start (pid 28784) on :53030; the client has no JavaScri
 ## 5. A valid address change: POST, then redirect
    concept: the action inserts the request and calls redirect(), which answers 303 to the new request's page (Post/Redirect/Get: a reload does not resubmit). A member_id field forged into the form is ignored: the action never reads one
    POST /address (valid, plus member_id=2)      -> 303 Location: /requests/1
-   GET /requests/1 -> 200: Address change request 1 | Status: Pending | New address: 1 High Street, Springfield, AB1 2CD, from 2026-10-09. Requested 2026-10-02 17:10. |
+   GET /requests/1 -> 200: Address change request 1 | Status: Pending | New address: 1 High Street, Springfield, AB1 2CD, from 2026-10-10. Requested 2026-10-03 19:49. |
 
 ## 6. A second pending change is refused by the database
    concept: a partial unique index (member_id, kind) WHERE status = 'pending' is the rule; the action turns the 23505 unique violation into a form-level error instead of a 500
@@ -99,7 +99,7 @@ client pid 28648 -> next start (pid 28784) on :53030; the client has no JavaScri
 == proof: change_requests. One row: the invalid, duplicate and cross-origin posts wrote nothing; member_id is alice's despite the forged field ==
  id | member_id |  kind   |                                 payload                                  | effective_from | status  
 ----+-----------+---------+--------------------------------------------------------------------------+----------------+---------
-  1 |         1 | address | {"city": "Springfield", "line1": "1 High Street", "postcode": "AB1 2CD"} | 2026-10-09     | pending
+  1 |         1 | address | {"city": "Springfield", "line1": "1 High Street", "postcode": "AB1 2CD"} | 2026-10-10     | pending
 (1 row)
 
 == proof: the rule behind step 6 ==
@@ -108,3 +108,9 @@ client pid 28648 -> next start (pid 28784) on :53030; the client has no JavaScri
  CREATE UNIQUE INDEX one_pending_change_per_member ON public.change_requests USING btree (member_id, kind) WHERE (status = 'pending'::text)
 (1 row)
 
+== screenshots: the member pages in Chromium, signed in as alice (next start again, in the background) ==
+screenshots/address-errors.png 45885 bytes
+screenshots/contributions.png 37725 bytes
+screenshots/login.png 22383 bytes
+screenshots/profile.png 35064 bytes
+screenshots/request.png 27094 bytes

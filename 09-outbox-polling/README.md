@@ -1,5 +1,7 @@
 # 09. Transactional outbox, polling relay
 
+![Overview](diagrams/overview.svg)
+
 **Pain: dual write.** The app must update its database and tell Kafka, two systems with no shared transaction. A crash between the two writes loses the event or publishes one for a change that never committed.
 
 **Reach for it when** a service changes its own database and must reliably tell others what happened in business terms (`OrderPlaced`), and consumers can handle a duplicate: delivery is at least once. Start here; a polling relay covers most volumes.

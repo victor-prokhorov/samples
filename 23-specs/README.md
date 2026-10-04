@@ -1,5 +1,7 @@
 # 23. Executable specifications
 
+![Overview](diagrams/overview.svg)
+
 **Pain: acceptance criteria that nobody runs.** The rules of a change ("above 1,000.00 a month it needs a second approval", "nobody approves their own request", "not in the past") live in a ticket. The code is written from a one-line summary, the tests check what the developer understood, and the gap is found in production or by an auditor. Nobody can say which requirement is tested by what, or whether it passes today.
 
 **Reach for it when** business rules are agreed with people who do not read code (product owners, operations, auditors), the rules have boundaries and exceptions worth writing down as examples, and you must show which requirement is covered and passing.

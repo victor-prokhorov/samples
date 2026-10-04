@@ -1,5 +1,7 @@
 # 05. Strangler fig behind a proxy
 
+![Overview](diagrams/overview.svg)
+
 **Pain: big-bang cutover.** Replacing a whole system in one switch is all-or-nothing: months without shipping, then one risky day with no easy way back.
 
 **Reach for it when** replacing a large live system incrementally, when traffic can be routed by capability (URL, message type) and each piece can move on its own.

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1200" height="610" viewBox="0 0 1200 610" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">21. Accessible forms: the same form, before and after</text>
+<rect x="40" y="90" width="320" height="420" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">/bad</text>
+<rect x="420" y="90" width="320" height="420" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="430.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Found by</text>
+<rect x="800" y="90" width="360" height="420" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="810.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">/good</text>
+<rect x="60" y="140" width="280" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="200.0" y="186.0" font-size="16" text-anchor="middle">no lang, low contrast,</text><text x="200.0" y="206.0" font-size="16" text-anchor="middle">unlabelled radios</text>
+<rect x="440" y="140" width="280" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="580.0" y="186.0" font-size="16" text-anchor="middle">axe-core scan</text><text x="580.0" y="206.0" font-size="16" text-anchor="middle">of every page state</text>
+<rect x="820" y="140" width="320" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="980.0" y="186.0" font-size="16" text-anchor="middle">lang, labels, fieldset</text><text x="980.0" y="206.0" font-size="16" text-anchor="middle">and legend, contrast</text>
+<polyline points="340,190 440,190" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="720,190 820,190" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="60" y="260" width="280" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="200.0" y="296.0" font-size="16" text-anchor="middle">error shown only as a red</text><text x="200.0" y="316.0" font-size="16" text-anchor="middle">border: a screen reader</text><text x="200.0" y="336.0" font-size="16" text-anchor="middle">hears nothing</text>
+<rect x="440" y="260" width="280" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="580.0" y="296.0" font-size="16" text-anchor="middle">accessibility tree</text><text x="580.0" y="316.0" font-size="16" text-anchor="middle">through Chrome DevTools:</text><text x="580.0" y="336.0" font-size="16" text-anchor="middle">name, description, invalid</text>
+<rect x="820" y="260" width="320" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="980.0" y="296.0" font-size="16" text-anchor="middle">error in text, aria-describedby,</text><text x="980.0" y="316.0" font-size="16" text-anchor="middle">aria-invalid, an error</text><text x="980.0" y="336.0" font-size="16" text-anchor="middle">summary that takes focus</text>
+<polyline points="340,310 440,310" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="720,310 820,310" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="60" y="380" width="280" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="200.0" y="416.0" font-size="16" text-anchor="middle">a div as the button:</text><text x="200.0" y="436.0" font-size="16" text-anchor="middle">Tab never reaches Save,</text><text x="200.0" y="456.0" font-size="16" text-anchor="middle">Enter does nothing</text>
+<rect x="440" y="380" width="280" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="580.0" y="416.0" font-size="16" text-anchor="middle">keyboard-only journey</text><text x="580.0" y="436.0" font-size="16" text-anchor="middle">Tab, Enter, Space,</text><text x="580.0" y="456.0" font-size="16" text-anchor="middle">arrows</text>
+<rect x="820" y="380" width="320" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="980.0" y="426.0" font-size="16" text-anchor="middle">a real &lt;button&gt;; the form</text><text x="980.0" y="446.0" font-size="16" text-anchor="middle">completes by keyboard</text>
+<polyline points="340,430 440,430" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="720,430 820,430" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="546.0" font-size="16" text-anchor="start">axe: 3 violations on /bad, 0 on /good in both states. axe alone misses the placeholder-only labels, the</text><text x="40.0" y="566.0" font-size="16" text-anchor="start">colour-only error and the unreachable button: the accessibility tree and the keyboard journey find them.</text></svg>

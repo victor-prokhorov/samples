@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/playwright.config.ts",
-    "rootDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e",
+    "configFile": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/playwright.config.ts",
+    "rootDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
     "forbidOnly": false,
     "fullyParallel": true,
     "globalSetup": null,
@@ -24,6 +24,13 @@
         {
           "outputFile": "reports/waiting-fast.json"
         }
+      ],
+      [
+        "html",
+        {
+          "open": "never",
+          "outputFolder": "reports/html/waiting-fast"
+        }
       ]
     ],
     "reportSlowTests": {
@@ -33,7 +40,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/test-results/waiting-fast",
+        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-fast",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -41,7 +48,7 @@
         },
         "id": "setup",
         "name": "setup",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e",
+        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/auth\\.setup\\.ts/"
@@ -49,7 +56,7 @@
         "timeout": 10000
       },
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/test-results/waiting-fast",
+        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-fast",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -57,7 +64,7 @@
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-a7634c7df7fa0218d/22-playwright/e2e",
+        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/\\.spec\\.ts/"
@@ -95,16 +102,16 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 613,
+                  "duration": 661,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 0] database portal_w0, app on http://localhost:45917\n"
+                      "text": "   [worker 0] database portal_w0, app on http://localhost:40073\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-03T11:26:24.284Z",
+                  "startTime": "2026-10-04T05:41:35.297Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -141,16 +148,16 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 879,
+                  "duration": 1023,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 1] database portal_w1, app on http://localhost:46505\n"
+                      "text": "   [worker 1] database portal_w1, app on http://localhost:33669\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-03T11:26:25.967Z",
+                  "startTime": "2026-10-04T05:41:37.253Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -179,16 +186,16 @@
                   "workerIndex": 2,
                   "parallelIndex": 1,
                   "status": "passed",
-                  "duration": 471,
+                  "duration": 588,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 2] database portal_w2, app on http://localhost:45537\n"
+                      "text": "   [worker 2] database portal_w2, app on http://localhost:40499\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-03T11:26:25.955Z",
+                  "startTime": "2026-10-04T05:41:37.308Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -206,8 +213,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-03T11:26:23.133Z",
-    "duration": 3948.431,
+    "startTime": "2026-10-04T05:41:34.282Z",
+    "duration": 4283.277,
     "expected": 3,
     "skipped": 0,
     "unexpected": 0,

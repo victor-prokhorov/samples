@@ -1,5 +1,7 @@
 # 01. CRUD with audit log
 
+![Overview](diagrams/overview.svg)
+
 **Pain: lost history.** An `UPDATE` or `DELETE` overwrites the old value, so nobody can later say who changed what, when, or what it was before.
 
 **Reach for it when** support or compliance asks who changed what, and reads of current state dominate: most business apps, with one service and one database.

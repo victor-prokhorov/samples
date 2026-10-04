@@ -1,5 +1,7 @@
 # 18. Crypto-shredding
 
+![Overview](diagrams/overview.svg)
+
 **Pain: erasure versus immutable data.** GDPR's right to erasure says a customer's personal data must go, but it sits in places you must not or cannot rewrite: an append-only event log (03), an append-only audit store (17), Kafka topics, and every backup taken since.
 
 **Reach for it when** personal data lands in stores that are append-only, replicated or backed up for years, and erasing a person must reach every copy without rewriting any of them.
