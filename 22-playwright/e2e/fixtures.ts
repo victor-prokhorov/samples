@@ -13,6 +13,12 @@ export const test = base.extend<{ resetData: void }, Worker>({
       const database = `portal_w${workerInfo.workerIndex}`;
       await cloneTemplate(database);
       const pool = new pg.Pool({ connectionString: url(database) });
+      // pool.end() resolves before its idle sockets have closed, so the DROP DATABASE ... WITH (FORCE) below can
+      // still terminate one (57P01). Without a listener pg rethrows that as an uncaught error and Playwright fails
+      // the run outside any test. Anything else is a real error.
+      pool.on("error", (err: Error & { code?: string }) => {
+        if (err.code !== "57P01") throw err;
+      });
       const server = createApp({ pool, apiDelayMs: Number(process.env.API_DELAY_MS ?? 300), markup: process.env.MARKUP === "v2" ? "v2" : "v1" });
       await new Promise<void>((resolve) => server.listen(0, resolve));
       const baseURL = `http://localhost:${(server.address() as AddressInfo).port}`;

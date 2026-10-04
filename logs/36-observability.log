@@ -1,0 +1,140 @@
+# 36-observability run 2026-10-04T06:15:02Z
+== fresh Postgres, logging every statement with its duration (docker compose down -v && up) ==
+ Container 36-observability-postgres-1 Healthy 
+setup: employers, members, contributions (24 months per member)
+setup: Acme     members 1..1500 (1500), 36000 contributions
+setup: Globex   members 1501..1620 (120), 2880 contributions
+setup: Initech  members 1621..1660 (40), 888 contributions
+setup: joined this month, no contribution yet: members 1658, 1659, 1660
+== demo: web :53046 -> api :53146 -> postgres :55466, spans and metrics to an in-process collector ==
+
+## 1. The incident: members say the employer dashboard is slow
+   concept: three processes (web BFF, API, Postgres) plus a collector; every process exports spans and metrics over OTLP/HTTP and writes JSON logs
+   collector on :43793 (OTLP/HTTP JSON: POST /v1/traces, POST /v1/metrics; GET /api/traces/<id>, GET /api/red)
+   130 requests through web :53046 -> api :53146 -> postgres :55466 in 16378 ms: 128 x 200, 2 x 502
+
+## 2. RED per route: which route, how bad, against which objective
+   concept: Rate, Errors, Duration from the HTTP instrumentation's http.server.request.duration histogram, labelled by http.route; the objective is 29-kpis' latency SLO: 95% of requests within 300 ms
+   service route                              requests  rate/s  errors  p50           p95           within 300 ms
+   api     GET /api/employers/:code/members         30     2.1       0  50-100 ms     1000-2000 ms  19 of 30 (63%)
+   api     GET /api/members/:id                     60     4.2       0  0-5 ms        5-10 ms       60 of 60 (100%)
+   api     GET /api/members/:id/statement           40     2.8       2  0-5 ms        5-10 ms       40 of 40 (100%)
+   web     GET /employers/:code/dashboard           30     2.1       0  50-100 ms     1000-2000 ms  19 of 30 (63%)
+   web     GET /members/:id                         60     4.2       0  0-5 ms        10-25 ms      60 of 60 (100%)
+   web     GET /members/:id/statement               40     2.8       2  0-5 ms        5-10 ms       40 of 40 (100%)
+   GET /employers/:code/dashboard: 19 of 30 within 300 ms (63%), objective 95%: MISSED
+   statement: 2 of 40 failed (web answers 502 when the API answers 500)
+
+## 3. From one log line to the whole trace
+   concept: the pino instrumentation puts trace_id and span_id in every line logged inside a span; the trace id is the join key between logs, spans and the database log
+   299 of 299 log lines written while serving a request carry trace_id and span_id (web and api)
+   web log, 12 "slow request" warnings; the slowest:
+   {"level":40,"time":"2026-10-04T06:15:13.440Z","service":"web","trace_id":"233e0742f2f27ee92f9597fc52b6c51f","span_id":"274969d3a53fa73f","trace_flags":"01","method":"GET","route":"/employers/:code/dashboard","path":"/employers/acme/dashboard","status":200,"duration_ms":2458,"msg":"slow request"}
+   api log, grep 233e0742f2f27ee92f9597fc52b6c51f:
+   {"level":30,"time":"2026-10-04T06:15:13.422Z","service":"api","trace_id":"233e0742f2f27ee92f9597fc52b6c51f","span_id":"9f0147b8d1cfe504","trace_flags":"01","employer":"acme","members":1500,"mode":"n+1","msg":"employer report built"}
+   {"level":40,"time":"2026-10-04T06:15:13.423Z","service":"api","trace_id":"233e0742f2f27ee92f9597fc52b6c51f","span_id":"9f0147b8d1cfe504","trace_flags":"01","method":"GET","route":"/api/employers/:code/members","path":"/api/employers/acme/members","status":200,"duration_ms":2420,"msg":"slow request"}
+   postgres log, grep 233e0742f2f27ee92f9597fc52b6c51f: 1502 statements, e.g.
+   2026-10-04 06:15:11.055 UTC [101] LOG:  duration: 0.224 ms  execute <unnamed>: SELECT coalesce(sum(amount), 0) AS total, count(*)::int AS months, max(period)::text AS last_period FROM contributions WHERE member_id = $1 /*traceparent='00-233e0742f2f27ee92f9597fc52b6c51f-09a2520fe8fedeb0-01'*/
+   collector, GET /api/traces/233e0742f2f27ee92f9597fc52b6c51f: 1505 spans
+     web  SERVER GET /employers/:code/dashboard  2460.2 ms
+     web  CLIENT GET /api/employers/acme/members  parent = web SERVER: true
+     api  SERVER GET /api/employers/:code/members  2422.6 ms  parent = web CLIENT: true
+     api  CLIENT pg.query x 1502, all children of the api SERVER span: true
+
+## 4. Read the waterfall: an N+1
+   concept: a waterfall puts every span on one time axis; a comb of identical short queries, one after another, is an N+1: one query for a list, then one per item
+   1502 queries; the most repeated, 1500 times: SELECT coalesce(sum(amount), 0) AS total, count(*)::int AS months, max(period)::text AS last_period FROM contributions WHERE member_id = $1
+   the API span lasts 2423 ms; its query spans add up to 2157 ms, median 0.73 ms each
+   Postgres' own log says executing all 1502 took 177 ms: the rest is 1500 round trips, one after another
+   wrote out/trace-before.html (waterfall) and out/trace-before.json (the 1505 spans as the collector stored them)
+
+## 5. The fix, and the new waterfall
+   concept: one query with a join and GROUP BY replaces the loop; the same traffic again, the same three signals compared
+   130 requests through web :53046 -> api :53146 -> postgres :55466 in 1246 ms: 128 x 200, 2 x 502
+   service route                              requests  rate/s  errors  p50           p95           within 300 ms
+   api     GET /api/employers/:code/members         30    24.9       0  10-25 ms      50-100 ms     30 of 30 (100%)
+   api     GET /api/members/:id                     60    51.1       0  0-5 ms        5-10 ms       60 of 60 (100%)
+   api     GET /api/members/:id/statement           40    35.0       2  0-5 ms        5-10 ms       40 of 40 (100%)
+   web     GET /employers/:code/dashboard           30    24.9       0  10-25 ms      50-100 ms     30 of 30 (100%)
+   web     GET /members/:id                         60    51.2       0  0-5 ms        5-10 ms       60 of 60 (100%)
+   web     GET /members/:id/statement               40    35.0       2  0-5 ms        5-10 ms       40 of 40 (100%)
+   GET /employers/:code/dashboard: 30 of 30 within 300 ms (100%), objective 95%: met
+   slowest Acme dashboard after the fix: {"level":30,"time":"2026-10-04T06:15:34.775Z","service":"web","trace_id":"490cb64e4608bc363c634666b7fcc79b","span_id":"7a73c349145f5dd3","trace_flags":"01","method":"GET","route":"/employers/:code/dashboard","path":"/employers/acme/dashboard","status":200,"duration_ms":93,"msg":"request"}
+   trace 490cb64e4608bc363c634666b7fcc79b: 5 spans, 2 queries, 101.7 ms (before: 1505 spans, 1502 queries, 2460.2 ms)
+   Acme dashboard, median of 10 requests: 1379 ms before, 35 ms after (web log duration_ms)
+   wrote out/trace-after.html (waterfall) and out/trace-after.json (the 5 spans as the collector stored them)
+
+## 6. An error, traced the same way
+   concept: RED counted 2 errors on the statement route; the error log line's trace id leads to the span that threw, with the exception recorded on it
+   {"level":50,"time":"2026-10-04T06:15:37.224Z","service":"web","trace_id":"c31b830a666a3ef72a31e31e7a28246c","span_id":"98984f8fdeaeaf07","trace_flags":"01","method":"GET","route":"/members/:id/statement","path":"/members/1658/statement","status":502,"duration_ms":4,"msg":"request failed"}
+   span api GET /api/members/:id/statement status ERROR, event exception: TypeError: Cannot read properties of undefined (reading 'period')
+   wrote out/trace-error.html (waterfall) and out/trace-error.json (the 4 spans as the collector stored them)
+
+   wrote out/red.json; 19226 spans stored by the collector in .collector/spans.jsonl
+
+== screenshots: the three waterfalls ==
+111119 screenshots/trace-error.png
+119376 screenshots/waterfall-after.png
+141829 screenshots/waterfall-before.png
+== proof: the slow trace as the collector stored it (first 6 of its spans, trimmed) ==
+[
+{"traceId":"233e0742f2f27ee92f9597fc52b6c51f","spanId":"274969d3a53fa73f","parentSpanId":null,"service":"web","name":"GET /employers/:code/dashboard","kind":"SERVER","startMs":1791094510982,"durationMs":2460.169921875,"status":"UNSET","attributes":{"http.reque
+{"traceId":"233e0742f2f27ee92f9597fc52b6c51f","spanId":"c14da97850fc7d86","parentSpanId":"274969d3a53fa73f","service":"web","name":"GET","kind":"CLIENT","startMs":1791094510989,"durationMs":2448.10009765625,"status":"UNSET","attributes":{"http.request.method":
+{"traceId":"233e0742f2f27ee92f9597fc52b6c51f","spanId":"9f0147b8d1cfe504","parentSpanId":"c14da97850fc7d86","service":"api","name":"GET /api/employers/:code/members","kind":"SERVER","startMs":1791094511002,"durationMs":2422.64892578125,"status":"UNSET","attrib
+{"traceId":"233e0742f2f27ee92f9597fc52b6c51f","spanId":"bc28b9e54ab16a4e","parentSpanId":"9f0147b8d1cfe504","service":"api","name":"pg.query:SELECT postgres","kind":"CLIENT","startMs":1791094511036,"durationMs":4.85400390625,"status":"UNSET","attributes":{"db.
+{"traceId":"233e0742f2f27ee92f9597fc52b6c51f","spanId":"b7108483b9576089","parentSpanId":"9f0147b8d1cfe504","service":"api","name":"pg.query:SELECT postgres","kind":"CLIENT","startMs":1791094511042,"durationMs":10.326904296875,"status":"UNSET","attributes":{"d
+{"traceId":"233e0742f2f27ee92f9597fc52b6c51f","spanId":"09a2520fe8fedeb0","parentSpanId":"9f0147b8d1cfe504","service":"api","name":"pg.query:SELECT postgres","kind":"CLIENT","startMs":1791094511052,"durationMs":3.205078125,"status":"UNSET","attributes":{"db.sy
+== proof: spans per trace file, per service and kind ==
+out/trace-before.json: 1502 x api CLIENT, 1 x api SERVER, 1 x web CLIENT, 1 x web SERVER
+out/trace-after.json: 2 x api CLIENT, 1 x api SERVER, 1 x web CLIENT, 1 x web SERVER
+out/trace-error.json: 1 x api CLIENT, 1 x api SERVER, 1 x web CLIENT, 1 x web SERVER
+== proof: one trace id in all three logs (web, api, postgres) ==
+trace 233e0742f2f27ee92f9597fc52b6c51f
+{"service":"web","level":40,"span_id":"274969d3a53fa73f","msg":"slow request","duration_ms":2458}
+{"service":"api","level":30,"span_id":"9f0147b8d1cfe504","msg":"employer report built"}
+{"service":"api","level":40,"span_id":"9f0147b8d1cfe504","msg":"slow request","duration_ms":2420}
+postgres: 1502 statements, first and last:
+2026-10-04 06:15:11.039 UTC [101] LOG:  duration: 0.013 ms  execute <unnamed>: SELECT id, name FROM employers WHERE code = $1 /*traceparent='00-233e0742f2f27ee92f9597fc52b6c51f-bc28b9e54ab16a4e-01'*/
+2026-10-04 06:15:13.422 UTC [101] LOG:  duration: 0.098 ms  execute <unnamed>: SELECT coalesce(sum(amount), 0) AS total, count(*)::int AS months, max(period)::text AS last_period FROM contributions WHERE member_id = $1 /*traceparent='00-233e0742f2f27ee92f9597fc52b6c51f-5b9f5d0adbb73c57-01'*/
+== proof: RED per route, before and after (out/red.json) ==
+before (web):
+  GET /employers/:code/dashboard  requests 30  errors 0  p50 50-100 ms  p95 1000-2000 ms  within 300 ms 19/30
+  GET /members/:id  requests 60  errors 0  p50 0-5 ms  p95 10-25 ms  within 300 ms 60/60
+  GET /members/:id/statement  requests 40  errors 2  p50 0-5 ms  p95 5-10 ms  within 300 ms 40/40
+after (web):
+  GET /employers/:code/dashboard  requests 30  errors 0  p50 10-25 ms  p95 50-100 ms  within 300 ms 30/30
+  GET /members/:id  requests 60  errors 0  p50 0-5 ms  p95 5-10 ms  within 300 ms 60/60
+  GET /members/:id/statement  requests 40  errors 2  p50 0-5 ms  p95 5-10 ms  within 300 ms 40/40
+== proof: what Postgres thinks of the two report queries ==
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Aggregate (actual rows=1 loops=1)
+   ->  Bitmap Heap Scan on contributions (actual rows=24 loops=1)
+         Recheck Cond: (member_id = 1)
+         Heap Blocks: exact=24
+         ->  Bitmap Index Scan on contributions_pkey (actual rows=24 loops=1)
+               Index Cond: (member_id = 1)
+ Planning Time: 0.642 ms
+ Execution Time: 0.365 ms
+(8 rows)
+
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort (actual rows=1500 loops=1)
+   Sort Key: m.id
+   Sort Method: quicksort  Memory: 131kB
+   ->  HashAggregate (actual rows=1500 loops=1)
+         Group Key: m.id
+         Batches: 1  Memory Usage: 833kB
+         ->  Hash Right Join (actual rows=36000 loops=1)
+               Hash Cond: (c.member_id = m.id)
+               ->  Seq Scan on contributions c (actual rows=39768 loops=1)
+               ->  Hash (actual rows=1500 loops=1)
+                     Buckets: 2048  Batches: 1  Memory Usage: 69kB
+                     ->  Seq Scan on members m (actual rows=1500 loops=1)
+                           Filter: (employer_id = 1)
+                           Rows Removed by Filter: 160
+ Planning Time: 0.710 ms
+ Execution Time: 14.568 ms
+(16 rows)
+

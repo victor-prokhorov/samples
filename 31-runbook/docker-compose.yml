@@ -5,8 +5,42 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "55461:5432"
+    # WAL archiving for the backup and restore drill (runbooks/backup-restore-drill.md): every finished WAL segment is copied
+    # to /drill/wal, and archive_timeout ships a partly filled one after 60 s, so a lost server loses at most a minute of writes.
+    command:
+      - bash
+      - -c
+      - |
+        mkdir -p /drill/wal && chown -R postgres /drill
+        exec docker-entrypoint.sh postgres -c archive_mode=on -c 'archive_command=test ! -f /drill/wal/%f && cp %p /drill/wal/%f' -c archive_timeout=60
+    volumes:
+      - drill:/drill
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 1s
       timeout: 3s
       retries: 30
+
+  # The fresh server the drill restores into: started by the drill only (profile drill), no port, removed at its end.
+  # On first start it copies the base backup into its empty data directory, adds the recovery settings the drill wrote
+  # (restore_command, recovery target), and starts in recovery: it replays archived WAL up to the target, then promotes.
+  restore:
+    image: postgres:16
+    profiles: [drill]
+    environment:
+      POSTGRES_PASSWORD: postgres
+    command:
+      - bash
+      - -c
+      - |
+        if [ ! -s "$$PGDATA/PG_VERSION" ]; then
+          cp -a /drill/base/. "$$PGDATA/"
+          cat /drill/recovery.conf >> "$$PGDATA/postgresql.auto.conf"
+          touch "$$PGDATA/recovery.signal"
+        fi
+        exec docker-entrypoint.sh postgres
+    volumes:
+      - drill:/drill
+
+volumes:
+  drill:

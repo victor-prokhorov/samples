@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1200" height="620" viewBox="0 0 1200 620" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">08. Orchestrated saga: local transactions + compensations</text>
+<rect x="40" y="100" width="420" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="250.0" y="136.0" font-size="16" text-anchor="middle">Orchestrator</text><text x="250.0" y="156.0" font-size="16" text-anchor="middle">step table, forward loop, compensation loop</text>
+<rect x="540" y="100" width="300" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="690.0" y="136.0" font-size="16" text-anchor="middle">Saga log (own database)</text><text x="690.0" y="156.0" font-size="16" text-anchor="middle">state + step after every step</text>
+<rect x="920" y="100" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1040.0" y="126.0" font-size="16" text-anchor="middle">Waker</text><text x="1040.0" y="146.0" font-size="16" text-anchor="middle">polls every 5s, claims</text><text x="1040.0" y="166.0" font-size="16" text-anchor="middle">due sagas, resumes</text>
+<polyline points="460,140 540,140" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)" marker-start="url(#head-start)"/>
+<rect x="40" y="220" width="1120" height="160" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="246.0" font-size="18" text-anchor="start" font-weight="bold">Steps: each a local transaction in its service's database, idempotent by saga id</text>
+<rect x="60" y="270" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="180.0" y="306.0" font-size="16" text-anchor="middle">1 Reserve stock</text><text x="180.0" y="326.0" font-size="16" text-anchor="middle">inventory DB</text>
+<rect x="340" y="270" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="460.0" y="306.0" font-size="16" text-anchor="middle">2 Charge</text><text x="460.0" y="326.0" font-size="16" text-anchor="middle">payments DB</text>
+<rect x="620" y="270" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="740.0" y="306.0" font-size="16" text-anchor="middle">3 fraudHold timer</text><text x="740.0" y="326.0" font-size="16" text-anchor="middle">state = waiting, wake_at</text>
+<rect x="900" y="270" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1020.0" y="306.0" font-size="16" text-anchor="middle">4 Ship: the pivot</text><text x="1020.0" y="326.0" font-size="16" text-anchor="middle">shipping DB</text>
+<polyline points="250,180 250,220" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="969.4,180 810.6,270" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="300,310 340,310" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="580,310 620,310" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="860,310 900,310" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="340" y="440" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="460.0" y="471.0" font-size="16" text-anchor="middle">Refund</text><text x="460.0" y="491.0" font-size="16" text-anchor="middle">(undoes 2)</text>
+<rect x="60" y="440" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="180.0" y="471.0" font-size="16" text-anchor="middle">Release stock</text><text x="180.0" y="491.0" font-size="16" text-anchor="middle">(undoes 1)</text>
+<polyline points="1020,350 1020,475 800,475 580,475" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="857.0" y="464.3" width="106.0" height="21.5" fill="#ffffff"/>
+<text x="910.0" y="480.3" font-size="14" text-anchor="middle">shipping fails</text>
+<polyline points="340,475 300,475" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<text x="40.0" y="556.0" font-size="16" text-anchor="start">No transaction spans the four databases. A failure runs the compensations in reverse order (a refund is a new fact).</text><text x="40.0" y="576.0" font-size="16" text-anchor="start">A crash resumes from the saga log; the fraud hold is a row with wake_at, not a sleeping process.</text></svg>

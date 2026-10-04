@@ -1,0 +1,20 @@
+{
+  "$description": "Which foreground token is drawn on which background token, and as what. The contrast check computes the WCAG ratio of every pair in every theme. Every color.text.* and color.border.* token must appear here or under decorative, so a new token cannot skip the check.",
+  "pairs": [
+    { "fg": "color.text.default", "usage": "text", "on": ["color.bg.canvas", "color.bg.surface", "color.bg.subtle", "color.bg.info-subtle", "color.bg.success-subtle", "color.bg.warning-subtle", "color.bg.danger-subtle"] },
+    { "fg": "color.text.muted", "usage": "text", "on": ["color.bg.canvas", "color.bg.surface", "color.bg.subtle"] },
+    { "fg": "color.text.on-accent", "usage": "text", "on": ["color.bg.accent", "color.bg.accent-hover", "color.bg.danger", "color.bg.danger-hover"] },
+    { "fg": "color.text.link", "usage": "text", "on": ["color.bg.canvas", "color.bg.surface", "color.bg.info-subtle", "color.bg.success-subtle", "color.bg.warning-subtle", "color.bg.danger-subtle"] },
+    { "fg": "color.text.info", "usage": "text", "on": ["color.bg.info-subtle"] },
+    { "fg": "color.text.success", "usage": "text", "on": ["color.bg.success-subtle"] },
+    { "fg": "color.text.warning", "usage": "text", "on": ["color.bg.warning-subtle"] },
+    { "fg": "color.text.danger", "usage": "text", "on": ["color.bg.danger-subtle", "color.bg.surface", "color.bg.canvas"] },
+    { "fg": "color.border.input", "usage": "ui", "on": ["color.bg.surface", "color.bg.canvas", "color.bg.subtle"] },
+    { "fg": "color.border.focus", "usage": "ui", "on": ["color.bg.canvas", "color.bg.surface", "color.bg.subtle"] },
+    { "fg": "color.border.danger", "usage": "ui", "on": ["color.bg.surface", "color.bg.danger-subtle"] },
+    { "fg": "color.border.info", "usage": "ui", "on": ["color.bg.info-subtle"] },
+    { "fg": "color.border.success", "usage": "ui", "on": ["color.bg.success-subtle"] },
+    { "fg": "color.border.warning", "usage": "ui", "on": ["color.bg.warning-subtle"] }
+  ],
+  "decorative": ["color.border.default"]
+}

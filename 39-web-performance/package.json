@@ -1,0 +1,32 @@
+{
+  "name": "39-web-performance",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsx src/build.ts",
+    "server": "tsx src/server.ts",
+    "collector": "tsx src/collector.ts",
+    "lighthouse": "tsx src/lighthouse.ts",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "moment": "^2.30.1",
+    "web-vitals": "^5.1.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.0",
+    "@types/node": "^22.0.0",
+    "chrome-launcher": "^1.2.0",
+    "esbuild": "^0.25.0",
+    "lighthouse": "^13.0.0",
+    "playwright-core": "1.56.1",
+    "sharp": "^0.34.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

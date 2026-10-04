@@ -1,6 +1,6 @@
 # CI/CD for the statement app. Needs a runner with Node 22 (shell executor), or add `image: node:22` under default;
 # deploy needs a shell runner on the production host, tagged production.
-# Locally: npx gitlab-ci-local --shell-isolation (see ../run-30-pipeline.sh).
+# Locally: npx gitlab-ci-local --shell-isolation (see ./run.sh).
 # Scheduled releases: create a pipeline schedule in GitLab (Build > Pipeline schedules), e.g. cron "0 6 * * 2" (Tuesdays 06:00);
 # only that schedule, or a tag like v1.4.0, reaches the deploy stage.
 
@@ -42,12 +42,17 @@ typecheck:
 unit:
   stage: test
   script:
-    - npx vitest run --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+    # the coverage gate: the thresholds in vitest.config.ts (lines, statements, functions 90%, branches 85%) fail this job below them
+    - npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+  coverage: '/^Lines\s*:\s*([\d.]+)%/'
   artifacts:
     when: always
     reports:
       junit: reports/junit.xml
-    paths: [reports/junit.xml]
+      coverage_report:
+        coverage_format: cobertura
+        path: reports/coverage/cobertura-coverage.xml
+    paths: [reports/junit.xml, reports/coverage/]
 
 a11y:
   stage: test

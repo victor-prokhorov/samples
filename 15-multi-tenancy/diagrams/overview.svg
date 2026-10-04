@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1250" height="570" viewBox="0 0 1250 570" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">15. Multi-tenancy: pool, bridge, silo on one Postgres</text>
+<rect x="40" y="90" width="370" height="380" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Pool: shared tables</text>
+<rect x="60" y="140" width="330" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="225.0" y="166.0" font-size="16" text-anchor="middle">tenant_id on every row + RLS</text><text x="225.0" y="186.0" font-size="16" text-anchor="middle">set_config('app.tenant_id',</text><text x="225.0" y="206.0" font-size="16" text-anchor="middle">$1, true) per transaction</text>
+<rect x="60" y="250" width="330" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="225.0" y="276.0" font-size="16" text-anchor="middle">failed: a forgotten WHERE returned</text><text x="225.0" y="296.0" font-size="16" text-anchor="middle">all 3 tenants; the owner bypasses</text><text x="225.0" y="316.0" font-size="16" text-anchor="middle">RLS; a session SET leaked acme</text>
+<rect x="60" y="360" width="330" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="225.0" y="386.0" font-size="16" text-anchor="middle">fixed: FORCE RLS, app role not</text><text x="225.0" y="406.0" font-size="16" text-anchor="middle">owner, LOCAL setting, tenant_id</text><text x="225.0" y="426.0" font-size="16" text-anchor="middle">leads indexes, UNIQUE and FKs</text>
+<polyline points="225,220 225,250" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="225,330 225,360" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="440" y="90" width="370" height="380" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="450.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Bridge: schema per tenant</text>
+<rect x="460" y="140" width="330" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="625.0" y="176.0" font-size="16" text-anchor="middle">search_path + one role</text><text x="625.0" y="196.0" font-size="16" text-anchor="middle">per tenant, both LOCAL</text>
+<rect x="460" y="250" width="330" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="625.0" y="276.0" font-size="16" text-anchor="middle">failed: search_path is no boundary;</text><text x="625.0" y="296.0" font-size="16" text-anchor="middle">migration loop half done;</text><text x="625.0" y="316.0" font-size="16" text-anchor="middle">1003 schemas: catalogs 7.6 -&gt; 25 MB</text>
+<rect x="460" y="360" width="330" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="625.0" y="386.0" font-size="16" text-anchor="middle">fixed: privileges per role,</text><text x="625.0" y="406.0" font-size="16" text-anchor="middle">resumable migration loop</text><text x="625.0" y="426.0" font-size="16" text-anchor="middle">(one tx per schema)</text>
+<polyline points="625,220 625,250" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="625,330 625,360" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="840" y="90" width="370" height="380" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="850.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Silo: database per tenant</text>
+<rect x="860" y="140" width="330" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1025.0" y="176.0" font-size="16" text-anchor="middle">router reads the tenants</text><text x="1025.0" y="196.0" font-size="16" text-anchor="middle">directory on every call</text>
+<rect x="860" y="250" width="330" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="1025.0" y="276.0" font-size="16" text-anchor="middle">costs: about 7.6 MB of catalogs</text><text x="1025.0" y="296.0" font-size="16" text-anchor="middle">each; connections per database,</text><text x="1025.0" y="316.0" font-size="16" text-anchor="middle">~20 busy silos fill 100</text>
+<rect x="860" y="360" width="330" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1025.0" y="386.0" font-size="16" text-anchor="middle">wins: restore one tenant alone,</text><text x="1025.0" y="406.0" font-size="16" text-anchor="middle">DROP DATABASE to delete;</text><text x="1025.0" y="426.0" font-size="16" text-anchor="middle">bigco moved out of the pool</text>
+<polyline points="1025,220 1025,250" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1025,330 1025,360" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="506.0" font-size="16" text-anchor="start">The app connects as a role that is not the owner, not superuser and has no BYPASSRLS: RLS filters nothing for those.</text><text x="40.0" y="526.0" font-size="16" text-anchor="start">Isolation and cost grow left to right: pool for many small tenants, silo for the few that need their own restore or region.</text></svg>

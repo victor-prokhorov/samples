@@ -2,11 +2,15 @@
   "name": "12-choreographed-saga",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "tsx src/setup.ts",
     "demo": "tsx src/demo.ts",
     "resume": "tsx src/resume.ts",
     "timeline": "tsx src/timeline.ts",
+    "verify": "tsx src/verify.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

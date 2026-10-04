@@ -1,0 +1,173 @@
+# 41-crm-integration run 2026-10-03T15:00:23Z
+== fresh Postgres for the domain app's local copy (docker compose down -v && up) ==
+ Container 41-crm-integration-postgres-1 Healthy 
+setup: employers, members (domain); source_links, quarantine, sync_marks, sync_runs, webhook_inbox, webhook_refusals, reconciliation_runs (integration); naive_members
+== demo: a fake CRM (OData API, faults, signed webhooks) on :53151, the domain app on :53051 ==
+   [crm] OData API on http://localhost:53151/api/data/v9.2, 120 contacts, 3 accounts, webhooks to http://localhost:53051/webhooks/crm
+
+## 1. The leaky version
+   concept: CRM shapes straight into the app: one GET, no paging, no retry, option-set codes and GUIDs in the app's code, no validation
+   naive import: 50 rows stored, @odata.nextLink present and ignored: true, 18 CRM fields per row (no $select: phone and notes too)
+   stored as is: 1 email without @, 1 member without a number
+   check ok: the naive import took the first page only (50 of 120 contacts) and stored invalid rows
+
+## 2. Full sync through the anti-corruption layer
+   concept: the client pages with @odata.nextLink and retries 429/503, honouring Retry-After; the translator maps CRM fields and option-set codes to domain types; the domain's invariants reject what is wrong; rejects go to quarantine
+   employers: 3 applied
+   [retry] 429 on GET Contacts (next page), Retry-After: 1 -> wait 1000 ms, attempt 2
+   members: fetched 120 in 3 pages, applied 116, rejected 4; mark null -> 2026-09-04T10:10:00Z
+   quarantined M0017 c0000000-0000-4000-8000-000000000011: email 'jamie.dupont.at.example.org' is not an address
+   quarantined (no number) c0000000-0000-4000-8000-000000000021: New_MemberNo is empty
+   quarantined M0058 c0000000-0000-4000-8000-00000000003a: New_SchemeStatus 100000003 is not a known scheme status
+   quarantined M0091 c0000000-0000-4000-8000-00000000005b: birth date '2031-02-01' is not a past date
+   check ok: a 429 was retried after waiting at least its Retry-After (1 s)
+   check ok: 120 contacts fetched over 3 pages: 116 members applied, 4 quarantined
+   check ok: the unknown option-set code 100000003 is quarantined, not mapped to a guess
+   check ok: $select kept unread CRM fields out: no notes or phone in what crossed the boundary
+   check ok: members in Postgres: 116, and every one passes the domain's constraints
+
+## 3. Incremental sync with a high-water mark
+   concept: ask only for ModifiedOn ge <mark>, in ModifiedOn order, move the mark after the run; ge, not gt, because the mark has second precision
+   CRM users edited M0003, M0004, M0005 (webhooks off for this step: the scheduled sync alone)
+   GET Contacts?$filter=ModifiedOn ge 2026-09-04T10:10:00Z&$orderby=ModifiedOn asc,ContactId asc
+   fetched 4, applied 3, unchanged 1 (the row at the mark itself comes back; its version makes it a no-op); mark -> 2026-10-03T15:00:48Z
+   check ok: the incremental sync applied exactly the 3 edits
+   check ok: M0004's option-set code 100000002 arrived as the domain status 'retired'
+   [retry] 503 on GET Contacts, Retry-After: none -> wait 15 ms, attempt 2
+   M0006 and M0007 were edited in the same second 2026-10-03T15:00:48Z, with a sync in between
+   ModifiedOn gt 2026-10-03T15:00:48Z: 0 rows (M0007 would be lost for good); ModifiedOn ge 2026-10-03T15:00:48Z: 5 rows
+   next sync (ge): fetched 5, applied 1, unchanged 4
+   check ok: gt would miss the second write of the same second; ge picks it up and the repeat is a no-op
+
+## 4. Webhooks: signed, fresh, once
+   concept: HMAC-SHA256 over '<timestamp>.<body>', constant-time compare, a 300 s window, the event id from the signed body as idempotency key; the event is a hint: the app re-reads the record
+   CRM delivered event 56a30a84: x-crm-timestamp 1791039648, x-crm-signature v1=4044130dc5dd0d5ef...
+   app answered 200 {"status":"processed","outcome":"applied"}
+   check ok: a genuine delivery is verified and applied
+   duplicate delivery (the CRM retried, new timestamp, same event): 200 {"status":"duplicate","deliveries":2,"outcome":"applied"}; inbox: deliveries=2, outcome=applied
+   check ok: a duplicate delivery is acknowledged and not processed again
+   forged: body changed, original signature -> 401 {"error":"signature does not match"}
+   forged: signed with a guessed secret -> 401 {"error":"signature does not match"}
+   check ok: forged deliveries are refused with 401
+   replay of the captured delivery 6 minutes later (exact bytes, valid signature) -> 401 {"error":"timestamp outside the 300s window (age 361s)"}
+   the same replay inside the window -> 200 {"status":"duplicate","deliveries":3,"outcome":"applied"}
+   check ok: an old delivery is refused by the window; inside the window the event id catches it
+   check ok: 3 refusals logged, and the forged event changed nothing
+
+## 5. Writing back with ETags
+   concept: PATCH with If-Match on the version last seen; 412 means someone changed the record since: re-read, re-apply if they did not touch our field, otherwise report a conflict
+   [retry] 429 on PATCH Contacts(c0000000-0000-4000-8000-000000000014), Retry-After: 1 -> wait 1000 ms, attempt 2
+   PATCH without If-Match -> 428
+   [retry] 503 on PATCH Contacts(c0000000-0000-4000-8000-000000000014), Retry-After: none -> wait 190 ms, attempt 2
+   M0020: a CRM user changed the phone; the member changes the email -> 200 {"outcome":"updated","version":1131,"attempts":2,"conflicts":1}; CRM now has robin.new@example.org
+   check ok: a stale If-Match got 412, the adapter re-read and applied on the new ETag
+   [retry] 429 on GET Contacts(c0000000-0000-4000-8000-000000000015), Retry-After: 1 -> wait 1000 ms, attempt 2
+   M0021: a CRM user changed the email too -> 409 {"outcome":"conflict","theirs":"set.by.crm@example.org","attempts":1}; CRM keeps set.by.crm@example.org
+   check ok: a real conflict is reported (409), not overwritten
+
+## 6. Nightly reconciliation
+   concept: sync sees only what ModifiedOn shows; once a night, compare counts and checksums of the canonical records on both sides, by employer and then by member, and report the drift
+   drift made: M0030 hard-deleted in the CRM (no webhook), M0040 renamed by a CRM import that kept an old ModifiedOn, M0050's email edited by hand in the local database
+   the nightly sync first: fetched 8, applied 1 (M0021's CRM-side email), none of the three
+   [retry] 503 on GET Contacts, Retry-After: none -> wait 155 ms, attempt 2
+   counts: CRM 119 active = 115 valid + 4 quarantined; local 116
+   checksums: CRM 50ad4cd999d1 local 209cd2c268b5
+   ACME     CRM 56 local 57  DIFFER
+   GLOBEX   CRM 39 local 39  match
+   INITECH  CRM 20 local 20  match
+   extra locally:   M0030
+   differs:         M0040 givenName CRM='Dominique-Anne' local='Lou'
+   differs:         M0050 email CRM='claude.durand.50@example.org' local='fixed.by.hand@example.org'
+   check ok: reconciliation found exactly the 3 drifts that sync cannot see
+   check ok: the counts reconcile: CRM active = local + quarantined + 0 missing - 1 extra
+   [retry] 429 on GET Contacts(c0000000-0000-4000-8000-000000000032), Retry-After: 1 -> wait 1000 ms, attempt 2
+   [retry] 503 on GET Contacts (next page), Retry-After: none -> wait 178 ms, attempt 2
+   repaired 3 (the CRM wins); rerun: drift 0, checksums equal
+   check ok: after repair the checksums are equal and the drift is zero
+
+## 7. The domain never sees CRM shapes
+   concept: a dependency rule, checked: src/domain and src/app import nothing from src/acl or src/crm, and no CRM field name appears in them
+   scanned src/domain and src/app: no ACL import, no CRM vocabulary
+   for contrast, src/naive.ts mentions: New_SchemeStatus, _ParentCustomerId_Value, ContactId, New_MemberNo, EMailAddress1, odata
+   check ok: the dependency rule holds
+
+   client: 39 requests, 8 retries, 4538 ms waited; CRM served 4 x 429 and 4 x 503 over 40 data requests (one of them the naive import's)
+   check ok: every 429 and 503 the CRM served was retried, none reached the domain
+
+all checks passed
+
+== proof: the domain tables hold domain values only (status words, employer refs, no GUIDs, no option-set codes) ==
+ employer_ref |  status  | members 
+--------------+----------+---------
+ ACME         | active   |      39
+ ACME         | deferred |      10
+ ACME         | retired  |       7
+ GLOBEX       | active   |      27
+ GLOBEX       | deferred |       7
+ GLOBEX       | retired  |       5
+ INITECH      | active   |      14
+ INITECH      | deferred |       4
+ INITECH      | retired  |       2
+(9 rows)
+
+ member_no |   given_name   | family_name |              email              | birth_date |  status  | employer_ref 
+-----------+----------------+-------------+---------------------------------+------------+----------+--------------
+ M0004     | Maxime         | Laurent     | maxime.laurent.4@example.org    | 1972-09-13 | retired  | ACME
+ M0007     | Sam            | Perrin      | sam.simon.7@example.org         | 1971-12-22 | active   | ACME
+ M0010     | Dominique      | Marchand    | dominique.moreau.10@example.org | 1970-03-03 | deferred | ACME
+ M0020     | Maxime         | Roux        | robin.new@example.org           | 1980-05-05 | deferred | ACME
+ M0021     | Camille        | Laurent     | set.by.crm@example.org          | 1993-10-08 | active   | ACME
+ M0040     | Dominique-Anne | Bertrand    | lou.bertrand.40@example.org     | 1960-09-09 | deferred | ACME
+ M0050     | Claude         | Durand      | claude.durand.50@example.org    | 1970-11-11 | deferred | ACME
+(7 rows)
+
+== proof: quarantine, the CRM records the translator or the domain refused ==
+ member_no |              source_id               | version |                           reasons                           
+-----------+--------------------------------------+---------+-------------------------------------------------------------
+ M0017     | c0000000-0000-4000-8000-000000000011 |    1020 | {"email 'jamie.dupont.at.example.org' is not an address"}
+           | c0000000-0000-4000-8000-000000000021 |    1036 | {"New_MemberNo is empty"}
+ M0058     | c0000000-0000-4000-8000-00000000003a |    1061 | {"New_SchemeStatus 100000003 is not a known scheme status"}
+ M0091     | c0000000-0000-4000-8000-00000000005b |    1094 | {"birth date '2031-02-01' is not a past date"}
+(4 rows)
+
+== proof: sync_runs, the high-water mark moving forward ==
+ id |      mark_before       |       mark_after       | fetched | applied | unchanged | removed | rejected 
+----+------------------------+------------------------+---------+---------+-----------+---------+----------
+  1 |                        | 2026-09-04 10:10:00+00 |     120 |     116 |         0 |       0 |        4
+  2 | 2026-09-04 10:10:00+00 | 2026-10-03 15:00:48+00 |       4 |       3 |         1 |       0 |        0
+  3 | 2026-10-03 15:00:48+00 | 2026-10-03 15:00:48+00 |       4 |       1 |         3 |       0 |        0
+  4 | 2026-10-03 15:00:48+00 | 2026-10-03 15:00:48+00 |       5 |       1 |         4 |       0 |        0
+  5 | 2026-10-03 15:00:48+00 | 2026-10-03 15:00:50+00 |       8 |       1 |         7 |       0 |        0
+(5 rows)
+
+== proof: webhook_inbox (one row per event id, deliveries counted) and webhook_refusals ==
+  event   |              source_id               | deliveries | outcome 
+----------+--------------------------------------+------------+---------
+ 56a30a84 | c0000000-0000-4000-8000-00000000000a |          3 | applied
+ 741f0052 | c0000000-0000-4000-8000-000000000014 |          1 | applied
+(2 rows)
+
+ id |                    reason                    
+----+----------------------------------------------
+  1 | signature does not match
+  2 | signature does not match
+  3 | timestamp outside the 300s window (age 361s)
+(3 rows)
+
+== proof: reconciliation_runs ==
+ id | source_active | source_valid | quarantined | local_count |   crm_sum    |  local_sum   | missing_locally | extra_locally | differing 
+----+---------------+--------------+-------------+-------------+--------------+--------------+-----------------+---------------+-----------
+  1 |           119 |          115 |           4 |         116 | 50ad4cd999d1 | 209cd2c268b5 |               0 |             1 |         2
+  2 |           119 |          115 |           4 |         115 | 50ad4cd999d1 | 50ad4cd999d1 |               0 |             0 |         0
+(2 rows)
+
+== proof: the naive table, CRM values copied as they came ==
+ rows | email_without_at | no_member_no 
+------+------------------+--------------
+   50 |                1 |            1
+(1 row)
+
+== screenshot: out/reconciliation.html ==
+2068 out/reconciliation.html
+2748 out/reconciliation.json
+91377 screenshots/reconciliation-drift.png

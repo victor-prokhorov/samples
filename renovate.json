@@ -1,0 +1,31 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "timezone": "Europe/Paris",
+  "packageRules": [
+    {
+      "description": "One weekly pull request for the dev tooling of every sample",
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "dev dependencies",
+      "schedule": ["* 0-5 * * 1"]
+    },
+    {
+      "description": "Playwright packages move together, and with the browsers installed for them",
+      "matchPackageNames": ["playwright", "playwright-core", "@playwright/test", "@axe-core/playwright"],
+      "groupName": "playwright",
+      "schedule": ["* 0-5 * * 1"]
+    },
+    {
+      "description": "The samples run on Node 22: keep @types/node on the same major",
+      "matchPackageNames": ["@types/node"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Service images in docker-compose files change major only by hand, after a rerun of the sample",
+      "matchManagers": ["docker-compose"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    }
+  ]
+}

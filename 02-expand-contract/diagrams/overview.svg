@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1080" height="550" viewBox="0 0 1080 550" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">02. Expand / contract: rename users.name to display_name</text>
+<rect x="40" y="90" width="1000" height="130" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Before: one step</text>
+<rect x="60" y="140" width="400" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="260.0" y="176.0" font-size="16" text-anchor="middle">RENAME name TO display_name</text>
+<rect x="580" y="140" width="440" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="800.0" y="166.0" font-size="16" text-anchor="middle">v1 still running: FAILS,</text><text x="800.0" y="186.0" font-size="16" text-anchor="middle">column "name" does not exist</text>
+<polyline points="460,170 580,170" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="484.5" y="159.3" width="71.0" height="21.5" fill="#ffffff"/>
+<text x="520.0" y="175.3" font-size="14" text-anchor="middle">instantly</text>
+<rect x="40" y="250" width="1000" height="200" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="276.0" font-size="18" text-anchor="start" font-weight="bold">After: five phases, each safe for the two versions running</text>
+<rect x="60" y="300" width="172" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="146.0" y="331.0" font-size="16" text-anchor="middle">1 Expand</text><text x="146.0" y="351.0" font-size="16" text-anchor="middle">add display_name,</text><text x="146.0" y="371.0" font-size="16" text-anchor="middle">name nullable</text><text x="146.0" y="391.0" font-size="16" text-anchor="middle"></text><text x="146.0" y="411.0" font-size="16" text-anchor="middle">v1 + v2</text>
+<rect x="257" y="300" width="172" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="343.0" y="331.0" font-size="16" text-anchor="middle">2 Migrate</text><text x="343.0" y="351.0" font-size="16" text-anchor="middle">backfill</text><text x="343.0" y="371.0" font-size="16" text-anchor="middle">display_name</text><text x="343.0" y="391.0" font-size="16" text-anchor="middle"></text><text x="343.0" y="411.0" font-size="16" text-anchor="middle">v2</text>
+<rect x="454" y="300" width="172" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="540.0" y="331.0" font-size="16" text-anchor="middle">3 Switch reads</text><text x="540.0" y="351.0" font-size="16" text-anchor="middle">read</text><text x="540.0" y="371.0" font-size="16" text-anchor="middle">display_name</text><text x="540.0" y="391.0" font-size="16" text-anchor="middle"></text><text x="540.0" y="411.0" font-size="16" text-anchor="middle">v2 + v3</text>
+<rect x="651" y="300" width="172" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="737.0" y="331.0" font-size="16" text-anchor="middle">4 Stop old writes</text><text x="737.0" y="351.0" font-size="16" text-anchor="middle">display_name</text><text x="737.0" y="371.0" font-size="16" text-anchor="middle">NOT NULL</text><text x="737.0" y="391.0" font-size="16" text-anchor="middle"></text><text x="737.0" y="411.0" font-size="16" text-anchor="middle">v3 + v4</text>
+<rect x="848" y="300" width="172" height="130" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="934.0" y="331.0" font-size="16" text-anchor="middle">5 Contract</text><text x="934.0" y="351.0" font-size="16" text-anchor="middle">drop name</text><text x="934.0" y="371.0" font-size="16" text-anchor="middle"></text><text x="934.0" y="391.0" font-size="16" text-anchor="middle"></text><text x="934.0" y="411.0" font-size="16" text-anchor="middle">v4</text>
+<polyline points="232,365 257,365" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="429,365 454,365" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="626,365 651,365" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="823,365 848,365" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="486.0" font-size="16" text-anchor="start">v2 writes both columns, v3 reads the new one only after the backfill, v4 stops writing the old one.</text><text x="40.0" y="506.0" font-size="16" text-anchor="start">Out of order breaks a live version: reads before the backfill show blank names, an early contract breaks v3.</text></svg>

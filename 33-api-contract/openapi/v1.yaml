@@ -1,0 +1,241 @@
+openapi: 3.1.0
+info:
+  title: Member Portal API
+  version: 1.0.0
+  summary: Members, their contributions and their change requests, for employers and the portal.
+  description: |
+    Revision 1 of the contract, as released. Every response body is closed
+    (`unevaluatedProperties: false`): a field that is not written here is a defect, not a bonus.
+  license:
+    name: MIT
+    identifier: MIT
+servers:
+  - url: http://localhost:53043
+    description: local provider (npm run server)
+security:
+  - bearerAuth: []
+tags:
+  - name: members
+    description: Members of an employer's scheme.
+  - name: contributions
+    description: Monthly contributions paid for a member.
+  - name: change-requests
+    description: Requests from a member to change their details.
+paths:
+  /employers/{employerId}/members:
+    get:
+      operationId: listEmployerMembers
+      summary: List the members of one employer
+      tags: [members]
+      parameters:
+        - $ref: '#/components/parameters/employerId'
+        - name: status
+          in: query
+          required: false
+          description: Only members with this status.
+          schema: { $ref: '#/components/schemas/MemberStatus' }
+      responses:
+        '200':
+          description: The employer's members, ordered by id.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Member' }
+                unevaluatedProperties: false
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /members/{memberId}:
+    get:
+      operationId: getMember
+      summary: Get one member
+      tags: [members]
+      parameters:
+        - $ref: '#/components/parameters/memberId'
+      responses:
+        '200':
+          description: The member.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Member' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /members/{memberId}/contributions:
+    get:
+      operationId: listMemberContributions
+      summary: List a member's contributions
+      tags: [contributions]
+      parameters:
+        - $ref: '#/components/parameters/memberId'
+      responses:
+        '200':
+          description: Every contribution of the member, newest first.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items: { $ref: '#/components/schemas/Contribution' }
+                unevaluatedProperties: false
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /members/{memberId}/change-requests:
+    post:
+      operationId: createChangeRequest
+      summary: Ask for a change of email or address
+      tags: [change-requests]
+      parameters:
+        - $ref: '#/components/parameters/memberId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NewChangeRequest' }
+      responses:
+        '201':
+          description: The request is recorded and pending.
+          headers:
+            Location:
+              required: true
+              description: Where to read the request.
+              schema: { type: string }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChangeRequest' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: The member already has a pending request of this kind.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+  /change-requests/{changeRequestId}:
+    get:
+      operationId: getChangeRequest
+      summary: Get one change request
+      tags: [change-requests]
+      parameters:
+        - name: changeRequestId
+          in: path
+          required: true
+          schema: { type: string, pattern: '^CR[0-9]{4}$' }
+      responses:
+        '200':
+          description: The change request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ChangeRequest' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: A token issued to each consumer (an employer system, the portal).
+  parameters:
+    employerId:
+      name: employerId
+      in: path
+      required: true
+      schema: { type: string, enum: [acme, globex, initech] }
+    memberId:
+      name: memberId
+      in: path
+      required: true
+      schema: { type: string, pattern: '^M[0-9]{4}$' }
+  responses:
+    Unauthorized:
+      description: No bearer token, or one this API does not know.
+      headers:
+        WWW-Authenticate:
+          required: true
+          schema: { type: string }
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    BadRequest:
+      description: The request does not match this contract; `errors` says where.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: No such resource.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+  schemas:
+    MemberStatus:
+      type: string
+      enum: [active, deferred, retired]
+    Member:
+      type: object
+      required: [id, employerId, firstName, lastName, email, status, joinedOn]
+      properties:
+        id: { type: string, pattern: '^M[0-9]{4}$', examples: [M0001] }
+        employerId: { type: string, examples: [acme] }
+        firstName: { type: string, examples: [Alice] }
+        lastName: { type: string, examples: [Martin] }
+        email: { type: string, format: email }
+        status: { $ref: '#/components/schemas/MemberStatus' }
+        joinedOn: { type: string, format: date }
+      unevaluatedProperties: false
+    Contribution:
+      type: object
+      required: [period, memberAmount, employerAmount]
+      properties:
+        period: { type: string, pattern: '^[0-9]{4}-(0[1-9]|1[0-2])$', examples: ['2026-09'] }
+        memberAmount: { type: number, minimum: 0, description: 'Paid by the member, in euros.' }
+        employerAmount: { type: number, minimum: 0, description: 'Paid by the employer, in euros.' }
+      unevaluatedProperties: false
+    NewChangeRequest:
+      type: object
+      required: [kind, value, effectiveDate]
+      properties:
+        kind: { type: string, enum: [email, address] }
+        value: { type: string, minLength: 1, maxLength: 200 }
+        effectiveDate: { type: string, format: date }
+      additionalProperties: false
+    ChangeRequest:
+      type: object
+      required: [id, memberId, kind, value, effectiveDate, status, submittedAt]
+      properties:
+        id: { type: string, pattern: '^CR[0-9]{4}$' }
+        memberId: { type: string, pattern: '^M[0-9]{4}$' }
+        kind: { type: string, enum: [email, address] }
+        value: { type: string }
+        effectiveDate: { type: string, format: date }
+        status: { type: string, enum: [pending, approved, rejected] }
+        submittedAt: { type: string, format: date-time }
+      unevaluatedProperties: false
+    Problem:
+      description: RFC 9457 problem details.
+      type: object
+      required: [type, title, status]
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        errors:
+          type: array
+          items:
+            type: object
+            required: [where, message]
+            properties:
+              where: { type: string }
+              message: { type: string }
+            unevaluatedProperties: false
+      unevaluatedProperties: false

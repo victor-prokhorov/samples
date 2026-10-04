@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1080" height="710" viewBox="0 0 1080 710" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">16. Isolation: which tool for which rule</text>
+<rect x="40" y="100" width="1000" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="540.0" y="131.0" font-size="16" text-anchor="middle">Write skew: count the tickets, then insert one. Every buyer sees 9 or fewer and inserts a different row:</text><text x="540.0" y="151.0" font-size="16" text-anchor="middle">20 of 20 buyers told "sold" for 10 tickets under READ COMMITTED and under REPEATABLE READ</text>
+<text x="40.0" y="216.0" font-size="16" text-anchor="start" font-weight="bold">If the rule is on...</text>
+<text x="560.0" y="216.0" font-size="16" text-anchor="start" font-weight="bold">use</text>
+<rect x="40" y="240" width="400" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="240.0" y="281.0" font-size="16" text-anchor="middle">One row: a stock counter</text>
+<rect x="560" y="240" width="480" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="800.0" y="271.0" font-size="16" text-anchor="middle">conditional UPDATE ... WHERE stock &gt; 0,</text><text x="800.0" y="291.0" font-size="16" text-anchor="middle">or FOR UPDATE, or REPEATABLE READ + retry</text>
+<polyline points="440,275 560,275" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="40" y="335" width="400" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="240.0" y="376.0" font-size="16" text-anchor="middle">Uniqueness: seat A1 of one event</text>
+<rect x="560" y="335" width="480" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="800.0" y="376.0" font-size="16" text-anchor="middle">a constraint: UNIQUE (event_id, seat)</text>
+<polyline points="440,370 560,370" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="40" y="430" width="400" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="240.0" y="461.0" font-size="16" text-anchor="middle">Many rows, one natural parent:</text><text x="240.0" y="481.0" font-size="16" text-anchor="middle">count(tickets) &lt; capacity</text>
+<rect x="560" y="430" width="480" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="800.0" y="461.0" font-size="16" text-anchor="middle">lock the parent row first</text><text x="800.0" y="481.0" font-size="16" text-anchor="middle">(events ... FOR UPDATE), READ COMMITTED</text>
+<polyline points="440,465 560,465" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="40" y="525" width="400" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="240.0" y="556.0" font-size="16" text-anchor="middle">Many rows and no parent,</text><text x="240.0" y="576.0" font-size="16" text-anchor="middle">or too many rules to find</text>
+<rect x="560" y="525" width="480" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="800.0" y="556.0" font-size="16" text-anchor="middle">SERIALIZABLE everywhere</text><text x="800.0" y="576.0" font-size="16" text-anchor="middle">+ retry the whole transaction on 40001</text>
+<polyline points="440,560 560,560" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="646.0" font-size="16" text-anchor="start">With SERIALIZABLE + retries, and with the parent lock, the same 20 buyers got exactly 10 tickets.</text><text x="40.0" y="666.0" font-size="16" text-anchor="start">SSI's price: about 140 aborts on one hot event, and it only covers transactions that are all SERIALIZABLE.</text></svg>

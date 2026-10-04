@@ -1,0 +1,113 @@
+{
+  "before": {
+    "at": "2026-10-03T15:00:51.380Z",
+    "counts": {
+      "sourceActive": 119,
+      "sourceValid": 115,
+      "quarantined": 4,
+      "local": 116
+    },
+    "checksums": {
+      "source": "50ad4cd999d120f91e0f73f281f1304b3fe56e0c5f5ae4e7ef5ec9aa71f7b725",
+      "local": "209cd2c268b5954842bdd329ad1f79322685d2296f0106467563fa58ffa08277"
+    },
+    "buckets": [
+      {
+        "employer": "ACME",
+        "source": 56,
+        "local": 57,
+        "sourceChecksum": "b1a3627b0c7f",
+        "localChecksum": "de1b4f802707"
+      },
+      {
+        "employer": "GLOBEX",
+        "source": 39,
+        "local": 39,
+        "sourceChecksum": "bba28fdd3faa",
+        "localChecksum": "bba28fdd3faa"
+      },
+      {
+        "employer": "INITECH",
+        "source": 20,
+        "local": 20,
+        "sourceChecksum": "998a1858589c",
+        "localChecksum": "998a1858589c"
+      }
+    ],
+    "drift": {
+      "missingLocally": [],
+      "extraLocally": [
+        {
+          "memberNo": "M0030",
+          "sourceId": "c0000000-0000-4000-8000-00000000001e"
+        }
+      ],
+      "differing": [
+        {
+          "memberNo": "M0040",
+          "sourceId": "c0000000-0000-4000-8000-000000000028",
+          "fields": [
+            {
+              "field": "givenName",
+              "source": "Dominique-Anne",
+              "local": "Lou"
+            }
+          ]
+        },
+        {
+          "memberNo": "M0050",
+          "sourceId": "c0000000-0000-4000-8000-000000000032",
+          "fields": [
+            {
+              "field": "email",
+              "source": "claude.durand.50@example.org",
+              "local": "fixed.by.hand@example.org"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "repaired": 3,
+  "after": {
+    "at": "2026-10-03T15:00:52.636Z",
+    "counts": {
+      "sourceActive": 119,
+      "sourceValid": 115,
+      "quarantined": 4,
+      "local": 115
+    },
+    "checksums": {
+      "source": "50ad4cd999d120f91e0f73f281f1304b3fe56e0c5f5ae4e7ef5ec9aa71f7b725",
+      "local": "50ad4cd999d120f91e0f73f281f1304b3fe56e0c5f5ae4e7ef5ec9aa71f7b725"
+    },
+    "buckets": [
+      {
+        "employer": "ACME",
+        "source": 56,
+        "local": 56,
+        "sourceChecksum": "b1a3627b0c7f",
+        "localChecksum": "b1a3627b0c7f"
+      },
+      {
+        "employer": "GLOBEX",
+        "source": 39,
+        "local": 39,
+        "sourceChecksum": "bba28fdd3faa",
+        "localChecksum": "bba28fdd3faa"
+      },
+      {
+        "employer": "INITECH",
+        "source": 20,
+        "local": 20,
+        "sourceChecksum": "998a1858589c",
+        "localChecksum": "998a1858589c"
+      }
+    ],
+    "drift": {
+      "missingLocally": [],
+      "extraLocally": [],
+      "differing": []
+    }
+  }
+}

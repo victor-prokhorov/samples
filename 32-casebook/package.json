@@ -2,6 +2,9 @@
   "name": "32-casebook",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "render": "tsx src/render.ts",
     "trace": "tsx src/trace.ts",

@@ -1,0 +1,85 @@
+erDiagram
+    employers ||--o{ members : employs
+    employers ||--o{ upload_batches : sends
+    members ||--o{ contributions : receives
+    members ||--o{ statements : gets
+    members ||--o{ change_requests : asks
+    members |o--o| users : "signs in as"
+    employers |o--o{ users : administers
+    users ||--o{ change_requests : approves
+    change_requests ||--o{ audit_log : produces
+    upload_batches ||--o{ upload_rejects : rejects
+    upload_batches ||--o{ contributions : loads
+    change_requests ||--o{ outbox : notifies
+
+    employers {
+        text id PK "acme, globex, ..."
+        text name
+    }
+    members {
+        int id PK
+        text employer_id FK
+        text name
+        text address
+        text iban
+        text status
+    }
+    users {
+        int id PK
+        text subject UK "OIDC sub"
+        text role "member, employer_admin, staff"
+        int member_id FK
+        text employer_id FK
+    }
+    contributions {
+        int member_id PK
+        text period PK
+        text employer_id FK
+        numeric amount
+        int batch_id FK
+    }
+    statements {
+        int member_id PK
+        int year PK
+        numeric total
+        timestamptz generated_at
+    }
+    change_requests {
+        int id PK
+        text reference UK
+        int member_id FK
+        text type
+        jsonb payload
+        text status
+        date effective_date
+        int first_approver FK
+        int second_approver FK
+    }
+    audit_log {
+        bigint id PK
+        int member_id
+        int change_request_id FK
+        text actor
+        jsonb before
+        jsonb after
+        timestamptz at
+    }
+    upload_batches {
+        int id PK
+        text employer_id FK
+        text period
+        text sha256 UK
+        int accepted
+        int rejected
+    }
+    upload_rejects {
+        int batch_id PK
+        int line PK
+        text reason
+    }
+    outbox {
+        bigint id PK
+        text topic
+        jsonb payload
+        timestamptz published_at
+    }

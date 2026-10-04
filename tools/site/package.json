@@ -1,0 +1,16 @@
+{
+  "name": "samples-site",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "description": "Builds the GitHub Pages site (site/) from the READMEs, diagrams, screenshots, logs and committed outputs.",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node check-links.mjs"
+  },
+  "dependencies": {
+    "marked": "18.0.14"
+  }
+}

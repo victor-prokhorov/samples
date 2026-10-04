@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>CRM reconciliation</title>
+<style>body{font:15px/1.45 system-ui,sans-serif;margin:24px;color:#111;max-width:980px}h1{font-size:22px;margin:0 0 4px}table{border-collapse:collapse;margin:10px 0 18px;width:100%}
+td,th{border:1px solid #999;padding:5px 8px;text-align:left;vertical-align:top}th{background:#eee}code{font-size:13px}.verdict{font-weight:700;font-size:17px}</style></head><body>
+<h1>Nightly reconciliation: CRM contacts versus local members</h1><p>Run at 2026-10-03T15:00:51.380Z</p>
+<p class="verdict">Drift: 3 member(s) differ between the CRM and the local copy.</p>
+<h2>Counts and checksums</h2><table><tr><th></th><th>CRM</th><th>Local</th></tr>
+<tr><td>Active contacts</td><td>119</td><td></td></tr>
+<tr><td>Quarantined (failed translation, not expected locally)</td><td>4</td><td></td></tr>
+<tr><td>Valid members</td><td>115</td><td>116</td></tr>
+<tr><td>SHA-256 of sorted canonical lines</td><td><code>50ad4cd999d120f9</code></td><td><code>209cd2c268b59548</code></td></tr></table>
+<h2>By employer</h2><table><tr><th>Employer</th><th>CRM count</th><th>Local count</th><th>CRM checksum</th><th>Local checksum</th><th>Match</th></tr>
+<tr><td>ACME</td><td>56</td><td>57</td><td><code>b1a3627b0c7f</code></td><td><code>de1b4f802707</code></td><td><b>no</b></td></tr>
+<tr><td>GLOBEX</td><td>39</td><td>39</td><td><code>bba28fdd3faa</code></td><td><code>bba28fdd3faa</code></td><td>yes</td></tr>
+<tr><td>INITECH</td><td>20</td><td>20</td><td><code>998a1858589c</code></td><td><code>998a1858589c</code></td><td>yes</td></tr></table>
+<h2>Drift by member</h2><table><tr><th>Member</th><th>Kind</th><th>Detail</th></tr><tr><td>M0030</td><td>extra locally</td><td>in the local copy, gone from the CRM</td></tr>
+<tr><td>M0040</td><td>differs</td><td>givenName: CRM <code>Dominique-Anne</code>, local <code>Lou</code></td></tr>
+<tr><td>M0050</td><td>differs</td><td>email: CRM <code>claude.durand.50@example.org</code>, local <code>fixed.by.hand@example.org</code></td></tr></table>
+</body></html>

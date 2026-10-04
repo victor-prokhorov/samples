@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1130" height="600" viewBox="0 0 1130 600" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">11. Transactional outbox, relayed by Debezium (no polling)</text>
+<rect x="40" y="110" width="200" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="140.0" y="141.0" font-size="16" text-anchor="middle">App</text><text x="140.0" y="161.0" font-size="16" text-anchor="middle">emit() inside the</text><text x="140.0" y="181.0" font-size="16" text-anchor="middle">order's transaction</text>
+<rect x="290" y="110" width="240" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="410.0" y="131.0" font-size="16" text-anchor="middle">Postgres</text><text x="410.0" y="151.0" font-size="16" text-anchor="middle">orders + outbox row,</text><text x="410.0" y="171.0" font-size="16" text-anchor="middle">one commit; the row can</text><text x="410.0" y="191.0" font-size="16" text-anchor="middle">be deleted at once</text>
+<rect x="580" y="110" width="240" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="700.0" y="141.0" font-size="16" text-anchor="middle">Debezium reads the</text><text x="700.0" y="161.0" font-size="16" text-anchor="middle">outbox inserts from</text><text x="700.0" y="181.0" font-size="16" text-anchor="middle">the WAL; EventRouter</text>
+<rect x="870" y="110" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="980.0" y="141.0" font-size="16" text-anchor="middle">Kafka</text><text x="980.0" y="161.0" font-size="16" text-anchor="middle">outbox.event.order</text><text x="980.0" y="181.0" font-size="16" text-anchor="middle">key = aggregateid</text>
+<rect x="870" y="280" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="980.0" y="311.0" font-size="16" text-anchor="middle">Consumer</text><text x="980.0" y="331.0" font-size="16" text-anchor="middle">OrderPaid {orderId}</text><text x="980.0" y="351.0" font-size="16" text-anchor="middle">dedupes on id header</text>
+<polyline points="240,155 290,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="530,155 580,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="820,155 870,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="980,200 980,280" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="290" y="280" width="240" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="410.0" y="311.0" font-size="16" text-anchor="middle">bob's order rolled back:</text><text x="410.0" y="331.0" font-size="16" text-anchor="middle">its outbox insert is</text><text x="410.0" y="351.0" font-size="16" text-anchor="middle">never published</text>
+<rect x="40" y="420" width="490" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="285.0" y="451.0" font-size="16" text-anchor="middle">Before: commit carol's order, then producer.send();</text><text x="285.0" y="471.0" font-size="16" text-anchor="middle">a crash in between: the order exists, no event ever</text>
+<polyline points="410,200 410,280" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<text x="40.0" y="536.0" font-size="16" text-anchor="start">Same outbox as 09, but the relay tails the WAL: no poll interval, no published_at, no cleanup.</text><text x="40.0" y="556.0" font-size="16" text-anchor="start">The outbox table ends at 0 rows, yet all three committed events arrived, in order, as business events.</text></svg>

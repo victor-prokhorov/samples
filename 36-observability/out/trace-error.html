@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Error: GET /members/:id/statement (502)</title>
+<style>
+  body { font: 13px/1.4 system-ui, sans-serif; margin: 20px 24px; color: #1b1f24; background: #fff; }
+  h1 { font-size: 20px; margin: 0 0 4px; } p { margin: 4px 0 12px; color: #444; }
+  .meta span { margin-right: 18px; } code { font: 12px ui-monospace, monospace; }
+  table { border-collapse: collapse; width: 100%; } td, th { padding: 3px 6px; text-align: left; vertical-align: middle; }
+  .wf td { border-bottom: 1px solid #eef0f2; height: 18px; }
+  .wf .svc { width: 44px; font-weight: 600; } .wf .name { width: 470px; max-width: 470px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wf .lane { position: relative; } .wf .ms { width: 110px; text-align: right; color: #555; white-space: nowrap; }
+  .lane i { position: absolute; top: 4px; height: 12px; border-radius: 2px; }
+  .axis { position: relative; height: 16px; color: #666; font-size: 11px; white-space: nowrap; } .axis span { position: absolute; transform: translateX(-50%); } .nowrap { white-space: nowrap; }
+  .axis span:first-child { transform: none; } .axis span:last-child { transform: translateX(-100%); }
+  i.web { background: #3b6fd8; } i.api { background: #2f9a5d; } i.db { background: #d9822b; } i.error { outline: 2px solid #c62828; }
+  td.web { color: #3b6fd8; } td.api { color: #2f9a5d; } td.db { color: #d9822b; } .err { color: #c62828; }
+  .legend i { display: inline-block; position: static; width: 12px; height: 10px; margin: 0 4px 0 12px; border-radius: 2px; }
+  h2 { font-size: 15px; margin: 18px 0 6px; } .small td { border-bottom: 1px solid #eef0f2; } .num { text-align: right; white-space: nowrap; width: 80px; }
+  .legend { white-space: nowrap; } .small code { word-break: break-all; } .small .nowrap code { word-break: normal; }
+  .lvl-warn { color: #9a6700; font-weight: 600; } .lvl-error { color: #c62828; font-weight: 600; }
+</style></head><body>
+<h1>Error: GET /members/:id/statement (502)</h1>
+<p>A member who joined this month has no contribution yet; the API reads the last row of an empty list and throws.</p>
+<div class="meta"><span>trace <code>c31b830a666a3ef72a31e31e7a28246c</code></span><span>root <b>web GET /members/:id/statement</b></span><span><b>4.7 ms</b></span><span>4 spans</span><span>1 database queries</span><span class="legend"><i class="web"></i>web<i class="api"></i>api<i class="db"></i>postgres query</span></div>
+<table class="wf"><tr><td></td><td></td><td class="lane"><div class="axis"><span style="left:0%">0 ms</span><span style="left:25%">1 ms</span><span style="left:50%">2 ms</span><span style="left:75%">4 ms</span><span style="left:100%">5 ms</span></div></td><td></td></tr>
+<tr><td class="svc web">web</td><td class="name" style="padding-left:8px" title="GET /members/:id/statement">GET /members/:id/statement <b class="err">ERROR</b></td><td class="lane"><i class="web error" style="left:0.000%;width:max(1px,100.000%)"></i></td><td class="ms">4.7 ms</td></tr>
+<tr><td class="svc web">web</td><td class="name" style="padding-left:22px" title="GET /api/members/1658/statement">GET /api/members/1658/statement <b class="err">ERROR</b></td><td class="lane"><i class="web error" style="left:0.000%;width:max(1px,70.569%)"></i></td><td class="ms">3.3 ms</td></tr>
+<tr><td class="svc api">api</td><td class="name" style="padding-left:36px" title="GET /api/members/:id/statement">GET /api/members/:id/statement <b class="err">ERROR</b></td><td class="lane"><i class="api error" style="left:21.097%;width:max(1px,53.206%)"></i></td><td class="ms">2.5 ms</td></tr>
+<tr><td class="svc db">api</td><td class="name" style="padding-left:50px" title="SELECT period::text, amount FROM contributions WHERE member_id = $1 ORDER BY period">SELECT period::text, amount FROM contributions WHERE member_id = $1 ORDER BY period</td><td class="lane"><i class="db" style="left:21.097%;width:max(1px,14.154%)"></i></td><td class="ms">0.7 ms</td></tr>
+</table>
+<h2>Queries in this trace</h2>
+<table class="small"><tr><th class="num">count</th><th class="num">time</th><th>statement</th></tr><tr><td class="num">1</td><td class="num">0.7 ms</td><td><code>SELECT period::text, amount FROM contributions WHERE member_id = $1 ORDER BY period</code></td></tr></table>
+<h2>Span events</h2>
+<table class="small"><tr><th>service</th><th>span</th><th>span name</th><th>event</th><th>detail</th></tr><tr><td>api</td><td class="nowrap"><code>ecb1a1c735063bf7</code></td><td>GET /api/members/:id/statement</td><td class="err">exception</td><td><code>TypeError: Cannot read properties of undefined (reading 'period')</code></td></tr></table>
+<h2>Log lines with this trace id</h2>
+<table class="small"><tr><th>service</th><th>level</th><th>span</th><th>message</th><th>fields</th></tr><tr><td>api</td><td class="lvl-error">error</td><td class="nowrap"><code>ecb1a1c735063bf7</code></td><td class="nowrap">unhandled error</td><td><code>{&quot;error&quot;:{&quot;type&quot;:&quot;TypeError&quot;,&quot;message&quot;:&quot;Cannot read properties of undefined (reading 'period')&quot;}}</code></td></tr><tr><td>api</td><td class="lvl-error">error</td><td class="nowrap"><code>ecb1a1c735063bf7</code></td><td class="nowrap">request failed</td><td><code>{&quot;method&quot;:&quot;GET&quot;,&quot;route&quot;:&quot;/api/members/:id/statement&quot;,&quot;path&quot;:&quot;/api/members/1658/statement&quot;,&quot;status&quot;:500,&quot;duration_ms&quot;:2}</code></td></tr><tr><td>web</td><td class="lvl-error">error</td><td class="nowrap"><code>98984f8fdeaeaf07</code></td><td class="nowrap">request failed</td><td><code>{&quot;method&quot;:&quot;GET&quot;,&quot;route&quot;:&quot;/members/:id/statement&quot;,&quot;path&quot;:&quot;/members/1658/statement&quot;,&quot;status&quot;:502,&quot;duration_ms&quot;:4}</code></td></tr></table>
+</body></html>

@@ -1,0 +1,9 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>Form</title><style>
+  body { font-family: sans-serif; margin: 2rem; color: #333; }
+  .title { font-size: 1.6rem; font-weight: bold; margin-bottom: 1rem; }
+  .hint { color: #b8b8b8; font-size: .85rem; }
+  input[type=text] { display: block; margin: .5rem 0; padding: .4rem; border: 1px solid #ccc; }
+  .err { border: 2px solid #e00 !important; }
+  .btn { display: inline-block; background: #7fb2e5; color: #fff; padding: .5rem 1rem; cursor: pointer; margin-top: 1rem; }
+  input:focus { outline: none; }
+</style></head><body><div class="title">Change your address</div><div class="hint">We will send a confirmation letter to the new address.</div><form action="/bad" method="post"><input type="text" placeholder="Address line 1" class="err" name="line1" value=""><input type="text" placeholder="Town or city" class="err" name="city" value=""><input type="text" placeholder="Postcode" class="err" name="postcode" value=""><input type="text" placeholder="Country" class="err" name="country" value=""><div class="hint err">Apply from</div><input type="radio" name="when" value="today"> Today<input type="radio" name="when" value="next-statement"> Next statement<div><div class="btn" id="save">Save</div></div></form><script>document.getElementById('save').addEventListener('click', () => document.forms[0].submit())</script></body></html>

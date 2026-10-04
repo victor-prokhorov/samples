@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Account, AccountEvent, deposit, open, rehydrate, withdraw } from "./account.js";
 import { ConcurrencyError, append, migrate, pool, readStream } from "./store.js";
+import { check } from "./check.js";
 
 function step(title: string, concept: string) {
   console.log(`\n## ${title}\n   concept: ${concept}`);
@@ -51,15 +52,24 @@ async function main() {
   await handle(id, (s) => deposit(s, 100));
   await handle(id, (s) => withdraw(s, 30));
   step("2. Invariants are checked against rebuilt state", "withdraw 500 with balance 70 must be rejected, and nothing is appended");
-  await handle(id, (s) => withdraw(s, 500)).catch((err) => console.log(`   rejected: ${err instanceof Error ? err.message : String(err)}`));
+  const rejected = await handle(id, (s) => withdraw(s, 500)).then(
+    () => false,
+    (err) => (console.log(`   rejected: ${err instanceof Error ? err.message : String(err)}`), true),
+  );
+  check("withdrawing 500 from a balance of 70 is rejected and appends nothing", rejected && (await readStream<AccountEvent>(id)).length === 3);
   step("3. Optimistic concurrency", "two writers read the same version; the first append wins, the second hits UNIQUE(stream_id, version)");
   const stale = rehydrate((await readStream<AccountEvent>(id)).map((h) => h.event));
   console.log(`   writer A and writer B both read v${stale.version}`);
   await append(id, stale.version, deposit(stale, 1));
   console.log(`   writer A appended v${stale.version + 1}`);
-  await append(id, stale.version, deposit(stale, 1)).catch((err) =>
-    console.log(`   writer B: ConcurrencyError=${err instanceof ConcurrencyError} (${err instanceof Error ? err.message : String(err)})`),
+  const conflict = await append(id, stale.version, deposit(stale, 1)).then(
+    () => false,
+    (err) => {
+      console.log(`   writer B: ConcurrencyError=${err instanceof ConcurrencyError} (${err instanceof Error ? err.message : String(err)})`);
+      return err instanceof ConcurrencyError;
+    },
   );
+  check("the second writer with the same expected version gets a ConcurrencyError", conflict);
   step("3b. Retry", "two concurrent withdrawals of 60 from 71: the loser reloads, re-decides against the new balance, and is rejected instead of overdrawing");
   // Demo-only barrier: hold both deciders until both writers have read the stream, so the race is deterministic.
   let arrived = 0;
@@ -72,22 +82,34 @@ async function main() {
   };
   const outcomes = await Promise.allSettled([handleWithRetry("writer A", id, racer), handleWithRetry("writer B", id, racer)]);
   outcomes.forEach((o, i) => o.status === "rejected" && console.log(`   writer ${"AB"[i]} rejected: ${o.reason instanceof Error ? o.reason.message : String(o.reason)}`));
+  const losers = outcomes.filter((o) => o.status === "rejected");
+  check(
+    "of two concurrent withdrawals of 60 from 71, one wins and the retried loser is rejected for insufficient funds",
+    losers.length === 1 && String((losers[0] as PromiseRejectedResult).reason).includes("insufficient funds: balance 11"),
+  );
   step("4. The stream is the source of truth", "the full history is stored; current state is only a left fold over it");
   const history = await readStream<AccountEvent>(id);
   console.table(history.map((h) => ({ v: h.version, ...h.event })));
-  console.log("   current state:", rehydrate(history.map((h) => h.event)));
+  const current = rehydrate(history.map((h) => h.event));
+  console.log("   current state:", current);
+  check("the stream holds exactly 5 facts, versions 1 to 5, and folds to balance 11", history.map((h) => h.version).join(",") === "1,2,3,4,5" && current.balance === 11 && current.version === 5);
+  const gaps = await pool.query("SELECT count(*)::int AS n FROM events WHERE stream_id = $1", [id]);
+  check("nothing from a rejected command or a losing writer was stored", gaps.rows[0].n === 5);
   step("5. Time travel", "replay only the events recorded before a date to answer \"what was the state at the end of March?\"");
   // The demo's events are milliseconds apart, so the cutoff is the instant v4 was recorded: everything strictly before it.
   // In prod the cutoff is a business boundary with an explicit timezone, e.g. 2026-04-01T00:00 Europe/Paris.
   // This is recorded time; if the business asks about effective time (backdated entries), the event needs its own
   // effective date in the payload and the filter runs on that instead (bitemporal).
   const cutoff = history[3].at;
-  console.log(`   as of ${cutoff.toISOString()}:`, rehydrate((await readStream<AccountEvent>(id, cutoff)).map((h) => h.event)));
+  const asOf = rehydrate((await readStream<AccountEvent>(id, cutoff)).map((h) => h.event));
+  console.log(`   as of ${cutoff.toISOString()}:`, asOf);
+  check("replaying the events recorded before v4 gives the state at v3, balance 70", asOf.version === 3 && asOf.balance === 70);
   console.log("   by version is the same fold over a prefix, e.g. as of v1:", rehydrate(history.slice(0, 1).map((h) => h.event)));
   step("6. Projections (read models)", "any new view can be derived later by replaying the same events, e.g. total deposited");
   // Projection / read model (CQRS read side): a query-shaped view folded from events, possibly across many streams.
   const deposited = history.reduce((sum, h) => (h.event.type === "MoneyDeposited" ? sum + h.event.amount : sum), 0);
   console.log(`   total deposited = ${deposited}`);
+  check("a projection added later derives total deposited = 101 from the same events", deposited === 101);
   await pool.end();
 }
 

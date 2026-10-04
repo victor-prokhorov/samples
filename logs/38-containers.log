@@ -1,0 +1,150 @@
+# 38-containers run 2026-10-04T00:42:46Z
+== fresh Postgres, no app containers left from an earlier run (docker compose down -v && up) ==
+ Container 38-containers-postgres-1 Healthy 
+setup: members table ready (Acme 10, Globex 10, Initech 10)
+== base image: the Dockerfile pins node:22-slim by digest; fall back only if it cannot be pulled ==
+base: node:22-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c (the Dockerfile default; present locally or pulled)
+== image scanner: trivy, as a container (no binary download needed) ==
+scanner: mirror.gcr.io/aquasec/trivy:0.75.0 (Version: 0.75.0)
+secret scanner: ghcr.io/gitleaks/gitleaks:v8.30.1
+== demo: build two ways, inspect, scan, then two blue-green cutovers under load through the proxy on :53048 ==
+   base image: node:22-slim@sha256:43ac6c60b8f89723f746e8a92ce91abd5017e627ce1ddfe4238355d3a30b772c (the Dockerfile default; present locally or pulled)
+
+## 1. Build the same app two ways
+   concept: the naive Dockerfile is one stage with COPY . . and no ignore file; the real one builds in stages (deps, build, prod-deps, runtime) and copies only the compiled JS and production node_modules into the last one
+   $ docker build -f Dockerfile.naive --build-arg NPM_TOKEN=npm_***(masked)*** -t 38-containers-naive:1.0.0 .
+   $ docker build --secret id=npm_ca,src=/root/.ccr/ca-bundle.crt --secret id=npmrc,src=/tmp/38-npmrc-19161 --build-arg APP_VERSION=1.0.0 -t 38-containers-app:1.0.0 .
+   $ docker build --secret id=npm_ca,src=/root/.ccr/ca-bundle.crt --secret id=npmrc,src=/tmp/38-npmrc-19161 --build-arg APP_VERSION=1.1.0 -t 38-containers-app:1.1.0 .
+   build context, naive (ignores nothing): 39.6 MB in 462 files: .dockerignore .env .gitignore .npm-ca.crt Dockerfile Dockerfile.naive Dockerfile.naive.dockerignore README.md base diagrams docker-compose.yml node_modules out package-lock.json package.json screenshots src tsconfig.build.json tsconfig.json
+   build context, with .dockerignore:      75.3 kB in 13 files: .dockerignore package-lock.json package.json src tsconfig.build.json tsconfig.json
+   image                               added to base  uncompressed  compressed
+   base (node:22-slim)                          0 MB        247 MB       80 MB
+   before: 38-containers-naive:1.0.0           45 MB        292 MB       91 MB
+   after:  38-containers-app:1.0.0              1 MB        248 MB       80 MB
+   multi-stage: 292 MB -> 248 MB uncompressed (15% smaller); the app's own layers 44.9 MB -> 1.1 MB; the rest is the base image
+   ok: .dockerignore keeps node_modules and .env out of a build context under 1 MB; the naive context sends both
+   ok: the multi-stage image adds a tenth or less of what the naive one adds to the base
+
+## 2. Look inside: user, files, dev dependencies
+   concept: the runtime stage runs as uid 1000 and holds dist/, production node_modules and package.json; no source, no TypeScript, no .env, no npm
+   38-containers-naive:1.0.0: uid=0 packages=20 typescript=yes npm=yes
+      /app: .dockerignore .env .gitignore .npm-ca.crt Dockerfile Dockerfile.naive Dockerfile.naive.dockerignore README.md base diagrams dist docker-compose.yml node_modules out package-lock.json package.json screenshots src tsconfig.build.json tsconfig.json
+   38-containers-app:1.0.0: uid=1000 packages=16 typescript=no npm=no
+      /app: dist node_modules package.json
+   38-containers-app:1.0.0: User=1000:1000 Healthcheck=["CMD","node","-e","fetch('http://127.0.0.1:8080/healthz').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+   38-containers-naive:1.0.0: User=(empty: root) Healthcheck=none Cmd=["/bin/sh","-c","npm start"]
+   ok: the multi-stage image runs as uid 1000, the naive one as root
+   ok: no dev dependency (typescript) in the final image; the naive image ships it
+   ok: no .env and no source in the final image; the naive image copied the developer's .env
+   ok: npm is removed from the runtime image
+   ok: the final image declares a HEALTHCHECK
+
+## 3. Secrets in layers: docker history
+   concept: every RUN line and every ARG value used by it is stored in the image metadata; a secret mount (RUN --mount=type=secret) is not
+   38-containers-naive:1.0.0 history: RUN |1 NPM_TOKEN=npm_***(masked)*** /bin/sh -c echo "//npm.initech.example/:_authToken=${NPM_TOKEN}" > .npmrc  && NODE_EXTRA_CA_CERTS=/app/.npm-ca.crt
+   38-containers-naive:1.0.0 history: ARG NPM_TOKEN=npm_***(masked)***
+   38-containers-app:1.0.0 history lines holding the token: 0
+   ok: the naive image's history holds the registry token passed as a build ARG
+   ok: no layer or history line of the multi-stage images holds the token (it came in as a secret mount)
+
+## 4. Scan the images
+   concept: a CVE scanner (trivy) matches OS packages from the base and Node packages from node_modules against known vulnerabilities; a secret scanner (gitleaks) reads the files and the history
+   trivy 38-containers-naive:1.0.0: OS packages critical=4 high=53; Node packages critical=0 high=11
+   trivy 38-containers-app:1.0.0: OS packages critical=4 high=53; Node packages critical=0 high=0
+   ok: fewer high and critical Node package CVEs in the final image (no dev dependencies, no npm)
+   the OS package CVEs (4 critical, 53 high) come with the Debian base: fixed by bumping the pinned digest when Debian ships fixes, or by a smaller base
+   gitleaks 38-containers-naive:1.0.0: 3 finding(s)
+      npm-access-token in app/.env
+      npm-access-token in history.txt
+      npm-access-token in history.txt
+   gitleaks 38-containers-app:1.0.0: 0 finding(s)
+   ok: the secret scanner finds the token in the naive image's history and in its copied .env
+   ok: the secret scanner finds nothing in the final image
+
+## 5. Liveness and readiness
+   concept: /healthz says the process answers (Docker's HEALTHCHECK uses it); /readyz also needs warm caches and a database that answers, and is what a load balancer asks before sending traffic
+   $ docker run -d --name 38-containers-blue --network 38-containers_default -p 53148:8080 -e COLOR=blue -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres -e WARMUP_MS=1500 --stop-timeout 15 38-containers-app:1.0.0
+   blue: docker health=healthy, /healthz 200, /readyz 200
+   $ docker compose stop postgres
+   database stopped: /readyz 503 {"ready":false,"reason":"database: getaddrinfo ENOTFOUND postgres"}, /healthz 200, docker health=healthy
+   ok: with the database down the app is not ready (no traffic) but still alive (no restart loop)
+   $ docker compose start postgres
+   ready again 321 ms after the database came back
+   2026-10-04T00:44:11.176Z [proxy] listening on :53048, active upstream blue (:53148)
+
+## 6. The naive cutover
+   concept: flip the proxy to green as soon as its container starts, then kill blue (SIGKILL, what a plain process kill or an impatient script does)
+   $ docker run -d --name 38-containers-green --network 38-containers_default -p 53248:8080 -e COLOR=green -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres -e WARMUP_MS=1500 --stop-timeout 15 38-containers-app:1.1.0
+   2026-10-04T00:44:12.735Z [proxy] switched blue -> green (naive, without asking)
+   $ docker kill --signal KILL 38-containers-blue
+   374 requests through :53048; failed 268; served by blue=47, green=327
+   failures: 502 blue upstream blue: ECONNRESET=4, 502 green upstream green: ECONNRESET=36, 503 green warming up=228
+   blue log: 2026-10-04T00:43:58.314Z [blue 1.0.0] listening on :8080, node v22.23.3, uid 1000, warming up for 1500 ms
+   blue: exit code 137 (137 = killed, nothing drained)
+   ok: the naive cutover failed requests: in-flight ones on blue and early ones on a green that was not ready
+   $ docker run -d --name 38-containers-blue --network 38-containers_default -p 53148:8080 -e COLOR=blue -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres -e WARMUP_MS=1500 --stop-timeout 15 38-containers-app:1.0.0
+   2026-10-04T00:44:19.868Z [proxy] switched green -> blue (safe, blue answered /readyz 200 after 20 ms and 1 polls)
+
+## 7. The safe cutover
+   concept: start green, let the proxy poll green's /readyz and flip only on 200, then stop blue with SIGTERM: it fails readiness, closes its listener and finishes what it was serving
+   $ docker run -d --name 38-containers-green --network 38-containers_default -p 53248:8080 -e COLOR=green -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres -e WARMUP_MS=1500 --stop-timeout 15 38-containers-app:1.1.0
+   2026-10-04T00:44:21.464Z [proxy] green /readyz no answer (read ECONNRESET): keep sending traffic to blue
+   2026-10-04T00:44:21.575Z [proxy] green /readyz 503 (warming up): keep sending traffic to blue
+   2026-10-04T00:44:23.209Z [proxy] switched blue -> green (safe, green answered /readyz 200 after 1748 ms and 17 polls)
+   $ docker stop 38-containers-blue    (SIGTERM, then SIGKILL after --stop-timeout 15 s)
+   the proxy waited 1748 ms (17 polls) for green to be ready; docker stop took 6009 ms
+   354 requests through :53048; failed 0; served by blue=114, green=240
+   failures: none
+   blue log: 2026-10-04T00:44:23.268Z [blue 1.0.0] SIGTERM: draining, 9 request(s) in flight, /readyz now 503, no new connections
+   blue log: 2026-10-04T00:44:28.925Z [blue 1.0.0] drained in 5657 ms, pool closed, exit 0
+   blue requests that finished after the switch: 9; blue exit code 0
+   ok: zero failed requests during the safe cutover
+   ok: both colours served traffic during the run
+   ok: blue received SIGTERM with requests in flight and finished them
+   ok: blue exited 0 after draining (not killed at the stop timeout)
+   ok: the proxy saw green not ready at first and waited
+
+## 8. The timeline
+   concept: every request of both runs on one page, by worker and by the colour that served it
+   wrote out/switch.html
+
+   green (38-containers-app:1.1.0, docker health=healthy) now serves :53048 via :53248; blue (:53148) is stopped
+
+== proof: the images (docker image ls; DISK USAGE counts shared base layers once per image) ==
+REPOSITORY:TAG                               IMAGE ID       SIZE
+38-containers-naive:1.0.0                    b68f6371c5b8   382MB
+38-containers-app:1.1.0                      960e78dc2b8b   327MB
+38-containers-app:1.0.0                      a20b22e11ae5   327MB
+node:22-slim                                 43ac6c60b8f8   329MB
+node:22-alpine                               0a7108bf6c7b   238MB
+gcr.io/distroless/nodejs22-debian12:latest   8a3e96fe3345   204MB
+== proof: docker history of the final image (the layers above ARG APP_VERSION are the app's; the rest is the base image) ==
+0B	CMD ["node" "dist/app.js"]
+0B	HEALTHCHECK {Test:[CMD node -e fetch('http:/…
+0B	EXPOSE [8080/tcp]
+0B	USER 1000:1000
+12.3kB	COPY package.json ./ # buildkit
+20.5kB	COPY /app/dist ./dist # buildkit
+995kB	COPY /app/node_modules ./node_modules # buil…
+8.19kB	WORKDIR /app
+24.6kB	RUN |1 APP_VERSION=1.0.0 /bin/sh -c rm -rf /…
+0B	ENV NODE_ENV=production APP_VERSION=1.0.0 PO…
+0B	ARG APP_VERSION=1.0.0
+0B	CMD ["node"]
+== proof: the token check, raw: history lines of each image that mention NPM_TOKEN or authToken ==
+38-containers-naive:1.0.0: 2 line(s)
+38-containers-app:1.0.0: 0 line(s)
+== proof: the running green container (user, healthcheck, state) ==
+name=/38-containers-green image=38-containers-app:1.1.0 user=1000:1000 status=running health=healthy failing_streak=0
+name=/38-containers-blue status=exited exit=0 oom=false
+== proof: green's log ==
+2026-10-04T00:44:21.559Z [green 1.1.0] listening on :8080, node v22.23.3, uid 1000, warming up for 1500 ms
+2026-10-04T00:44:23.062Z [green 1.1.0] warm: caches loaded, /readyz can answer 200
+== proof: trivy, CRITICAL findings left in the final image (all from the Debian base) ==
+38-containers-app:1.0.0 (debian 12.15): CVE-2026-13221 perl-base 5.36.0-7+deb12u3 fixed=none status=affected
+38-containers-app:1.0.0 (debian 12.15): CVE-2026-42496 perl-base 5.36.0-7+deb12u3 fixed=none status=fix_deferred
+38-containers-app:1.0.0 (debian 12.15): CVE-2026-8376 perl-base 5.36.0-7+deb12u3 fixed=none status=affected
+38-containers-app:1.0.0 (debian 12.15): CVE-2023-45853 zlib1g 1:1.2.13.dfsg-1 fixed=none status=will_not_fix
+== proof: screenshot of out/switch.html ==
+133515 screenshots/switch-timeline.png
+removed the blue and green containers

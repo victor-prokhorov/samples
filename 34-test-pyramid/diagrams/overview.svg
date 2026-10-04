@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1160" height="530" viewBox="0 0 1160 530" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">34. Test pyramid: many cheap tests, one end-to-end</text>
+<rect x="290" y="110" width="220" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="400.0" y="136.0" font-size="16" text-anchor="middle">End to end: 1</text><text x="400.0" y="156.0" font-size="16" text-anchor="middle">Playwright, 1151 ms each</text>
+<rect x="230" y="190" width="340" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="400.0" y="216.0" font-size="16" text-anchor="middle">API + Postgres: 8</text><text x="400.0" y="236.0" font-size="16" text-anchor="middle">real handler, real DB, 85 ms each</text>
+<rect x="170" y="270" width="460" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="400.0" y="296.0" font-size="16" text-anchor="middle">Component: 10</text><text x="400.0" y="316.0" font-size="16" text-anchor="middle">React in jsdom, user-event, MSW, 156 ms each</text>
+<rect x="110" y="350" width="580" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="400.0" y="376.0" font-size="16" text-anchor="middle">Unit: 33</text><text x="400.0" y="396.0" font-size="16" text-anchor="middle">pure rules and calculation, 1.8 ms each</text>
+<rect x="820" y="110" width="300" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="970.0" y="136.0" font-size="16" text-anchor="middle">sleep 500 ms, read once</text><text x="970.0" y="156.0" font-size="16" text-anchor="middle">passes when quick, fails when slow</text>
+<rect x="820" y="230" width="300" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="970.0" y="256.0" font-size="16" text-anchor="middle">web-first assertion</text><text x="970.0" y="276.0" font-size="16" text-anchor="middle">waits until it passes: 6 of 6</text>
+<rect x="820" y="350" width="300" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="970.0" y="376.0" font-size="16" text-anchor="middle">coverage gate (v8)</text><text x="970.0" y="396.0" font-size="16" text-anchor="middle">branches 88.69%, floor 87%</text>
+<polyline points="970,170 970,230" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="924.0" y="189.3" width="92.0" height="21.5" fill="#ffffff"/>
+<text x="970.0" y="205.3" font-size="14" text-anchor="middle">replace with</text>
+<polyline points="510,140 820,140" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="594.5" y="129.3" width="141.0" height="21.5" fill="#ffffff"/>
+<text x="665.0" y="145.3" font-size="14" text-anchor="middle">waiting, done wrong</text>
+<polyline points="820,380 690,380" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="733.5" y="369.3" width="43.0" height="21.5" fill="#ffffff"/>
+<text x="755.0" y="385.3" font-size="14" text-anchor="middle">gates</text>
+<text x="110.0" y="466.0" font-size="16" text-anchor="start">Higher up: fewer tests, each slower and more realistic. Lower down: many tests, each fast and exact.</text><text x="110.0" y="486.0" font-size="16" text-anchor="start">A rule is tested at the lowest level that can see it; the browser test only proves the parts are wired.</text></svg>

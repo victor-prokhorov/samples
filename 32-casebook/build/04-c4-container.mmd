@@ -1,0 +1,23 @@
+flowchart TB
+    member(["Member<br/><small>Person</small>"])
+    staff(["Support staff<br/><small>Person</small>"])
+    subgraph portal["Member portal"]
+        facade["Routing facade<br/><small>Reverse proxy: routes each path to the new app or the legacy portal</small>"]
+        web["Web application<br/><small>Node.js, server-rendered React: pages, forms, validation, sessions</small>"]
+        worker["Worker<br/><small>Node.js: imports, statements, notifications, retention</small>"]
+        db[("Database<br/><small>PostgreSQL: members, contributions, requests, audit, outbox</small>")]
+    end
+    legacy["Legacy portal<br/><small>until decommissioned</small>"]
+    idp["Identity provider<br/><small>OIDC, MFA</small>"]
+    mail["Email service"]
+    member -- HTTPS --> facade
+    staff -- HTTPS --> facade
+    facade -- "new capabilities" --> web
+    facade -- "not yet moved" --> legacy
+    web -- "OIDC code flow + PKCE" --> idp
+    web -- SQL --> db
+    worker -- "SQL, SKIP LOCKED jobs" --> db
+    worker -- SMTP --> mail
+    worker -. "outbox / CDC sync" .-> legacy
+    classDef ext fill:#eeeeee,stroke:#888888,color:#222222
+    class legacy,idp,mail ext

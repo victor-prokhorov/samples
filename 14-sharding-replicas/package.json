@@ -2,11 +2,15 @@
   "name": "14-sharding-replicas",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "tsx src/setup.ts",
     "demo": "tsx src/demo.ts",
     "scaled": "tsx src/scaled.ts",
     "outage": "tsx src/outage.ts",
+    "verify": "tsx src/verify.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

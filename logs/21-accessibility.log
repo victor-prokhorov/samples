@@ -1,8 +1,8 @@
-# 21-accessibility run 2026-10-02T17:08:44Z
+# 21-accessibility run 2026-10-03T19:51:45Z
 == fresh state: no database; remove earlier scan results ==
 == demo: Chromium (Playwright) drives the same form in two versions, served by react-dom/server from a separate node:http process ==
-   [form server pid 21249] listening on :53031 (/bad and /good)
-demo pid 20885 -> Chromium 141.0.7390.37 (Playwright) against the form server on :53031
+   [form server pid 29822] listening on :53031 (/bad and /good)
+demo pid 29510 -> Chromium 141.0.7390.37 (Playwright) against the form server on :53031
 
 ## 1. Inaccessible form: automated scan with axe-core (WCAG 2.0/2.1/2.2 A and AA rules)
    concept: axe runs in the real page in Chromium and reports each failed rule with the WCAG success criteria it maps to; the form is scanned empty and again after a failed submit, because errors are a different page state
@@ -187,3 +187,7 @@ out/axe-good-errors.json: 0 violations, 24 rules passed
 <script>document.getElementById('error-summary')?.focus()</script>
 </body>
 </html>
+== screenshots: both forms after a failed submit (out/*-errors.html) and the axe results (out/axe-*.json), in Chromium ==
+screenshots/axe-results.png 58865 bytes
+screenshots/bad-errors.png 21958 bytes
+screenshots/good-errors.png 75220 bytes

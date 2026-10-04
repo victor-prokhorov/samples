@@ -2,6 +2,9 @@
   "name": "10-cdc-debezium",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "tsx src/setup.ts",
     "consume": "tsx src/consumer.ts",

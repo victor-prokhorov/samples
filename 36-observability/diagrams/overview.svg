@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1130" height="650" viewBox="0 0 1130 650" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">36. Observability: one trace id joins logs, spans, metrics</text>
+<rect x="40" y="120" width="130" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="105.0" y="151.0" font-size="16" text-anchor="middle">traffic</text><text x="105.0" y="171.0" font-size="16" text-anchor="middle">130 requests</text>
+<rect x="250" y="120" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="340.0" y="151.0" font-size="16" text-anchor="middle">web BFF :53046</text><text x="340.0" y="171.0" font-size="16" text-anchor="middle">pino + OTel SDK</text>
+<rect x="580" y="120" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="670.0" y="151.0" font-size="16" text-anchor="middle">API :53146</text><text x="670.0" y="171.0" font-size="16" text-anchor="middle">pino + OTel SDK</text>
+<rect x="910" y="120" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1000.0" y="151.0" font-size="16" text-anchor="middle">Postgres :55466</text><text x="1000.0" y="171.0" font-size="16" text-anchor="middle">statement log</text>
+<rect x="405" y="290" width="200" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="505.0" y="316.0" font-size="16" text-anchor="middle">collector</text><text x="505.0" y="336.0" font-size="16" text-anchor="middle">OTLP/HTTP JSON in,</text><text x="505.0" y="356.0" font-size="16" text-anchor="middle">spans stored as JSON</text>
+<rect x="250" y="460" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="340.0" y="491.0" font-size="16" text-anchor="middle">waterfall</text><text x="340.0" y="511.0" font-size="16" text-anchor="middle">out/trace-*.html</text>
+<rect x="580" y="460" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="670.0" y="491.0" font-size="16" text-anchor="middle">RED per route</text><text x="670.0" y="511.0" font-size="16" text-anchor="middle">vs 29's SLO</text>
+<rect x="910" y="290" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="1000.0" y="316.0" font-size="16" text-anchor="middle">before: N+1</text><text x="1000.0" y="336.0" font-size="16" text-anchor="middle">602 queries</text><text x="1000.0" y="356.0" font-size="16" text-anchor="middle">one per member</text>
+<rect x="910" y="460" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1000.0" y="491.0" font-size="16" text-anchor="middle">after: one join</text><text x="1000.0" y="511.0" font-size="16" text-anchor="middle">2 queries</text>
+<polyline points="170,155 250,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="430,155 580,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="462.5" y="144.3" width="85.0" height="21.5" fill="#ffffff"/>
+<text x="505.0" y="160.3" font-size="14" text-anchor="middle">traceparent</text>
+<polyline points="760,155 910,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="778.5" y="144.3" width="113.0" height="21.5" fill="#ffffff"/>
+<text x="835.0" y="160.3" font-size="14" text-anchor="middle">/*traceparent*/</text>
+<polyline points="340,190 340,330 405,330" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="670,190 670,330 605,330" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="455,370 455,420 340,420 340,460" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="555,370 555,420 670,420 670,460" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1000,370 1000,460" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="985.5" y="404.3" width="29.0" height="21.5" fill="#ffffff"/>
+<text x="1000.0" y="420.3" font-size="14" text-anchor="middle">fix</text>
+<text x="40.0" y="586.0" font-size="16" text-anchor="start">A slow-request log line gives the trace id; the collector returns that trace; the waterfall shows the N+1.</text><text x="40.0" y="606.0" font-size="16" text-anchor="start">The same id is in the API log and in every Postgres statement it sent.</text></svg>

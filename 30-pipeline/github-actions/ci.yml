@@ -45,10 +45,15 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci --no-audit --no-fund
-      - run: npx vitest run --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+      # the coverage gate: the thresholds in vitest.config.ts fail this step below them
+      - run: npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
       - uses: actions/upload-artifact@v4
         if: always()
-        with: { name: junit, path: reports/junit.xml }
+        with:
+          name: unit-reports
+          path: |
+            reports/junit.xml
+            reports/coverage/
 
   a11y:
     needs: typecheck

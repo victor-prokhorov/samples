@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="960" height="720" viewBox="0 0 960 720" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">07. File API: one HTTP header per failure it prevents</text>
+<rect x="40" y="90" width="400" height="530" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Client sends (ETag = version)</text>
+<rect x="520" y="90" width="400" height="530" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="530.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Express 5 API + Postgres answers</text>
+<rect x="60" y="140" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="240.0" y="171.0" font-size="16" text-anchor="middle">POST /v1/files</text><text x="240.0" y="191.0" font-size="16" text-anchor="middle">Idempotency-Key</text>
+<rect x="540" y="140" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="720.0" y="171.0" font-size="16" text-anchor="middle">a retry replays the stored 201:</text><text x="720.0" y="191.0" font-size="16" text-anchor="middle">no duplicate file</text>
+<polyline points="420,175 540,175" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="60" y="235" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="240.0" y="266.0" font-size="16" text-anchor="middle">PUT /content  If-Match: "2"</text><text x="240.0" y="286.0" font-size="16" text-anchor="middle">UPDATE ... WHERE version = 2</text>
+<rect x="540" y="235" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="720.0" y="266.0" font-size="16" text-anchor="middle">stale or losing writer gets 412:</text><text x="720.0" y="286.0" font-size="16" text-anchor="middle">no lost update (428 if missing)</text>
+<polyline points="420,270 540,270" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="60" y="330" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="240.0" y="371.0" font-size="16" text-anchor="middle">GET  If-None-Match: "3"</text>
+<rect x="540" y="330" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="720.0" y="371.0" font-size="16" text-anchor="middle">304, no body, while still current</text>
+<polyline points="420,365 540,365" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="60" y="425" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="240.0" y="456.0" font-size="16" text-anchor="middle">GET /content  Range: bytes=10-</text><text x="240.0" y="476.0" font-size="16" text-anchor="middle">If-Range: "2"</text>
+<rect x="540" y="425" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="720.0" y="456.0" font-size="16" text-anchor="middle">file changed: 200 with the whole</text><text x="720.0" y="476.0" font-size="16" text-anchor="middle">new file, never a spliced one</text>
+<polyline points="420,460 540,460" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="60" y="520" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="240.0" y="551.0" font-size="16" text-anchor="middle">GET /v1/files?cursor=...</text><text x="240.0" y="571.0" font-size="16" text-anchor="middle">keyset on (changed_xid, id)</text>
+<rect x="540" y="520" width="360" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="720.0" y="551.0" font-size="16" text-anchor="middle">a late commit is held back, then</text><text x="720.0" y="571.0" font-size="16" text-anchor="middle">served: not lost like updated_at</text>
+<polyline points="420,555 540,555" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="656.0" font-size="16" text-anchor="start">Two-step upload: POST creates the metadata (pending), PUT to upload_file_url sends the bytes (complete).</text><text x="40.0" y="676.0" font-size="16" text-anchor="start">Every query is scoped to the bearer token's owner: another owner's file is 404.</text></svg>

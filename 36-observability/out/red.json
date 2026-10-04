@@ -1,0 +1,127 @@
+{
+  "sloMs": 300,
+  "before": [
+    {
+      "service": "api",
+      "route": "GET /api/employers/:code/members",
+      "requests": 30,
+      "errors": 0,
+      "ratePerSec": 2.052545155993432,
+      "p50": "50-100 ms",
+      "p95": "1000-2000 ms",
+      "withinSlo": 19
+    },
+    {
+      "service": "api",
+      "route": "GET /api/members/:id",
+      "requests": 60,
+      "errors": 0,
+      "ratePerSec": 4.240282685512367,
+      "p50": "0-5 ms",
+      "p95": "5-10 ms",
+      "withinSlo": 60
+    },
+    {
+      "service": "api",
+      "route": "GET /api/members/:id/statement",
+      "requests": 40,
+      "errors": 2,
+      "ratePerSec": 2.8338646829613885,
+      "p50": "0-5 ms",
+      "p95": "5-10 ms",
+      "withinSlo": 40
+    },
+    {
+      "service": "web",
+      "route": "GET /employers/:code/dashboard",
+      "requests": 30,
+      "errors": 0,
+      "ratePerSec": 2.053107035313441,
+      "p50": "50-100 ms",
+      "p95": "1000-2000 ms",
+      "withinSlo": 19
+    },
+    {
+      "service": "web",
+      "route": "GET /members/:id",
+      "requests": 60,
+      "errors": 0,
+      "ratePerSec": 4.241181876016117,
+      "p50": "0-5 ms",
+      "p95": "10-25 ms",
+      "withinSlo": 60
+    },
+    {
+      "service": "web",
+      "route": "GET /members/:id/statement",
+      "requests": 40,
+      "errors": 2,
+      "ratePerSec": 2.8340654669122856,
+      "p50": "0-5 ms",
+      "p95": "5-10 ms",
+      "withinSlo": 40
+    }
+  ],
+  "after": [
+    {
+      "service": "api",
+      "route": "GET /api/employers/:code/members",
+      "requests": 30,
+      "errors": 0,
+      "ratePerSec": 24.875621890547265,
+      "p50": "10-25 ms",
+      "p95": "50-100 ms",
+      "withinSlo": 30
+    },
+    {
+      "service": "api",
+      "route": "GET /api/members/:id",
+      "requests": 60,
+      "errors": 0,
+      "ratePerSec": 51.06382978723404,
+      "p50": "0-5 ms",
+      "p95": "5-10 ms",
+      "withinSlo": 60
+    },
+    {
+      "service": "api",
+      "route": "GET /api/members/:id/statement",
+      "requests": 40,
+      "errors": 2,
+      "ratePerSec": 34.99562554680665,
+      "p50": "0-5 ms",
+      "p95": "5-10 ms",
+      "withinSlo": 40
+    },
+    {
+      "service": "web",
+      "route": "GET /employers/:code/dashboard",
+      "requests": 30,
+      "errors": 0,
+      "ratePerSec": 24.937655860349125,
+      "p50": "10-25 ms",
+      "p95": "50-100 ms",
+      "withinSlo": 30
+    },
+    {
+      "service": "web",
+      "route": "GET /members/:id",
+      "requests": 60,
+      "errors": 0,
+      "ratePerSec": 51.15089514066496,
+      "p50": "0-5 ms",
+      "p95": "5-10 ms",
+      "withinSlo": 60
+    },
+    {
+      "service": "web",
+      "route": "GET /members/:id/statement",
+      "requests": 40,
+      "errors": 2,
+      "ratePerSec": 35.02626970227671,
+      "p50": "0-5 ms",
+      "p95": "5-10 ms",
+      "withinSlo": 40
+    }
+  ]
+}

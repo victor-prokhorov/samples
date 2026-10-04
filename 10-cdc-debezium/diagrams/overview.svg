@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1090" height="580" viewBox="0 0 1090 580" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">10. Change data capture: WAL -&gt; Debezium -&gt; Kafka</text>
+<rect x="40" y="110" width="200" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="140.0" y="141.0" font-size="16" text-anchor="middle">Any writer</text><text x="140.0" y="161.0" font-size="16" text-anchor="middle">plain SQL, knows</text><text x="140.0" y="181.0" font-size="16" text-anchor="middle">nothing about Kafka</text>
+<rect x="290" y="110" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="400.0" y="141.0" font-size="16" text-anchor="middle">Postgres: orders</text><text x="400.0" y="161.0" font-size="16" text-anchor="middle">wal_level=logical</text><text x="400.0" y="181.0" font-size="16" text-anchor="middle">REPLICA IDENTITY FULL</text>
+<rect x="560" y="110" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="670.0" y="141.0" font-size="16" text-anchor="middle">WAL, read through</text><text x="670.0" y="161.0" font-size="16" text-anchor="middle">slot "debezium"</text><text x="670.0" y="181.0" font-size="16" text-anchor="middle">(pgoutput)</text>
+<rect x="830" y="110" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="940.0" y="151.0" font-size="16" text-anchor="middle">Debezium</text><text x="940.0" y="171.0" font-size="16" text-anchor="middle">on Kafka Connect</text>
+<rect x="830" y="280" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="940.0" y="311.0" font-size="16" text-anchor="middle">Kafka topic</text><text x="940.0" y="331.0" font-size="16" text-anchor="middle">app.public.orders</text><text x="940.0" y="351.0" font-size="16" text-anchor="middle">key = id</text>
+<rect x="560" y="280" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="670.0" y="311.0" font-size="16" text-anchor="middle">Consumer: one event</text><text x="670.0" y="331.0" font-size="16" text-anchor="middle">per row change: op,</text><text x="670.0" y="351.0" font-size="16" text-anchor="middle">before, after, lsn, txId</text>
+<rect x="290" y="280" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="400.0" y="321.0" font-size="16" text-anchor="middle">tx 737 rolled back:</text><text x="400.0" y="341.0" font-size="16" text-anchor="middle">never emitted</text>
+<polyline points="240,155 290,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="510,155 560,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="780,155 830,155" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="940,200 940,280" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="830,325 780,325" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="598.5,200 471.5,280" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="40" y="420" width="1010" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="545.0" y="446.0" font-size="16" text-anchor="middle">Before: app code writes the database and the index or cache itself: races, half-done writes,</text><text x="545.0" y="466.0" font-size="16" text-anchor="middle">and every script or manual SQL is missed</text>
+<text x="40.0" y="516.0" font-size="16" text-anchor="start">Only committed changes come out, in commit order; one transaction's changes share a txId.</text><text x="40.0" y="536.0" font-size="16" text-anchor="start">The catch: events are row diffs, not business intent, and an unwatched slot keeps WAL until the disk fills.</text></svg>

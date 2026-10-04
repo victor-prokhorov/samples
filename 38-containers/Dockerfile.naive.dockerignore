@@ -1,0 +1,1 @@
+# Deliberately ignores nothing: the naive build sends the whole folder (node_modules, .env, out/, ...) as its context.

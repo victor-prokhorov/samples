@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import pg from "pg";
+import { check } from "./check.js";
 import { PG_URL } from "./config.js";
 
 const pool = new pg.Pool({ connectionString: PG_URL });
@@ -76,6 +77,10 @@ async function main() {
   await shipOrder(id, "UPS");
   step("5. Contrast: naive dual write (simulated crash)", "commit DB then publish separately: a crash between the two loses the event forever");
   await naiveDualWrite("carol");
+  const orders = await pool.query("SELECT customer, status FROM orders ORDER BY id");
+  check("alice is shipped, carol committed, bob rolled back", orders.rows.map((r) => `${r.customer}:${r.status}`).join() === "alice:shipped,carol:placed");
+  const outbox = await pool.query("SELECT count(*)::int AS n FROM outbox");
+  check("the outbox table is empty: every row was deleted right after its insert", outbox.rows[0].n === 0);
   await pool.end();
 }
 

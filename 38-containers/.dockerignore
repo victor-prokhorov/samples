@@ -1,0 +1,21 @@
+# Allow-list thinking: the Dockerfile copies only package*.json, tsconfig*.json and src/.
+# Everything below is kept out of the build context, so it can never be copied by accident and
+# does not slow the build or bust the cache.
+node_modules
+dist
+.env
+.env.*
+*.pem
+*.key
+.npmrc
+.npm-ca.crt
+.git
+.gitignore
+*.log
+out
+screenshots
+diagrams
+base
+Dockerfile*
+docker-compose.yml
+README.md

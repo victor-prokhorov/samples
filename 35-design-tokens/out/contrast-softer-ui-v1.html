@@ -1,0 +1,311 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Contrast check with softer-ui.v1.light.tokens.json</title>
+<style>
+body{font:15px/1.5 system-ui,sans-serif;margin:24px;color:#181c22;background:#fff}
+h1{font-size:22px;margin:0 0 4px}p{margin:0 0 16px;color:#525a66}
+table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:6px 10px;border-bottom:1px solid #dde1e7;vertical-align:middle}
+th{font-size:13px;color:#525a66;font-weight:600}td.num{font-variant-numeric:tabular-nums;text-align:right}
+tr.fail td{background:#fdf2f2}tr.fail td:last-child{color:#a32222}
+.sample{display:inline-block;width:44px;height:28px;line-height:28px;text-align:center;border-radius:4px;font-weight:600;outline:1px solid #dde1e7}
+code{font-size:13px}small{color:#525a66}
+</style></head><body>
+<h1>Contrast check with softer-ui.v1.light.tokens.json</h1>
+<p>74 pairs checked, 2 below the minimum. Ratio per WCAG 2.2 (1.4.3 text 4.5:1, 1.4.11 UI 3:1), truncated to two decimals.</p>
+<table><thead><tr><th>Theme</th><th>Sample</th><th>Foreground</th><th>Background</th><th>Usage</th><th>Ratio</th><th>Minimum</th><th>Result</th></tr></thead>
+<tbody>
+<tr class="fail"><td>light</td>
+<td><span class="sample" style="background:#f7f8fa;color:#6b7480;">Aa</span></td>
+<td><code>text.muted</code><br><small>#6b7480 (color.gray.500)</small></td><td><code>bg.canvas</code><br><small>#f7f8fa</small></td>
+<td>text</td><td class="num">4.45:1</td><td class="num">4.5:1</td><td><strong>Fail</strong></td></tr>
+<tr class="fail"><td>light</td>
+<td><span class="sample" style="background:#eef0f3;color:#6b7480;">Aa</span></td>
+<td><code>text.muted</code><br><small>#6b7480 (color.gray.500)</small></td><td><code>bg.subtle</code><br><small>#eef0f3</small></td>
+<td>text</td><td class="num">4.14:1</td><td class="num">4.5:1</td><td><strong>Fail</strong></td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#f7f8fa;color:#181c22;">Aa</span></td>
+<td><code>text.default</code><br><small>#181c22 (color.gray.900)</small></td><td><code>bg.canvas</code><br><small>#f7f8fa</small></td>
+<td>text</td><td class="num">16.09:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#ffffff;color:#181c22;">Aa</span></td>
+<td><code>text.default</code><br><small>#181c22 (color.gray.900)</small></td><td><code>bg.surface</code><br><small>#ffffff</small></td>
+<td>text</td><td class="num">17.10:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#eef0f3;color:#181c22;">Aa</span></td>
+<td><code>text.default</code><br><small>#181c22 (color.gray.900)</small></td><td><code>bg.subtle</code><br><small>#eef0f3</small></td>
+<td>text</td><td class="num">14.97:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#eff5ff;color:#181c22;">Aa</span></td>
+<td><code>text.default</code><br><small>#181c22 (color.gray.900)</small></td><td><code>bg.info-subtle</code><br><small>#eff5ff</small></td>
+<td>text</td><td class="num">15.61:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#effaf3;color:#181c22;">Aa</span></td>
+<td><code>text.default</code><br><small>#181c22 (color.gray.900)</small></td><td><code>bg.success-subtle</code><br><small>#effaf3</small></td>
+<td>text</td><td class="num">15.99:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#fff8eb;color:#181c22;">Aa</span></td>
+<td><code>text.default</code><br><small>#181c22 (color.gray.900)</small></td><td><code>bg.warning-subtle</code><br><small>#fff8eb</small></td>
+<td>text</td><td class="num">16.18:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#fdf2f2;color:#181c22;">Aa</span></td>
+<td><code>text.default</code><br><small>#181c22 (color.gray.900)</small></td><td><code>bg.danger-subtle</code><br><small>#fdf2f2</small></td>
+<td>text</td><td class="num">15.60:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#ffffff;color:#6b7480;">Aa</span></td>
+<td><code>text.muted</code><br><small>#6b7480 (color.gray.500)</small></td><td><code>bg.surface</code><br><small>#ffffff</small></td>
+<td>text</td><td class="num">4.73:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#1d45a6;color:#ffffff;">Aa</span></td>
+<td><code>text.on-accent</code><br><small>#ffffff (color.gray.0)</small></td><td><code>bg.accent</code><br><small>#1d45a6</small></td>
+<td>text</td><td class="num">8.55:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#1c3b85;color:#ffffff;">Aa</span></td>
+<td><code>text.on-accent</code><br><small>#ffffff (color.gray.0)</small></td><td><code>bg.accent-hover</code><br><small>#1c3b85</small></td>
+<td>text</td><td class="num">10.42:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#c42b2b;color:#ffffff;">Aa</span></td>
+<td><code>text.on-accent</code><br><small>#ffffff (color.gray.0)</small></td><td><code>bg.danger</code><br><small>#c42b2b</small></td>
+<td>text</td><td class="num">5.63:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#a32222;color:#ffffff;">Aa</span></td>
+<td><code>text.on-accent</code><br><small>#ffffff (color.gray.0)</small></td><td><code>bg.danger-hover</code><br><small>#a32222</small></td>
+<td>text</td><td class="num">7.47:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#f7f8fa;color:#2456cc;">Aa</span></td>
+<td><code>text.link</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.canvas</code><br><small>#f7f8fa</small></td>
+<td>text</td><td class="num">6.02:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#ffffff;color:#2456cc;">Aa</span></td>
+<td><code>text.link</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.surface</code><br><small>#ffffff</small></td>
+<td>text</td><td class="num">6.40:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#eff5ff;color:#2456cc;">Aa</span></td>
+<td><code>text.link</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.info-subtle</code><br><small>#eff5ff</small></td>
+<td>text</td><td class="num">5.84:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#effaf3;color:#2456cc;">Aa</span></td>
+<td><code>text.link</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.success-subtle</code><br><small>#effaf3</small></td>
+<td>text</td><td class="num">5.99:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#fff8eb;color:#2456cc;">Aa</span></td>
+<td><code>text.link</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.warning-subtle</code><br><small>#fff8eb</small></td>
+<td>text</td><td class="num">6.06:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#fdf2f2;color:#2456cc;">Aa</span></td>
+<td><code>text.link</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.danger-subtle</code><br><small>#fdf2f2</small></td>
+<td>text</td><td class="num">5.84:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#eff5ff;color:#1d45a6;">Aa</span></td>
+<td><code>text.info</code><br><small>#1d45a6 (color.blue.700)</small></td><td><code>bg.info-subtle</code><br><small>#eff5ff</small></td>
+<td>text</td><td class="num">7.81:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#effaf3;color:#17623a;">Aa</span></td>
+<td><code>text.success</code><br><small>#17623a (color.green.700)</small></td><td><code>bg.success-subtle</code><br><small>#effaf3</small></td>
+<td>text</td><td class="num">6.90:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#fff8eb;color:#8f4a0a;">Aa</span></td>
+<td><code>text.warning</code><br><small>#8f4a0a (color.amber.700)</small></td><td><code>bg.warning-subtle</code><br><small>#fff8eb</small></td>
+<td>text</td><td class="num">6.30:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#fdf2f2;color:#a32222;">Aa</span></td>
+<td><code>text.danger</code><br><small>#a32222 (color.red.700)</small></td><td><code>bg.danger-subtle</code><br><small>#fdf2f2</small></td>
+<td>text</td><td class="num">6.82:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#ffffff;color:#a32222;">Aa</span></td>
+<td><code>text.danger</code><br><small>#a32222 (color.red.700)</small></td><td><code>bg.surface</code><br><small>#ffffff</small></td>
+<td>text</td><td class="num">7.47:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#f7f8fa;color:#a32222;">Aa</span></td>
+<td><code>text.danger</code><br><small>#a32222 (color.red.700)</small></td><td><code>bg.canvas</code><br><small>#f7f8fa</small></td>
+<td>text</td><td class="num">7.03:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#ffffff;color:#6b7480;box-shadow:inset 0 0 0 2px #6b7480">&nbsp;</span></td>
+<td><code>border.input</code><br><small>#6b7480 (color.gray.500)</small></td><td><code>bg.surface</code><br><small>#ffffff</small></td>
+<td>ui</td><td class="num">4.73:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#f7f8fa;color:#6b7480;box-shadow:inset 0 0 0 2px #6b7480">&nbsp;</span></td>
+<td><code>border.input</code><br><small>#6b7480 (color.gray.500)</small></td><td><code>bg.canvas</code><br><small>#f7f8fa</small></td>
+<td>ui</td><td class="num">4.45:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#eef0f3;color:#6b7480;box-shadow:inset 0 0 0 2px #6b7480">&nbsp;</span></td>
+<td><code>border.input</code><br><small>#6b7480 (color.gray.500)</small></td><td><code>bg.subtle</code><br><small>#eef0f3</small></td>
+<td>ui</td><td class="num">4.14:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#f7f8fa;color:#2456cc;box-shadow:inset 0 0 0 2px #2456cc">&nbsp;</span></td>
+<td><code>border.focus</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.canvas</code><br><small>#f7f8fa</small></td>
+<td>ui</td><td class="num">6.02:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#ffffff;color:#2456cc;box-shadow:inset 0 0 0 2px #2456cc">&nbsp;</span></td>
+<td><code>border.focus</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.surface</code><br><small>#ffffff</small></td>
+<td>ui</td><td class="num">6.40:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#eef0f3;color:#2456cc;box-shadow:inset 0 0 0 2px #2456cc">&nbsp;</span></td>
+<td><code>border.focus</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.subtle</code><br><small>#eef0f3</small></td>
+<td>ui</td><td class="num">5.61:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#ffffff;color:#c42b2b;box-shadow:inset 0 0 0 2px #c42b2b">&nbsp;</span></td>
+<td><code>border.danger</code><br><small>#c42b2b (color.red.600)</small></td><td><code>bg.surface</code><br><small>#ffffff</small></td>
+<td>ui</td><td class="num">5.63:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#fdf2f2;color:#c42b2b;box-shadow:inset 0 0 0 2px #c42b2b">&nbsp;</span></td>
+<td><code>border.danger</code><br><small>#c42b2b (color.red.600)</small></td><td><code>bg.danger-subtle</code><br><small>#fdf2f2</small></td>
+<td>ui</td><td class="num">5.13:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#eff5ff;color:#2456cc;box-shadow:inset 0 0 0 2px #2456cc">&nbsp;</span></td>
+<td><code>border.info</code><br><small>#2456cc (color.blue.600)</small></td><td><code>bg.info-subtle</code><br><small>#eff5ff</small></td>
+<td>ui</td><td class="num">5.84:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#effaf3;color:#1d7a47;box-shadow:inset 0 0 0 2px #1d7a47">&nbsp;</span></td>
+<td><code>border.success</code><br><small>#1d7a47 (color.green.600)</small></td><td><code>bg.success-subtle</code><br><small>#effaf3</small></td>
+<td>ui</td><td class="num">5.00:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>light</td>
+<td><span class="sample" style="background:#fff8eb;color:#b25e09;box-shadow:inset 0 0 0 2px #b25e09">&nbsp;</span></td>
+<td><code>border.warning</code><br><small>#b25e09 (color.amber.600)</small></td><td><code>bg.warning-subtle</code><br><small>#fff8eb</small></td>
+<td>ui</td><td class="num">4.41:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#0f1216;color:#f7f8fa;">Aa</span></td>
+<td><code>text.default</code><br><small>#f7f8fa (color.gray.50)</small></td><td><code>bg.canvas</code><br><small>#0f1216</small></td>
+<td>text</td><td class="num">17.66:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#181c22;color:#f7f8fa;">Aa</span></td>
+<td><code>text.default</code><br><small>#f7f8fa (color.gray.50)</small></td><td><code>bg.surface</code><br><small>#181c22</small></td>
+<td>text</td><td class="num">16.09:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#272d36;color:#f7f8fa;">Aa</span></td>
+<td><code>text.default</code><br><small>#f7f8fa (color.gray.50)</small></td><td><code>bg.subtle</code><br><small>#272d36</small></td>
+<td>text</td><td class="num">13.04:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#18243f;color:#f7f8fa;">Aa</span></td>
+<td><code>text.default</code><br><small>#f7f8fa (color.gray.50)</small></td><td><code>bg.info-subtle</code><br><small>#18243f</small></td>
+<td>text</td><td class="num">14.49:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#12271c;color:#f7f8fa;">Aa</span></td>
+<td><code>text.default</code><br><small>#f7f8fa (color.gray.50)</small></td><td><code>bg.success-subtle</code><br><small>#12271c</small></td>
+<td>text</td><td class="num">14.82:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#30210f;color:#f7f8fa;">Aa</span></td>
+<td><code>text.default</code><br><small>#f7f8fa (color.gray.50)</small></td><td><code>bg.warning-subtle</code><br><small>#30210f</small></td>
+<td>text</td><td class="num">14.63:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#351819;color:#f7f8fa;">Aa</span></td>
+<td><code>text.default</code><br><small>#f7f8fa (color.gray.50)</small></td><td><code>bg.danger-subtle</code><br><small>#351819</small></td>
+<td>text</td><td class="num">15.24:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#0f1216;color:#9aa3af;">Aa</span></td>
+<td><code>text.muted</code><br><small>#9aa3af (color.gray.400)</small></td><td><code>bg.canvas</code><br><small>#0f1216</small></td>
+<td>text</td><td class="num">7.36:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#181c22;color:#9aa3af;">Aa</span></td>
+<td><code>text.muted</code><br><small>#9aa3af (color.gray.400)</small></td><td><code>bg.surface</code><br><small>#181c22</small></td>
+<td>text</td><td class="num">6.70:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#272d36;color:#9aa3af;">Aa</span></td>
+<td><code>text.muted</code><br><small>#9aa3af (color.gray.400)</small></td><td><code>bg.subtle</code><br><small>#272d36</small></td>
+<td>text</td><td class="num">5.43:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#93b4fa;color:#0f1216;">Aa</span></td>
+<td><code>text.on-accent</code><br><small>#0f1216 (color.gray.950)</small></td><td><code>bg.accent</code><br><small>#93b4fa</small></td>
+<td>text</td><td class="num">9.07:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#bfd4fd;color:#0f1216;">Aa</span></td>
+<td><code>text.on-accent</code><br><small>#0f1216 (color.gray.950)</small></td><td><code>bg.accent-hover</code><br><small>#bfd4fd</small></td>
+<td>text</td><td class="num">12.56:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#f2a1a1;color:#0f1216;">Aa</span></td>
+<td><code>text.on-accent</code><br><small>#0f1216 (color.gray.950)</small></td><td><code>bg.danger</code><br><small>#f2a1a1</small></td>
+<td>text</td><td class="num">9.28:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#fbe0e0;color:#0f1216;">Aa</span></td>
+<td><code>text.on-accent</code><br><small>#0f1216 (color.gray.950)</small></td><td><code>bg.danger-hover</code><br><small>#fbe0e0</small></td>
+<td>text</td><td class="num">15.05:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#0f1216;color:#93b4fa;">Aa</span></td>
+<td><code>text.link</code><br><small>#93b4fa (color.blue.300)</small></td><td><code>bg.canvas</code><br><small>#0f1216</small></td>
+<td>text</td><td class="num">9.07:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#181c22;color:#93b4fa;">Aa</span></td>
+<td><code>text.link</code><br><small>#93b4fa (color.blue.300)</small></td><td><code>bg.surface</code><br><small>#181c22</small></td>
+<td>text</td><td class="num">8.26:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#18243f;color:#93b4fa;">Aa</span></td>
+<td><code>text.link</code><br><small>#93b4fa (color.blue.300)</small></td><td><code>bg.info-subtle</code><br><small>#18243f</small></td>
+<td>text</td><td class="num">7.44:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#12271c;color:#93b4fa;">Aa</span></td>
+<td><code>text.link</code><br><small>#93b4fa (color.blue.300)</small></td><td><code>bg.success-subtle</code><br><small>#12271c</small></td>
+<td>text</td><td class="num">7.61:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#30210f;color:#93b4fa;">Aa</span></td>
+<td><code>text.link</code><br><small>#93b4fa (color.blue.300)</small></td><td><code>bg.warning-subtle</code><br><small>#30210f</small></td>
+<td>text</td><td class="num">7.51:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#351819;color:#93b4fa;">Aa</span></td>
+<td><code>text.link</code><br><small>#93b4fa (color.blue.300)</small></td><td><code>bg.danger-subtle</code><br><small>#351819</small></td>
+<td>text</td><td class="num">7.83:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#18243f;color:#bfd4fd;">Aa</span></td>
+<td><code>text.info</code><br><small>#bfd4fd (color.blue.200)</small></td><td><code>bg.info-subtle</code><br><small>#18243f</small></td>
+<td>text</td><td class="num">10.30:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#12271c;color:#7fd0a0;">Aa</span></td>
+<td><code>text.success</code><br><small>#7fd0a0 (color.green.300)</small></td><td><code>bg.success-subtle</code><br><small>#12271c</small></td>
+<td>text</td><td class="num">8.57:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#30210f;color:#f8c056;">Aa</span></td>
+<td><code>text.warning</code><br><small>#f8c056 (color.amber.300)</small></td><td><code>bg.warning-subtle</code><br><small>#30210f</small></td>
+<td>text</td><td class="num">9.38:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#351819;color:#f2a1a1;">Aa</span></td>
+<td><code>text.danger</code><br><small>#f2a1a1 (color.red.300)</small></td><td><code>bg.danger-subtle</code><br><small>#351819</small></td>
+<td>text</td><td class="num">8.01:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#181c22;color:#f2a1a1;">Aa</span></td>
+<td><code>text.danger</code><br><small>#f2a1a1 (color.red.300)</small></td><td><code>bg.surface</code><br><small>#181c22</small></td>
+<td>text</td><td class="num">8.45:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#0f1216;color:#f2a1a1;">Aa</span></td>
+<td><code>text.danger</code><br><small>#f2a1a1 (color.red.300)</small></td><td><code>bg.canvas</code><br><small>#0f1216</small></td>
+<td>text</td><td class="num">9.28:1</td><td class="num">4.5:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#181c22;color:#9aa3af;box-shadow:inset 0 0 0 2px #9aa3af">&nbsp;</span></td>
+<td><code>border.input</code><br><small>#9aa3af (color.gray.400)</small></td><td><code>bg.surface</code><br><small>#181c22</small></td>
+<td>ui</td><td class="num">6.70:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#0f1216;color:#9aa3af;box-shadow:inset 0 0 0 2px #9aa3af">&nbsp;</span></td>
+<td><code>border.input</code><br><small>#9aa3af (color.gray.400)</small></td><td><code>bg.canvas</code><br><small>#0f1216</small></td>
+<td>ui</td><td class="num">7.36:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#272d36;color:#9aa3af;box-shadow:inset 0 0 0 2px #9aa3af">&nbsp;</span></td>
+<td><code>border.input</code><br><small>#9aa3af (color.gray.400)</small></td><td><code>bg.subtle</code><br><small>#272d36</small></td>
+<td>ui</td><td class="num">5.43:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#0f1216;color:#93b4fa;box-shadow:inset 0 0 0 2px #93b4fa">&nbsp;</span></td>
+<td><code>border.focus</code><br><small>#93b4fa (color.blue.300)</small></td><td><code>bg.canvas</code><br><small>#0f1216</small></td>
+<td>ui</td><td class="num">9.07:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#181c22;color:#93b4fa;box-shadow:inset 0 0 0 2px #93b4fa">&nbsp;</span></td>
+<td><code>border.focus</code><br><small>#93b4fa (color.blue.300)</small></td><td><code>bg.surface</code><br><small>#181c22</small></td>
+<td>ui</td><td class="num">8.26:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#272d36;color:#93b4fa;box-shadow:inset 0 0 0 2px #93b4fa">&nbsp;</span></td>
+<td><code>border.focus</code><br><small>#93b4fa (color.blue.300)</small></td><td><code>bg.subtle</code><br><small>#272d36</small></td>
+<td>ui</td><td class="num">6.69:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#181c22;color:#f2a1a1;box-shadow:inset 0 0 0 2px #f2a1a1">&nbsp;</span></td>
+<td><code>border.danger</code><br><small>#f2a1a1 (color.red.300)</small></td><td><code>bg.surface</code><br><small>#181c22</small></td>
+<td>ui</td><td class="num">8.45:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#351819;color:#f2a1a1;box-shadow:inset 0 0 0 2px #f2a1a1">&nbsp;</span></td>
+<td><code>border.danger</code><br><small>#f2a1a1 (color.red.300)</small></td><td><code>bg.danger-subtle</code><br><small>#351819</small></td>
+<td>ui</td><td class="num">8.01:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#18243f;color:#6090f5;box-shadow:inset 0 0 0 2px #6090f5">&nbsp;</span></td>
+<td><code>border.info</code><br><small>#6090f5 (color.blue.400)</small></td><td><code>bg.info-subtle</code><br><small>#18243f</small></td>
+<td>ui</td><td class="num">4.99:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#12271c;color:#7fd0a0;box-shadow:inset 0 0 0 2px #7fd0a0">&nbsp;</span></td>
+<td><code>border.success</code><br><small>#7fd0a0 (color.green.300)</small></td><td><code>bg.success-subtle</code><br><small>#12271c</small></td>
+<td>ui</td><td class="num">8.57:1</td><td class="num">3:1</td><td>Pass</td></tr>
+<tr class=""><td>dark</td>
+<td><span class="sample" style="background:#30210f;color:#f8c056;box-shadow:inset 0 0 0 2px #f8c056">&nbsp;</span></td>
+<td><code>border.warning</code><br><small>#f8c056 (color.amber.300)</small></td><td><code>bg.warning-subtle</code><br><small>#30210f</small></td>
+<td>ui</td><td class="num">9.38:1</td><td class="num">3:1</td><td>Pass</td></tr>
+</tbody></table></body></html>

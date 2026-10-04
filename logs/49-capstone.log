@@ -1,0 +1,316 @@
+# 49-capstone run 2026-10-04T06:07:55Z
+== fresh Postgres for the portal (docker compose down -v && up) and no earlier build ==
+ Container 49-capstone-postgres-1 Healthy 
+setup: 3 organisations, 24 members (Acme 12, Globex 8, Initech 4), 144 contributions
+setup: 67 usage events and 17 approved changes over the last four weeks; 1 pending change, filed by staff (sam) for Gil Novak
+setup: RLS on members, contributions, change_requests, events; 7 policies: change_request_approve, change_request_create, change_request_read, contribution_read, event_create, event_read, member_read
+== unit tests (Vitest): IBAN rules, the authorization policy, the catalogues and Intl formats ==
+
+ RUN  v5.0.3 <repo>/49-capstone
+
+ ✓ src/lib/policy.test.ts > can() > a member reads their own contributions only 3ms
+ ✓ src/lib/policy.test.ts > can() > an employer admin reads their organisation's members, not another's 0ms
+ ✓ src/lib/policy.test.ts > can() > staff approve a pending change someone else asked for 0ms
+ ✓ src/lib/policy.test.ts > can() > four eyes: staff never approve their own request 0ms
+ ✓ src/lib/policy.test.ts > can() > an approved change is not approved again 0ms
+ ✓ src/lib/policy.test.ts > can() > deny by default: unknown role, missing user, inherited property names 0ms
+ ✓ src/lib/policy.test.ts > can() > only staff read the KPIs 1ms
+ ✓ src/lib/bank.test.ts > IBAN check digits > accepts FR76 3000 6000 0112 3456 7890 189 2ms
+ ✓ src/lib/bank.test.ts > IBAN check digits > accepts DE89 3704 0044 0532 0130 00 0ms
+ ✓ src/lib/bank.test.ts > IBAN check digits > accepts GB82 WEST 1234 5698 7654 32 0ms
+ ✓ src/lib/bank.test.ts > IBAN check digits > accepts nl91abna0417164300 0ms
+ ✓ src/lib/bank.test.ts > IBAN check digits > refuses one changed digit 1ms
+ ✓ src/lib/bank.test.ts > IBAN check digits > computes the check digits of seed data 0ms
+ ✓ src/lib/bank.test.ts > validateBank > accepts a valid request 0ms
+ ✓ src/lib/bank.test.ts > validateBank > asks for both fields when empty 0ms
+ ✓ src/lib/bank.test.ts > validateBank > explains the format before the checksum 1ms
+ ✓ src/lib/bank.test.ts > validateBank > catches a typo with the checksum 0ms
+ ✓ src/lib/bank.test.ts > display > groups by four 0ms
+ ✓ src/lib/bank.test.ts > display > masks all but the country and the last four 0ms
+ ✓ src/lib/i18n.test.ts > catalogues > French has every English key, with the same ICU arguments 13ms
+ ✓ src/lib/i18n.test.ts > formatting > money 18ms
+ ✓ src/lib/i18n.test.ts > formatting > months 6ms
+ ✓ src/lib/i18n.test.ts > formatting > plurals, including French singular zero 3ms
+ ✓ src/lib/i18n.test.ts > formatting > select on the role 0ms
+ ✓ src/lib/i18n.test.ts > Accept-Language > fr-FR,fr;q=0.9,en;q=0.8 -> fr 1ms
+ ✓ src/lib/i18n.test.ts > Accept-Language > de-DE,de;q=0.9 -> en 0ms
+ ✓ src/lib/i18n.test.ts > Accept-Language > en-GB;q=0.5, fr-CA -> fr 0ms
+ ✓ src/lib/i18n.test.ts > Accept-Language > fr;q=0, * -> en 1ms
+
+ Test Files  3 passed (3)
+      Tests  28 passed (28)
+   Start at  06:08:12
+   Duration  583ms (transform 71%, import 16%, tests 11%, worker 2%)
+
+== build: next build. Every page reads the session cookie, so every route is dynamic (ƒ), rendered per request ==
+▲ Next.js 16.3.8 (Turbopack)
+✓ Running next.config.ts took 43ms
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.1s
+  Running TypeScript ...
+  Finished TypeScript in 5.0s ...
+  Collecting page data using 3 workers ...
+  Generating static pages using 3 workers (0/8) ...
+  Generating static pages using 3 workers (2/8) 
+  Generating static pages using 3 workers (4/8) 
+  Generating static pages using 3 workers (6/8) 
+✓ Generating static pages using 3 workers (8/8) in 204ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ƒ /_not-found
+├ ƒ /bank
+├ ƒ /callback
+├ ƒ /dashboard
+├ ƒ /employer
+├ ƒ /lang
+├ ƒ /login
+├ ƒ /logout
+├ ƒ /staff/approvals
+└ ƒ /staff/kpis
+
+
+ƒ  (Dynamic)  server-rendered on demand
+
+== journeys (@playwright/test): the IdP and next start as web servers, one worker, axe on every page ==
+
+Running 3 tests using 1 worker
+
+  ✓  1 e2e/journeys.spec.ts:6:1 › 1. a member signs in, sees contributions, fixes a bank form error, sends the change, switches to French (3.6s)
+  ✓  2 e2e/journeys.spec.ts:32:1 › 2. an employer admin sees her organisation's members, and only those (1.5s)
+  ✓  3 e2e/journeys.spec.ts:43:1 › 3. staff approve the member's change, not their own, and read the KPI tiles (2.2s)
+
+  3 passed (11.7s)
+== fresh data for the demo: setup again ==
+setup: 3 organisations, 24 members (Acme 12, Globex 8, Initech 4), 144 contributions
+setup: 67 usage events and 17 approved changes over the last four weeks; 1 pending change, filed by staff (sam) for Gil Novak
+setup: RLS on members, contributions, change_requests, events; 7 policies: change_request_approve, change_request_create, change_request_read, contribution_read, event_create, event_read, member_read
+== demo: the three journeys in Chromium, step by step, with checks, axe and the screenshots (IdP on :53159, portal on :53059) ==
+▲ Next.js 16.3.8
+- Local:         http://localhost:53059
+- Network:       http://192.0.2.2:53059
+✓ Ready in 173ms
+✓ Running next.config.ts took 51ms
+oidc-provider WARNING: a quick start development-only in-memory adapter is used, you MUST change it in order to not lose all stateful provider data upon restart and to be able to share these between processes
+   [idp pid 24066] OpenID Provider (oidc-provider) at http://127.0.0.1:53159
+   [portal pid 24069] next start (server-rendered pages, server actions, route handlers) at http://localhost:53059
+
+## 1. The look comes from 35-design-tokens
+   concept: tokens.css (generated from the DTCG tokens) and components.css are copied unchanged; the portal adds a layout file that uses semantic tokens only, so light and dark both come from the tokens
+   ok: src/styles/tokens.css is byte-identical to 35-design-tokens/out/tokens.css
+   ok: src/styles/components.css is byte-identical to 35-design-tokens/src/components/components.css
+   src/styles/portal.css: 30 distinct tokens used, colour literals: none
+   ok: portal.css has no colour literal: every colour is a token
+
+## 2. Journey 1: Ana, a member, signs in with OpenID Connect (26-sso)
+   concept: authorization code flow with PKCE: the portal keeps state, nonce and the code verifier server-side, sends only the S256 challenge, swaps the code for tokens on the back channel, and maps the IdP's groups to a portal role
+   axe / (signed out)                         0 violations
+   GET http://127.0.0.1:53159/auth ? redirect_uri, scope, state, nonce, code_challenge, code_challenge_method, client_id, response_type
+     code_challenge_method=S256, code_challenge=YeSGl_BXZvtn..., scope=openid email profile portal
+   ok: the browser is sent to the IdP with a PKCE S256 challenge, a state and a nonce, and no secret
+   axe IdP sign-in page                       0 violations
+   back at /dashboard; cookie sid: HttpOnly=true, SameSite=Lax; users row: {"sub":"ana","role":"member","org_id":"acme","member_id":"M0001"}
+   ok: signed in as a member of Acme (group portal-members, member_no M0001), in an HttpOnly session cookie
+   ok: the session table holds the cookie's sha256, never the cookie
+   ok: the login transaction was consumed by the callback
+
+## 3. The dashboard: a server-rendered page (20-portal) over RLS (37-authorization), formatted with Intl (25-bilingual)
+   concept: the page is an async server component; its query runs as the `app` role with Ana's identity set for the transaction, so RLS filters it too; amounts go through Intl.NumberFormat, months through Intl.DateTimeFormat
+   Hello Ana | 6 months | total €2,343.75 (SQL: 2343.75) | first row: September 2026 €162.50 €243.75 €406.25
+   ok: six months of contributions, and the total is the database's sum, formatted en-GB
+   axe /dashboard (en)                        0 violations
+   as app role with Ana's identity, no WHERE clause: contributions 6 of 144, members 1 of 24, events 0 of 69
+   ok: RLS alone limits a member to her own rows, even for a query without a WHERE clause
+
+## 4. Changing bank details: validation errors, then success (21-accessibility, 35's components, 20's server action)
+   concept: the server action validates (IBAN mod 97), returns translated errors with the values kept; the form shows 21's error summary, which takes focus and links to each field, 35's TextField marks each input aria-invalid with its message; a valid request is written and redirected (Post/Redirect/Get)
+     summary link: Enter the account holder’s name
+     summary link: Check the IBAN: its check digits do not match
+   focus on the error summary; aria-invalid on: holder, iban; #iban aria-describedby="iban-hint iban-error"; title "Error: Change your bank details · Member portal"
+   ok: two errors, summarised and focused, each field aria-invalid with its message, 'Error: ' in the title
+   ok: the IBAN error is the checksum one, and the typed IBAN is kept
+   ok: nothing is written for an invalid request
+   axe /bank with errors (en)                 0 violations
+   ok: a summary link moves focus to its field
+   303 to /dashboard?sent=1; change_requests: {"member_id":"M0001","requested_by":"ana","status":"pending","value":{"iban":"FR7630006000011234567890189","holder":"Ana Martin"}}
+   ok: a pending request, as Ana, with the IBAN normalised; the dashboard confirms it
+   axe /dashboard?sent=1 (en)                 0 violations
+
+## 5. Ana switches the language (25-bilingual)
+   concept: the switch stores the choice in a cookie and returns to the same page; every string comes from the French ICU catalogue, numbers and dates from Intl with fr-FR, and <html lang> follows
+   <html lang="fr"> | Bonjour Ana | total 2⍽343,75 € (⍽ = narrow no-break space) | first month "septembre 2026" | status: Demande envoyée
+   ok: French page: lang=fr, French message, French number and month formats
+   ok: the choice is a cookie (lang=fr)
+   axe /dashboard?sent=1 (fr)                 0 violations
+
+## 6. Ben's browser asks for French (Accept-Language), and gets the bank form's errors in French
+   concept: with no cookie, the language comes from Accept-Language (RFC 9110 / 4647 lookup in negotiate.ts); the server action translates its errors with the same catalogue, and the hidden 'Error: ' prefix of 35's TextField is translated too
+   Accept-Language: fr-FR -> Votre retraite, au même endroit
+   ok: a French browser gets the French landing page
+   axe / (signed out, fr)                     0 violations
+   Saisissez le nom du titulaire du compte | Saisissez l’IBAN; title "Erreur : Modifier vos coordonnées bancaires · Espace adhérent"; hidden prefix "Erreur : "
+   ok: French errors, French title prefix, French hidden prefix
+   axe /bank with errors (fr)                 0 violations
+
+## 7. Journey 2: Erin, an employer admin, sees her organisation's members (37-authorization)
+   concept: the IdP group acme-hr maps to employer_admin of Acme; the page asks for Acme's members and RLS would return no others anyway; member pages are not hers
+   landed on /employer: Acme members | 12 members in your organisation | M0001 .. M0012
+   ok: Erin sees exactly Acme's 12 members
+   axe /employer (en)                         0 violations
+   GET /dashboard as Erin -> /employer
+   ok: /dashboard is not an employer admin's page: sent back to /employer
+   GET /staff/kpis as Erin -> /employer
+   ok: /staff/kpis is not an employer admin's page: sent back to /employer
+   as app role with Erin's identity, no WHERE clause: members 12 (organisations: acme), events 0
+   ok: RLS gives an employer admin her organisation's members only, and no usage events
+
+## 8. Journey 3: Sam, staff, approves Ana's change, not his own (37-authorization, four eyes)
+   concept: the page asks can() for each row: Ana's request gets a button, the one Sam filed for Gil does not; the approval runs under RLS, whose WITH CHECK says requested_by <> the approver; a trigger applies the approved details to the member record
+     Gil Novak Globex Sam Okafor DE89 •••• 3000 3 Oct 2026, 10:08 You asked for this change: another member of staff approves it
+     Ana Martin Acme Ana Martin FR76 •••• 0189 4 Oct 2026, 06:08 Approve the change for Ana Martin
+   ok: two pending changes, one Approve button (Ana's); Sam's own request says another approver is needed
+   axe /staff/approvals (en)                  0 violations
+   Change approved: {"status":"approved","approved_by":"sam","stamped":true}; members M0001 now {"holder":"Ana Martin","iban":"FR7630006000011234567890189"}
+   ok: approved by Sam, and the trigger applied the new IBAN to Ana's record
+   axe /staff/approvals?approved (en)         0 violations
+   as Sam, approving his own request #18 straight in SQL: 42501 new row violates row-level security policy for table "change_requests"
+   ok: four eyes in the database: Sam's own request is refused even without the page
+   as Sky (another member of staff), the same UPDATE: 1 row (rolled back, so the screenshot and the proof below still show it pending)
+   ok: another member of staff may approve it
+
+## 9. Sam opens the KPI page: usage events become KPI tiles (29-kpis)
+   concept: every page and action above recorded a usage event as the user (RLS: only your own events, only staff read them); each KPI is SQL over those events with a target and an owner, shown as a tile whose status is text and icon, not colour alone
+   events recorded during this run: bank_change_rejected=2, bank_change_started=2, bank_change_submitted=1, change_approved=1, dashboard_viewed=4, employer_members_viewed=3, language_switched=1, login=4
+   ok: the journeys left their trace: 4 logins, 2 bank-form rejections, 1 submission, 1 language switch, 1 approval
+     adoption       62.5%  Target met     15 members out of 24 signed in
+     task_success   81.8%  Target missed  18 sessions out of 22 sent a request
+     form_errors      28%  Target missed  7 submissions out of 25 rejected
+     approval_sla   94.1%  Target met     16 approvals out of 17 on time
+   ok: adoption is the members who signed in over all members (15/24), Ana and Ben included
+   ok: four tiles, each with a met or missed status in words
+   axe /staff/kpis (en)                       0 violations
+
+## 10. Ana's dashboard after the approval, in dark mode and on a phone
+   concept: Ana switches back to English; dark mode is the tokens' prefers-color-scheme block, nothing in the portal; at 390 px the layout stacks into one column without horizontal scrolling
+   body background in dark mode: rgb(15, 18, 22); IBAN on the dashboard: FR76 3000 6000 0112 3456 7890 189
+   ok: dark canvas from the tokens (gray-950), and the approved IBAN shows
+   axe /dashboard (en, dark)                  0 violations
+   390 px wide: document scrollWidth 390
+   ok: no horizontal scrolling at 390 px
+   axe /dashboard (en, 390 px)                0 violations
+
+## 11. What the run checked in the browser
+   concept: axe-core with the WCAG 2.0-2.2 A and AA rules on every page above; screenshots kept under 300 KB so the README loads fast
+   axe: 14 page states scanned, 0 violations
+   ok: axe finds no violation on any page, in English and French, light and dark, desktop and phone
+   screenshots/signin-portal.png   30 KB
+   screenshots/signin-idp.png   18 KB
+   screenshots/member-dashboard.png   70 KB
+   screenshots/member-bank-errors.png   59 KB
+   screenshots/member-bank-sent.png   77 KB
+   screenshots/member-dashboard-fr.png   79 KB
+   screenshots/signin-portal-fr.png   31 KB
+   screenshots/member-bank-errors-fr.png   56 KB
+   screenshots/employer-members.png   94 KB
+   screenshots/staff-approvals.png   49 KB
+   screenshots/staff-approved.png   47 KB
+   screenshots/staff-kpis.png   73 KB
+   screenshots/member-dashboard-dark.png   72 KB
+   screenshots/member-dashboard-mobile.png   55 KB
+   ok: 14 screenshots, each under 300 KB
+
+all checks passed
+
+== proof: users, provisioned at their first sign-in from the ID token; the role comes from the IdP group ==
+   idp_group    |      role      | org_id 
+----------------+----------------+--------
+ acme-hr        | employer_admin | acme
+ globex-hr      | employer_admin | globex
+ portal-members | member         | 
+ portal-staff   | staff          | 
+(4 rows)
+
+ sub  |    name    |      role      | org_id | member_id 
+------+------------+----------------+--------+-----------
+ ana  | Ana Martin | member         | acme   | M0001
+ ben  | Ben Dubois | member         | acme   | M0002
+ erin | Erin Walsh | employer_admin | acme   | 
+ sam  | Sam Okafor | staff          |        | 
+(4 rows)
+
+== proof: sessions hold the sha256 of each cookie, never the cookie; no login transaction left behind ==
+  id_hash_prefix  | user_sub | lifetime 
+------------------+----------+----------
+ 7d1587a482b0d73a | ana      | 08:00:00
+ 753ba5ea3a0d131e | ben      | 08:00:00
+ 149766f786fda141 | erin     | 08:00:00
+ 2e5704086b6cf66e | sam      | 08:00:00
+(4 rows)
+
+ login_transactions_left 
+-------------------------
+                       0
+(1 row)
+
+== proof: change requests of the last day. Ana's approved by sam; the one sam filed for Gil still pending (four eyes) ==
+ id | member_id | requested_by |  status  | approved_by |            iban             
+----+-----------+--------------+----------+-------------+-----------------------------
+ 18 | M0013     | sam          | pending  |             | DE89370400440532013000
+ 19 | M0001     | ana          | approved | sam         | FR7630006000011234567890189
+(2 rows)
+
+== proof: the trigger applied the approved IBAN to Ana's member record ==
+  id   |    name    |   holder   |            iban             
+-------+------------+------------+-----------------------------
+ M0001 | Ana Martin | Ana Martin | FR7630006000011234567890189
+(1 row)
+
+== proof: the RLS policies, and the app role the portal logs in as (not a superuser, no BYPASSRLS) ==
+    tablename    |       policyname       |  cmd   |                             using                             |                                                                             with_check                                                                             
+-----------------+------------------------+--------+---------------------------------------------------------------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ change_requests | change_request_create  | INSERT |                                                               | ((app_role() = 'member'::text) AND (rel(member_id) = 'own record'::text) AND (requested_by = app_user()) AND (status = 'pending'::text) AND (approved_by IS NULL))
+ change_requests | change_request_read    | SELECT | can_read_member_data(member_id)                               | 
+ change_requests | change_request_approve | UPDATE | ((app_role() = 'staff'::text) AND (status = 'pending'::text)) | ((app_role() = 'staff'::text) AND (status = 'approved'::text) AND (approved_by = app_user()) AND (requested_by <> app_user()))
+ contributions   | contribution_read      | SELECT | can_read_member_data(member_id)                               | 
+ events          | event_create           | INSERT |                                                               | (user_sub = app_user())
+ events          | event_read             | SELECT | (app_role() = 'staff'::text)                                  | 
+ members         | member_read            | SELECT | can_read_member_data(id)                                      | 
+(7 rows)
+
+ rolname  | rolsuper | rolbypassrls 
+----------+----------+--------------
+ app      | f        | f
+ postgres | t        | t
+(2 rows)
+
+== proof: the usage events the demo's journeys recorded (the seeded history has sessions named h-...) ==
+          name           | events |        users        
+-------------------------+--------+---------------------
+ bank_change_rejected    |      2 | ana, ben
+ bank_change_started     |      2 | ana, ben
+ bank_change_submitted   |      1 | ana
+ change_approved         |      1 | sam
+ dashboard_viewed        |      7 | ana, ben
+ employer_members_viewed |      3 | erin
+ kpis_viewed             |      1 | sam
+ language_switched       |      2 | ana
+ login                   |      4 | ana, ben, erin, sam
+(9 rows)
+
+== proof: screenshots (bytes) ==
+96071 screenshots/employer-members.png
+57072 screenshots/member-bank-errors-fr.png
+60500 screenshots/member-bank-errors.png
+78904 screenshots/member-bank-sent.png
+73286 screenshots/member-dashboard-dark.png
+81246 screenshots/member-dashboard-fr.png
+56572 screenshots/member-dashboard-mobile.png
+71480 screenshots/member-dashboard.png
+17971 screenshots/signin-idp.png
+32108 screenshots/signin-portal-fr.png
+31207 screenshots/signin-portal.png
+49711 screenshots/staff-approvals.png
+47884 screenshots/staff-approved.png
+75174 screenshots/staff-kpis.png

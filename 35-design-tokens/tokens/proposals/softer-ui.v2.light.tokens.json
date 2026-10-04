@@ -1,0 +1,10 @@
+{
+  "$description": "Proposal from the design file, light mode, second export after the contrast check failed: muted text back to gray-600, the deeper brand blue kept.",
+  "color": {
+    "$type": "color",
+    "bg": {
+      "accent": { "$value": "{color.blue.700}", "$description": "Deeper brand blue." },
+      "accent-hover": { "$value": "{color.blue.800}" }
+    }
+  }
+}

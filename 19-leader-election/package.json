@@ -2,11 +2,15 @@
   "name": "19-leader-election",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "tsx src/setup.ts",
     "step": "tsx src/narrate.ts",
     "replica": "tsx src/replica.ts",
     "advisory": "tsx src/advisory.ts",
+    "verify": "tsx src/verify.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

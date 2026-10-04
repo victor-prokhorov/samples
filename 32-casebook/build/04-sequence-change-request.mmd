@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    actor M as Member
+    participant W as Web application
+    participant D as Database
+    participant K as Worker
+    actor S as Support staff
+    M->>W: POST /changes/address (form, works without JavaScript)
+    W->>W: validate server-side
+    alt invalid
+        W-->>M: 422 page with error summary, values kept
+    else valid
+        W->>D: one transaction: INSERT change_requests (submitted) and outbox
+        W-->>M: 303 to /requests/CR-1042
+    end
+    K->>D: claim outbox rows (FOR UPDATE SKIP LOCKED)
+    K-->>S: request appears in the queue
+    S->>W: approve CR-1042
+    W->>D: one transaction: UPDATE members, INSERT audit_log, UPDATE change_requests (approved), INSERT outbox
+    K->>D: claim outbox row
+    K-->>M: email "your request CR-1042 is approved"

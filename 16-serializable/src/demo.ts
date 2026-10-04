@@ -1,4 +1,5 @@
 import pg from "pg";
+import { check } from "./check.js";
 import { Level, db, isUniqueViolation, race, tx, withRetry } from "./db.js";
 
 const BUYERS = 20;
@@ -16,7 +17,7 @@ async function reset() {
   await db.query("INSERT INTO events VALUES ('concert', $1)", [AVAILABLE]);
 }
 
-async function report(results: PromiseSettledResult<unknown>[], truth: string, expected: number, expect: "OVERSOLD" | "correct") {
+async function report(results: PromiseSettledResult<unknown>[], truth: string, expected: number, expect: "OVERSOLD" | "correct", claim: string) {
   const sold = results.filter((r) => r.status === "fulfilled").length;
   const soldOut = results.filter((r) => r.status === "rejected" && r.reason instanceof SoldOut).length;
   const other = results.filter((r): r is PromiseRejectedResult => r.status === "rejected" && !(r.reason instanceof SoldOut));
@@ -27,10 +28,7 @@ async function report(results: PromiseSettledResult<unknown>[], truth: string, e
   const exact = other.length === 0 && actual === sold && sold === expected && sold + soldOut === BUYERS;
   const verdict = sold > expected || actual > expected ? "OVERSOLD" : exact ? "correct" : "MISMATCH";
   console.log(`   database: ${actual} recorded as sold for ${expected} available -> ${verdict}`);
-  if (verdict !== expect) {
-    console.log(`   UNEXPECTED: this scenario should end ${expect}`);
-    process.exitCode = 1;
-  }
+  check(claim, verdict === expect);
 }
 
 async function window(c: pg.Client) {
@@ -60,7 +58,7 @@ async function main() {
       await c.query("UPDATE products SET stock = $1 WHERE id = 'keyboard'", [rows[0].stock - 1]);
     }),
   );
-  await report(results, `SELECT ${AVAILABLE} - stock AS n FROM products WHERE id = 'keyboard'`, AVAILABLE, "OVERSOLD");
+  await report(results, `SELECT ${AVAILABLE} - stock AS n FROM products WHERE id = 'keyboard'`, AVAILABLE, "OVERSOLD", "lost update under READ COMMITTED: more buyers told \"sold\" than stock went down (oversold)");
   const stock = await db.query("SELECT stock FROM products WHERE id = 'keyboard'");
   console.log(`   stock left: ${stock.rows[0].stock} (every buyer read ${AVAILABLE} and wrote ${AVAILABLE - 1})`);
   step("2. Not needed: REPEATABLE READ catches the lost update", "the second writer of the same row gets 40001 instead of overwriting; retry the transaction and it reads the new stock");
@@ -83,16 +81,17 @@ async function main() {
       onRetry,
     ),
   );
-  await report(results, `SELECT ${AVAILABLE} - stock AS n FROM products WHERE id = 'keyboard'`, AVAILABLE, "correct");
+  await report(results, `SELECT ${AVAILABLE} - stock AS n FROM products WHERE id = 'keyboard'`, AVAILABLE, "correct", "REPEATABLE READ with retries sells exactly 10, no lost update");
   console.log(`   aborted with: ${[...aborts].join("; ")}`);
   console.log(`   retries this run: ${retries}`);
+  check("REPEATABLE READ aborted the second writers with \"concurrent update\" (40001)", retries > 0 && [...aborts].join() === "could not serialize access due to concurrent update");
   step("3. Not needed: one atomic statement", "UPDATE ... SET stock = stock - 1 WHERE stock > 0 locks the row and re-checks the condition; READ COMMITTED is enough");
   await reset();
   results = await race(BUYERS, async (c) => {
     const { rowCount } = await c.query("UPDATE products SET stock = stock - 1 WHERE id = 'keyboard' AND stock > 0");
     if (!rowCount) throw new SoldOut();
   });
-  await report(results, `SELECT ${AVAILABLE} - stock AS n FROM products WHERE id = 'keyboard'`, AVAILABLE, "correct");
+  await report(results, `SELECT ${AVAILABLE} - stock AS n FROM products WHERE id = 'keyboard'`, AVAILABLE, "correct", "one atomic UPDATE ... WHERE stock > 0 sells exactly 10");
   step("4. Not needed: a unique constraint", "20 buyers want seat A1; the check in the app is racy, but UNIQUE (event_id, seat) rejects every duplicate at insert");
   await reset();
   results = await race(BUYERS, (c, i) =>
@@ -105,27 +104,30 @@ async function main() {
       });
     }),
   );
-  await report(results, "SELECT count(*) AS n FROM tickets WHERE seat = 'A1'", 1, "correct");
+  await report(results, "SELECT count(*) AS n FROM tickets WHERE seat = 'A1'", 1, "correct", "UNIQUE (event_id, seat) sells seat A1 exactly once");
   step("5. Write skew (READ COMMITTED)", "capacity is a rule over many rows: count the tickets, then insert a new one; the ticket rows that would conflict do not exist yet, so all buyers pass the check");
   await reset();
   results = await race(BUYERS, (c, i) => buyByCount(c, "READ COMMITTED", `buyer-${i}`));
-  await report(results, soldTickets, AVAILABLE, "OVERSOLD");
+  await report(results, soldTickets, AVAILABLE, "OVERSOLD", "write skew happens under READ COMMITTED: oversold");
   step("6. Write skew (REPEATABLE READ)", "a snapshot makes each transaction's reads stable, but they still do not see each other's inserts: same oversell");
   await reset();
   results = await race(BUYERS, (c, i) => buyByCount(c, "REPEATABLE READ", `buyer-${i}`));
-  await report(results, soldTickets, AVAILABLE, "OVERSOLD");
+  await report(results, soldTickets, AVAILABLE, "OVERSOLD", "write skew happens under REPEATABLE READ too: oversold");
   step("7. Needed: SERIALIZABLE, with retries", "Postgres tracks read/write dependencies (SSI) and aborts one side of each conflict with 40001; the app retries the whole transaction");
   await reset();
   retries = 0;
   aborts.clear();
   results = await race(BUYERS, (c, i) => withRetry(() => buyByCount(c, "SERIALIZABLE", `buyer-${i}`), onRetry));
-  await report(results, soldTickets, AVAILABLE, "correct");
+  await report(results, soldTickets, AVAILABLE, "correct", "SERIALIZABLE with retries prevents the write skew: exactly 10 sold");
   console.log(`   aborted with: ${[...aborts].join("; ")}`);
   console.log(`   retries this run: ${retries}`);
+  check("SERIALIZABLE aborted one side of each conflict with \"read/write dependencies\" (40001)", retries > 0 && [...aborts].join() === "could not serialize access due to read/write dependencies among transactions");
   step("8. Alternative: lock the parent row", "SELECT ... FROM events FOR UPDATE turns the many-row rule into a one-row lock; READ COMMITTED, no retries, but buyers queue");
   await reset();
   results = await race(BUYERS, (c, i) => buyByCount(c, "READ COMMITTED", `buyer-${i}`, true));
-  await report(results, soldTickets, AVAILABLE, "correct");
+  await report(results, soldTickets, AVAILABLE, "correct", "locking the parent row under READ COMMITTED also sells exactly 10");
+  const { rows } = await db.query("SELECT count(*)::int AS tickets, count(DISTINCT buyer)::int AS buyers FROM tickets WHERE event_id = 'concert'");
+  check("the last scenario left exactly 10 tickets for 10 distinct buyers", rows[0].tickets === 10 && rows[0].buyers === 10);
   await db.end();
 }
 

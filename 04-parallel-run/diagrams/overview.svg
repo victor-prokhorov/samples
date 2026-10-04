@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1140" height="550" viewBox="0 0 1140 550" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">04. Parallel run: check a rewrite on real inputs</text>
+<rect x="40" y="200" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="130.0" y="226.0" font-size="16" text-anchor="middle">Request</text><text x="130.0" y="246.0" font-size="16" text-anchor="middle">1000 seeded</text><text x="130.0" y="266.0" font-size="16" text-anchor="middle">orders</text>
+<rect x="280" y="200" width="200" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="380.0" y="226.0" font-size="16" text-anchor="middle">Experiment</text><text x="380.0" y="246.0" font-size="16" text-anchor="middle">runs both,</text><text x="380.0" y="266.0" font-size="16" text-anchor="middle">random order</text>
+<rect x="560" y="130" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="690.0" y="161.0" font-size="16" text-anchor="middle">Control: legacy</text><text x="690.0" y="181.0" font-size="16" text-anchor="middle">its result is served</text>
+<rect x="560" y="280" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="690.0" y="311.0" font-size="16" text-anchor="middle">Candidate: rewrite</text><text x="690.0" y="331.0" font-size="16" text-anchor="middle">exceptions swallowed</text>
+<rect x="900" y="200" width="200" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1000.0" y="236.0" font-size="16" text-anchor="middle">Compare</text><text x="1000.0" y="256.0" font-size="16" text-anchor="middle">deep equality</text>
+<rect x="900" y="350" width="200" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1000.0" y="381.0" font-size="16" text-anchor="middle">Mismatch log</text><text x="1000.0" y="401.0" font-size="16" text-anchor="middle">with the input</text><text x="1000.0" y="421.0" font-size="16" text-anchor="middle">v1: 567, v2: 0</text>
+<rect x="40" y="370" width="440" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="260.0" y="401.0" font-size="16" text-anchor="middle">Cutover: swap the roles</text><text x="260.0" y="421.0" font-size="16" text-anchor="middle">rewrite serves, legacy becomes the check</text>
+<polyline points="220,240 280,240" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="480,215.8 560,196.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="480,264.2 560,283.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="820,196.5 900,215.8" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="820,283.5 900,264.2" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1000,280 1000,350" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="690,130 690,95 130,95 130,200" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="343.0" y="84.3" width="134.0" height="21.5" fill="#ffffff"/>
+<text x="410.0" y="100.3" font-size="14" text-anchor="middle">served to the user</text>
+<text x="40.0" y="486.0" font-size="16" text-anchor="start">Users always get the legacy answer while the rewrite is checked. v1 disagreed on 567 of 1000 orders</text><text x="40.0" y="506.0" font-size="16" text-anchor="start">(three bugs: empty carts, the &gt;= threshold, rounding); v2 on 0, then the roles swap.</text></svg>

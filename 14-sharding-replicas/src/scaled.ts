@@ -1,3 +1,4 @@
+import { check } from "./check.js";
 import { step } from "./log.js";
 import { Router } from "./router.js";
 import { closeAll, discover } from "./topology.js";
@@ -15,7 +16,9 @@ async function main() {
       hits.set(r.node, (hits.get(r.node) ?? 0) + 1);
     }
     console.log(`   shard ${s.id} (${s.replicas.length} replicas), ${s.replicas.length * 2} reads of ${customer}: ${[...hits].map(([n, c]) => `${n}=${c}`).join(", ")}`);
+    check(`shard ${s.id}: the router found all ${s.replicas.length} replicas and spread the reads evenly`, hits.size === s.replicas.length && [...hits.values()].every((c) => c === 2) && !hits.has(s.primary.name));
   }
+  check("the scaled cluster has 4 replicas on shard 0 and 3 on shard 1", shards[0].replicas.length === 4 && shards[1].replicas.length === 3);
   await closeAll(shards);
 }
 

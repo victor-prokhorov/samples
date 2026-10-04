@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import pg from "pg";
+import { check } from "./check.js";
 import { PG_URL } from "./config.js";
 
 const pool = new pg.Pool({ connectionString: PG_URL });
@@ -52,6 +53,10 @@ async function main() {
   await payOrder(id);
   step("3. Rollback drops the event too", "business write fails -> whole transaction rolls back -> no outbox row to publish");
   await placeOrder("bob", "99.00", true).catch((err) => console.log(`   rejected: ${err instanceof Error ? err.message : String(err)}`));
+  const orders = await pool.query("SELECT customer, status FROM orders ORDER BY id");
+  const outbox = await pool.query("SELECT type, aggregate_id, published_at FROM outbox ORDER BY id");
+  check("alice's order is paid and bob's rolled back: one order row", orders.rows.map((r) => `${r.customer}:${r.status}`).join() === "alice:paid");
+  check("two events wait in the outbox, both for alice's order; bob's event rolled back with his order", outbox.rows.map((r) => `${r.type}:${r.aggregate_id}:${r.published_at}`).join() === `OrderPlaced:${id}:null,OrderPaid:${id}:null`);
   await pool.end();
 }
 

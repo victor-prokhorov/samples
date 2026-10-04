@@ -1,0 +1,9 @@
+# Case studies
+
+Each case study takes several samples and reads them as one piece of work: the problem, with numbers from the samples' committed logs, the constraints, the decisions and what each one cost, what could go wrong and how it was guarded, and links to the proof. Each fits on about one page; the folder READMEs have the full story of each sample.
+
+| Case study | What it covers | Samples |
+| --- | --- | --- |
+| [Replacing a legacy member system safely](legacy-replacement.md) | Pinning undocumented rules, comparing on real traffic, moving capability by capability, schema changes with no downtime, idempotent file loads, flags, a partner CRM kept at the boundary, and a tested way back. | [24](../../24-characterization/), [04](../../04-parallel-run/), [05](../../05-strangler-fig/), [02](../../02-expand-contract/), [27](../../27-import/), [40](../../40-feature-flags/), [41](../../41-crm-integration/), [31](../../31-runbook/) |
+| [An accessible bilingual member portal](accessible-bilingual-portal.md) | Server rendering that works without JavaScript, accessible forms, English and French, single sign-on, one authorization policy, design tokens, performance budgets and security headers. | [20](../../20-portal/), [21](../../21-accessibility/), [25](../../25-bilingual/), [26](../../26-sso/), [35](../../35-design-tokens/), [39](../../39-web-performance/), [42](../../42-security-headers/), [37](../../37-authorization/), [49](../../49-capstone/) |
+| [Operating the service](operating-the-service.md) | KPIs and an SLO measured where members are, tracing, a gated pipeline, safe container cutovers, runbooks and a restore drill, rate limits per tenant, load tests and a resumable campaign. | [29](../../29-kpis/), [36](../../36-observability/), [31](../../31-runbook/), [30](../../30-pipeline/), [38](../../38-containers/), [45](../../45-rate-limiting/), [46](../../46-load-test/), [28](../../28-campaign/) |

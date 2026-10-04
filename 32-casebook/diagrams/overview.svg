@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1280" height="620" viewBox="0 0 1280 620" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">32. A design case whose documents are checked against each other</text>
+<rect x="40" y="130" width="300" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="190.0" y="171.0" font-size="16" text-anchor="middle">fixtures/draft/</text><text x="190.0" y="191.0" font-size="16" text-anchor="middle">the same documents with</text><text x="190.0" y="211.0" font-size="16" text-anchor="middle">the defects a review misses</text>
+<rect x="40" y="360" width="300" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="190.0" y="401.0" font-size="16" text-anchor="middle">casebook/*.md</text><text x="190.0" y="421.0" font-size="16" text-anchor="middle">11 documents, with Mermaid</text><text x="190.0" y="441.0" font-size="16" text-anchor="middle">and SQL blocks inside</text>
+<rect x="420" y="90" width="440" height="420" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="430.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">The same checks on both</text>
+<rect x="440" y="140" width="400" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="640.0" y="176.0" font-size="16" text-anchor="middle">Traceability: every requirement has</text><text x="640.0" y="196.0" font-size="16" text-anchor="middle">Given/When/Then criteria and a journey</text><text x="640.0" y="216.0" font-size="16" text-anchor="middle">step; ER = DDL; states = status CHECK</text>
+<rect x="440" y="260" width="400" height="100" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="640.0" y="296.0" font-size="16" text-anchor="middle">mermaid-cli in Chromium: every</text><text x="640.0" y="316.0" font-size="16" text-anchor="middle">diagram renders (a parse error fails)</text><text x="640.0" y="336.0" font-size="16" text-anchor="middle">-&gt; diagrams/*.svg, committed</text>
+<rect x="440" y="380" width="400" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="640.0" y="421.0" font-size="16" text-anchor="middle">DDL + seed on Postgres; each journey</text><text x="640.0" y="441.0" font-size="16" text-anchor="middle">query runs as portal_app under RLS</text><text x="640.0" y="461.0" font-size="16" text-anchor="middle">and returns its expected rows</text>
+<rect x="940" y="130" width="300" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="1090.0" y="171.0" font-size="16" text-anchor="middle">draft: a requirement with no</text><text x="1090.0" y="191.0" font-size="16" text-anchor="middle">criteria, an unmapped step,</text><text x="1090.0" y="211.0" font-size="16" text-anchor="middle">ER != DDL, a parse error, ...</text>
+<rect x="940" y="360" width="300" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1090.0" y="401.0" font-size="16" text-anchor="middle">real: every check passes;</text><text x="1090.0" y="421.0" font-size="16" text-anchor="middle">9 diagrams rendered; J4.3</text><text x="1090.0" y="441.0" font-size="16" text-anchor="middle">refused by four_eyes</text>
+<polyline points="340,185 420,185" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="340,415 420,415" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="860,185 940,185" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="860,415 940,415" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="556.0" font-size="16" text-anchor="start">Each document was reviewed on its own; the checks compare them with each other. They prove the documents</text><text x="40.0" y="576.0" font-size="16" text-anchor="start">agree, not that they are right: only research and real use do that.</text></svg>

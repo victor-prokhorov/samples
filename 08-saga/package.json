@@ -2,12 +2,16 @@
   "name": "08-saga",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "setup": "tsx src/setup.ts",
     "demo": "tsx src/demo.ts",
     "resume": "tsx src/resume.ts",
     "timer": "tsx src/timer.ts",
     "waker": "tsx src/waker.ts",
+    "verify": "tsx src/verify.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

@@ -1,0 +1,323 @@
+/* The portal's page layout, on top of 35-design-tokens' tokens.css and components.css (copied unchanged next to this file).
+   Every colour is a semantic token, so light and dark both come from tokens.css (the demo checks there is no colour literal). */
+
+.skip-link {
+  position: absolute;
+  left: var(--space-md);
+  top: calc(-1 * var(--space-xl) * 2);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-bg-surface);
+  border: var(--border-width-default) solid var(--color-border-focus);
+  border-radius: var(--radius-control);
+  z-index: 1;
+}
+
+.skip-link:focus {
+  top: var(--space-sm);
+}
+
+.portal-header {
+  background: var(--color-bg-surface);
+  border-bottom: var(--border-width-default) solid var(--color-border-default);
+}
+
+.portal-header__inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-sm) var(--space-lg);
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-sm) var(--space-lg);
+  min-height: calc(var(--control-height) + var(--space-md));
+}
+
+.portal-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--color-text-default);
+  font-weight: var(--text-heading-weight);
+  font-size: var(--text-title-size);
+  text-decoration: none;
+}
+
+.portal-brand svg {
+  width: var(--space-lg);
+  height: var(--space-lg);
+  color: var(--color-bg-accent);
+}
+
+.portal-nav ul {
+  display: flex;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.portal-nav a {
+  display: inline-block;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-control);
+  color: var(--color-text-muted);
+  font-size: var(--text-label-size);
+  font-weight: var(--text-label-weight);
+  text-decoration: none;
+}
+
+.portal-nav a:hover {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-default);
+}
+
+.portal-nav a[aria-current="page"] {
+  background: var(--color-bg-subtle);
+  color: var(--color-text-default);
+  box-shadow: inset 0 calc(-1 * var(--border-width-edge) / 2) 0 var(--color-bg-accent);
+}
+
+.portal-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-md);
+  margin-left: auto;
+}
+
+.portal-lang {
+  display: flex;
+  gap: var(--space-xs);
+  font-size: var(--text-small-size);
+}
+
+.portal-lang a,
+.portal-lang span {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-control);
+}
+
+.portal-lang span {
+  background: var(--color-bg-subtle);
+  font-weight: var(--text-label-weight);
+}
+
+.portal-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-small-size);
+}
+
+.portal-main {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.page-head {
+  margin-bottom: var(--space-lg);
+}
+
+.page-head .ds-muted {
+  margin-top: var(--space-xs);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  align-items: start;
+  gap: var(--space-lg);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--space-md);
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+}
+
+.tile .ds-card__body {
+  flex: 1;
+}
+
+.tile .ds-card__footer {
+  flex-wrap: wrap;
+}
+
+.tile__value {
+  margin: 0;
+  font-size: var(--font-size-600);
+  font-weight: var(--text-heading-weight);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--text-heading-line-height);
+}
+
+.tile__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: var(--text-label-weight);
+}
+
+.tile__status--met {
+  color: var(--color-text-success);
+}
+
+.tile__status--missed {
+  color: var(--color-text-warning);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table caption {
+  padding-bottom: var(--space-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-small-size);
+  text-align: left;
+}
+
+.data-table th,
+.data-table td {
+  padding: var(--space-sm) var(--space-sm);
+  border-bottom: var(--border-width-default) solid var(--color-border-default);
+  text-align: left;
+}
+
+.data-table thead th {
+  color: var(--color-text-muted);
+  font-size: var(--text-small-size);
+  font-weight: var(--text-label-weight);
+}
+
+.data-table tbody th {
+  font-weight: var(--text-label-weight);
+}
+
+.data-table .num {
+  text-align: right;
+}
+
+.data-table tfoot td {
+  border-bottom: 0;
+  font-weight: var(--text-heading-weight);
+}
+
+.data-table tbody tr:last-child > * {
+  border-bottom: 0;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.table-scroll:focus-visible {
+  outline: var(--focus-width) solid var(--color-border-focus);
+  outline-offset: var(--focus-offset);
+}
+
+.details {
+  display: grid;
+  gap: var(--space-sm);
+  margin: 0 0 var(--space-md);
+}
+
+.details dt {
+  color: var(--color-text-muted);
+  font-size: var(--text-small-size);
+}
+
+.details dd {
+  margin: 0;
+  font-weight: var(--text-label-weight);
+  font-variant-numeric: tabular-nums;
+}
+
+.form {
+  display: grid;
+  gap: var(--space-md);
+  max-width: 32rem;
+}
+
+.error-summary:focus {
+  outline: var(--focus-width) solid var(--color-border-focus);
+  outline-offset: var(--focus-offset);
+  border-radius: var(--radius-surface);
+}
+
+.error-summary ul {
+  margin: var(--space-xs) 0 0;
+  padding-left: var(--space-md);
+}
+
+.error-summary a {
+  color: var(--color-text-danger);
+  font-weight: var(--text-label-weight);
+}
+
+.button-link {
+  text-decoration: none;
+}
+
+.mono {
+  font-family: var(--font-family-mono);
+  font-size: var(--text-small-size);
+}
+
+.hero {
+  max-width: 40rem;
+  margin: var(--space-xl) auto;
+}
+
+@media (max-width: 48rem) {
+  .portal-header__inner,
+  .portal-main {
+    padding-left: var(--space-md);
+    padding-right: var(--space-md);
+  }
+
+  .portal-main {
+    padding-top: var(--space-lg);
+  }
+
+  .portal-tools {
+    margin-left: 0;
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* The name and role are in the page itself; on a phone the header keeps the language switch and the button. */
+  .portal-user span {
+    display: none;
+  }
+
+  .portal-nav {
+    order: 3;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding-left: var(--space-xs);
+    padding-right: var(--space-xs);
+  }
+
+  .ds-figures {
+    grid-template-columns: 1fr 1fr;
+  }
+}

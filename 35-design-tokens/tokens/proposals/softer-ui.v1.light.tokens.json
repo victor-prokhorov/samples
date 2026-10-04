@@ -1,0 +1,13 @@
+{
+  "$description": "Proposal from the design file, light mode, first export: softer secondary text and a deeper brand blue. Checked on white only.",
+  "color": {
+    "$type": "color",
+    "text": {
+      "muted": { "$value": "{color.gray.500}", "$description": "Softer hints and metadata." }
+    },
+    "bg": {
+      "accent": { "$value": "{color.blue.700}", "$description": "Deeper brand blue." },
+      "accent-hover": { "$value": "{color.blue.800}" }
+    }
+  }
+}

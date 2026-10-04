@@ -3,7 +3,7 @@
 // Files are numbered in step order. Dashed lines: a frame (a group of boxes), or a legacy, temporary or failure path.
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { diagram } from "./lib.mjs";
+import { diagram } from "../../tools/diagrams/lib.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 

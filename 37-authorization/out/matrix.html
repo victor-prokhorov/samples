@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Permission matrix</title>
+<style>
+  body { font: 13px/1.35 system-ui, sans-serif; margin: 18px 24px; color: #1b1f24; background: #fff; }
+  h1 { font-size: 19px; margin: 0 0 4px; } p { margin: 0 0 10px; color: #444; max-width: 1100px; }
+  table { border-collapse: collapse; } th, td { border: 1px solid #d0d7de; padding: 2px 8px; text-align: left; }
+  thead th { background: #f6f8fa; } th.role { background: #f6f8fa; vertical-align: top; text-transform: capitalize; width: 110px; }
+  tr.first td, tr.first th { border-top: 2px solid #57606a; }
+  td.allow { background: #dafbe1; color: #116329; font-weight: 600; } td.deny { background: #ffebe9; color: #a40e26; }
+  td.na { background: #f6f8fa; color: #8c959f; text-align: center; } td.allow, td.deny { width: 120px; }
+  td.rule { color: #57606a; } code { font: 12px ui-monospace, monospace; white-space: nowrap; }
+</style></head><body>
+<h1>Permission matrix: can(user, action, resource)</h1>
+<p>Generated from <code>src/policy.ts</code>. Roles (RBAC) grant actions; conditions on the user and the record (ABAC) narrow them; no rule means deny. 19 cells allow, 44 deny; the same 63 cells are checked against the expectations and against Postgres row-level security.</p>
+<table><thead><tr><th>role</th><th>action</th><th>own record</th><th>same organisation</th><th>other organisation</th><th>rule</th></tr></thead>
+<tr class="first"><th rowspan="9" class="role">member</th><td><code>member:read</code></td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">own record</td></tr>
+<tr class=""><td><code>member:update</code></td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">own record</td></tr>
+<tr class=""><td><code>contribution:read</code></td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">own record</td></tr>
+<tr class=""><td><code>contribution:create</code></td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>change_request:create</code></td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">own record and requested by me</td></tr>
+<tr class=""><td><code>change_request:read</code></td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">own record</td></tr>
+<tr class=""><td><code>change_request:approve (requested by someone else)</code></td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>change_request:approve (requested by me)</code></td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>audit_log:read</code></td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class="first"><th rowspan="9" class="role">employer admin</th><td><code>member:read</code></td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="rule">same organisation</td></tr>
+<tr class=""><td><code>member:update</code></td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>contribution:read</code></td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="rule">same organisation</td></tr>
+<tr class=""><td><code>contribution:create</code></td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="rule">same organisation</td></tr>
+<tr class=""><td><code>change_request:create</code></td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="rule">same organisation and requested by me</td></tr>
+<tr class=""><td><code>change_request:read</code></td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="deny">&#10007; deny</td><td class="rule">same organisation</td></tr>
+<tr class=""><td><code>change_request:approve (requested by someone else)</code></td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>change_request:approve (requested by me)</code></td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>audit_log:read</code></td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class="first"><th rowspan="9" class="role">staff</th><td><code>member:read</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="rule">any organisation</td></tr>
+<tr class=""><td><code>member:update</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>contribution:read</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="rule">any organisation</td></tr>
+<tr class=""><td><code>contribution:create</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>change_request:create</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="rule">any organisation and requested by me</td></tr>
+<tr class=""><td><code>change_request:read</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="rule">any organisation</td></tr>
+<tr class=""><td><code>change_request:approve (requested by someone else)</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="rule">any organisation and pending and not requested by me</td></tr>
+<tr class=""><td><code>change_request:approve (requested by me)</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="rule">any organisation and pending and not requested by me</td></tr>
+<tr class=""><td><code>audit_log:read</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class="first"><th rowspan="9" class="role">auditor</th><td><code>member:read</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="rule">any organisation</td></tr>
+<tr class=""><td><code>member:update</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>contribution:read</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="rule">any organisation</td></tr>
+<tr class=""><td><code>contribution:create</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>change_request:create</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>change_request:read</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="rule">any organisation</td></tr>
+<tr class=""><td><code>change_request:approve (requested by someone else)</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>change_request:approve (requested by me)</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="deny">&#10007; deny</td><td class="rule">no rule: deny by default</td></tr>
+<tr class=""><td><code>audit_log:read</code></td><td class="na">&ndash;</td><td class="na">&ndash;</td><td class="allow">&#10003; allow</td><td class="rule">any organisation</td></tr>
+</table></body></html>

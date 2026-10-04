@@ -1,0 +1,191 @@
+# 35-design-tokens run 2026-10-04T06:05:22Z
+== no infra: tokens build with tsx, Storybook builds to static files, Chromium from PLAYWRIGHT_BROWSERS_PATH ==
+== demo: tokens -> CSS variables -> components -> contrast gate, axe per story, visual regression ==
+
+## 1. Tokens in, CSS custom properties out
+   concept: tokens/*.tokens.json are DTCG files as a design tool exports them: primitives (raw ramps and scales) and a semantic layer (what a value is for), with one semantic colour file per theme. The build turns every token into a custom property and keeps aliases as var() references
+   66 primitives, 25 semantic, 26 themed colours, 169 declarations in out/tokens.css
+   --color-gray-600: #525a66;                     in :root
+   --color-bg-accent: var(--color-blue-600);      in :root, [data-theme="light"]
+   --color-text-muted: var(--color-gray-600);     in :root, [data-theme="light"]
+   --color-bg-accent: var(--color-blue-300);      in :root:not([data-theme="light"]) (in the dark media query)
+   --color-text-muted: var(--color-gray-400);     in :root:not([data-theme="light"]) (in the dark media query)
+   --color-bg-accent: var(--color-blue-300);      in [data-theme="dark"]
+   --color-text-muted: var(--color-gray-400);     in [data-theme="dark"]
+   ok: an alias stays a reference: --color-text-muted is var(--color-gray-600), not a copied hex
+   ok: light and dark define the same semantic colours, and dark is applied both by data-theme and by prefers-color-scheme
+
+## 2. The contrast gate on the committed tokens
+   concept: tokens/contrast.pairs.json says which foreground is drawn on which background; the check resolves both through the alias chain and computes the WCAG ratio for every pair in every theme: 4.5:1 for text, 3:1 for UI boundaries and focus rings
+   74 pairs (37 per theme), lowest ratio 4.14:1, 0 failures
+   pass  light  text.muted         on bg.canvas          #525a66 / #f7f8fa   6.55:1  (min 4.5:1 text)
+   pass  light  text.muted         on bg.surface         #525a66 / #ffffff   6.96:1  (min 4.5:1 text)
+   pass  light  text.muted         on bg.subtle          #525a66 / #eef0f3   6.10:1  (min 4.5:1 text)
+   pass  light  border.input       on bg.surface         #6b7480 / #ffffff   4.73:1  (min 3:1 ui)
+   pass  light  border.input       on bg.canvas          #6b7480 / #f7f8fa   4.45:1  (min 3:1 ui)
+   pass  light  border.input       on bg.subtle          #6b7480 / #eef0f3   4.14:1  (min 3:1 ui)
+   pass  dark   text.muted         on bg.canvas          #9aa3af / #0f1216   7.36:1  (min 4.5:1 text)
+   pass  dark   text.muted         on bg.surface         #9aa3af / #181c22   6.70:1  (min 4.5:1 text)
+   pass  dark   text.muted         on bg.subtle          #9aa3af / #272d36   5.43:1  (min 4.5:1 text)
+   pass  dark   border.input       on bg.surface         #9aa3af / #181c22   6.70:1  (min 3:1 ui)
+   pass  dark   border.input       on bg.canvas          #9aa3af / #0f1216   7.36:1  (min 3:1 ui)
+   pass  dark   border.input       on bg.subtle          #9aa3af / #272d36   5.43:1  (min 3:1 ui)
+   ok: every pair passes in both themes, and no text or border token is left out of the pairs
+
+## 3. A bad token is caught
+   concept: the design file's next export (proposals/softer-ui.v1) softens muted text to gray-500 and deepens the brand blue. Checked on white only, gray-500 looks fine (4.73:1); the gate checks it on every background it is used on
+   FAIL  light  text.muted         on bg.canvas          #6b7480 / #f7f8fa   4.45:1  (min 4.5:1 text)
+   FAIL  light  text.muted         on bg.subtle          #6b7480 / #eef0f3   4.14:1  (min 4.5:1 text)
+   contrast: 74 pairs in 2 themes, 2 below the minimum, 0 unchecked tokens
+   exit code 1
+   ok: the gate exits 1 and names the two pairs: muted on canvas (4.45:1) and on subtle; on white it passes (4.73:1)
+   ok: 4.4559 is reported as 4.45:1 and fails: the ratio is truncated, never rounded up to 4.5
+
+## 4. The fix passes
+   concept: the second export (proposals/softer-ui.v2) puts muted text back on gray-600 and keeps the deeper blue; the gate now passes
+   contrast: 74 pairs in 2 themes, 0 below the minimum, 0 unchecked tokens
+   pass  light  text.on-accent     on bg.accent          #ffffff / #1d45a6   8.55:1  (min 4.5:1 text)
+   pass  light  text.on-accent     on bg.accent-hover    #ffffff / #1c3b85  10.42:1  (min 4.5:1 text)
+   ok: v2 passes the contrast gate (exit 0)
+
+## 5. Components use only semantic tokens
+   concept: src/components/components.css may reference var(--...) and nothing else for colour, size and type; every reference must exist in out/tokens.css and must be a semantic token, never a primitive (so a theme or a rebrand only touches the token files)
+   51 distinct custom properties used; literals outside the visually-hidden utility: none; undefined: none; primitives: none
+   ok: no colour or length literal, every var() is defined, none is a primitive
+
+## 6. A static Storybook
+   concept: storybook build writes storybook-static/; out/tokens.css is served next to it as tokens/tokens.css, not bundled, so the next steps swap token builds without rebuilding
+   storybook build exit 0: 14 stories (components-alert, components-button, components-card, gallery, components-textfield)
+   ok: the static Storybook built and serves the token file
+
+## 7. axe on every story, in both themes
+   concept: e2e/a11y.spec.ts opens each story at iframe.html?id=...&globals=theme:<theme> and runs axe-core with the WCAG 2.0 to 2.2 A and AA rules; the a11y addon shows the same results in the Storybook panel
+   committed tokens: 28 of 28 story x theme runs with no violation (axe rules passed per run: 4 to 22)
+   ok: axe finds no violation in any story, light or dark
+   components-card--member-summary light      color-contrast x1: Element has insufficient color contrast of 4.14 (foreground color: #6b7480, background color: #eef0f3, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1
+   gallery--member-account light              color-contrast x2: Element has insufficient color contrast of 4.45 (foreground color: #6b7480, background color: #f7f8fa, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1
+   components-textfield--with-hint light      failed before axe ran: Error: frame.evaluate: Error: Axe is already running. Use `await axe.run()` to wait for the previous run to finish before starting a new run.
+   components-textfield--with-error light     color-contrast x1: Element has insufficient color contrast of 4.45 (foreground color: #6b7480, background color: #f7f8fa, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1
+   components-textfield--optional light       color-contrast x1: Element has insufficient color contrast of 4.45 (foreground color: #6b7480, background color: #f7f8fa, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1
+   CHECK FAILED: with proposal v1 served, axe agrees: 5 light-theme runs fail on color-contrast only, dark runs all pass
+
+## 8. Visual regression catches a token change
+   concept: e2e/visual.spec.ts compares every story in both themes with the committed baselines in e2e/__screenshots__/ (toHaveScreenshot). Proposal v2 passes the contrast gate, but it still changes how the product looks, and that needs a human decision
+   RECORD_BASELINES=1: recorded 28 baselines on this machine from the committed tokens
+   committed tokens: 28 of 28 screenshots match the baselines
+   ok: the committed tokens render exactly like the baselines
+   changed: components-button--primary light: 4774 pixels (ratio 0.12 of all image pixels) are different.
+   changed: gallery--member-account light: 5742 pixels (ratio 0.01 of all image pixels) are different.
+   ok: proposal v2 (contrast OK) is caught: 2 screenshots differ, all in the light theme, all with a primary button
+   wrote screenshots/visual-diff.png (expected / actual / diff) and screenshots/visual-diff-gallery-full.png
+   the same comparison at Playwright's default per-pixel threshold (0.2): 0 of 28 fail
+   ok: at the default threshold the darker brand blue slips through; the config uses 0
+
+## 9. Back to the committed tokens
+   concept: the proposal is not merged in this run; the served tokens are restored and every screenshot matches again. Accepting it would mean merging the token file and committing new baselines (--update-snapshots) in the same change
+   ok: restored: every screenshot matches the baselines
+   wrote screenshots/gallery-light.png, gallery-dark.png, contrast-report.png, contrast-caught.png
+
+1 check(s) failed
+
+== proof: the token files (DTCG), the alias chain for color.text.muted in each layer ==
+  12281 tokens/primitives.tokens.json
+   2226 tokens/semantic.tokens.json
+   2092 tokens/theme.dark.tokens.json
+   2084 tokens/theme.light.tokens.json
+    467 tokens/proposals/softer-ui.v1.light.tokens.json
+    372 tokens/proposals/softer-ui.v2.light.tokens.json
+  19522 total
+{"$value":{"colorSpace":"srgb","components":[0.3216,0.3529,0.4],"alpha":1,"hex":"#525a66"}}
+{"$value":"{color.gray.600}","$description":"Hints, metadata. Still body text: 4.5:1."}
+{"$value":"{color.gray.400}","$description":"Hints, metadata. Still body text: 4.5:1."}
+{"$type":"color","text":{"muted":{"$value":"{color.gray.500}","$description":"Softer hints and metadata."}},"bg":{"accent":{"$value":"{color.blue.700}","$description":"Deeper brand blue."},"accent-hover":{"$value":"{color.blue.800}"}}}
+== proof: out/tokens.css, the generated custom properties (one line per layer for muted text and the accent) ==
+3::root {
+11:  --color-gray-600: #525a66;
+72:  --space-md: var(--size-6);
+82:  --text-family: var(--font-family-inter);
+97::root,
+98:[data-theme="light"] {
+103:  --color-bg-accent: var(--color-blue-600);
+112:  --color-text-muted: var(--color-gray-600);
+128:@media (prefers-color-scheme: dark) {
+129:  :root:not([data-theme="light"]) {
+134:    --color-bg-accent: var(--color-blue-300);
+143:    --color-text-muted: var(--color-gray-400);
+160:[data-theme="dark"] {
+165:  --color-bg-accent: var(--color-blue-300);
+174:  --color-text-muted: var(--color-gray-400);
+== proof: tokens/contrast.pairs.json, the pairs the gate checks ==
+  color.text.default (text) on color.bg.canvas, color.bg.surface, color.bg.subtle, color.bg.info-subtle, color.bg.success-subtle, color.bg.warning-subtle, color.bg.danger-subtle
+  color.text.muted (text) on color.bg.canvas, color.bg.surface, color.bg.subtle
+  color.text.on-accent (text) on color.bg.accent, color.bg.accent-hover, color.bg.danger, color.bg.danger-hover
+  color.text.link (text) on color.bg.canvas, color.bg.surface, color.bg.info-subtle, color.bg.success-subtle, color.bg.warning-subtle, color.bg.danger-subtle
+  color.text.info (text) on color.bg.info-subtle
+  color.text.success (text) on color.bg.success-subtle
+  color.text.warning (text) on color.bg.warning-subtle
+  color.text.danger (text) on color.bg.danger-subtle, color.bg.surface, color.bg.canvas
+  color.border.input (ui) on color.bg.surface, color.bg.canvas, color.bg.subtle
+  color.border.focus (ui) on color.bg.canvas, color.bg.surface, color.bg.subtle
+  color.border.danger (ui) on color.bg.surface, color.bg.danger-subtle
+  color.border.info (ui) on color.bg.info-subtle
+  color.border.success (ui) on color.bg.success-subtle
+  color.border.warning (ui) on color.bg.warning-subtle
+  decorative, not checked: color.border.default
+== proof: the contrast gate run as CI would, on the committed tokens and on proposal v1 (exit codes) ==
+   contrast: 74 pairs in 2 themes, 0 below the minimum, 0 unchecked tokens
+  exit 0
+   FAIL  light  text.muted         on bg.canvas          #6b7480 / #f7f8fa   4.45:1  (min 4.5:1 text)
+   FAIL  light  text.muted         on bg.subtle          #6b7480 / #eef0f3   4.14:1  (min 4.5:1 text)
+   contrast: 74 pairs in 2 themes, 2 below the minimum, 0 unchecked tokens
+  exit 1
+== proof: the stories in storybook-static/index.json ==
+  components-alert--info
+  components-alert--success
+  components-alert--warning
+  components-alert--danger
+  components-button--primary
+  components-button--secondary
+  components-button--danger
+  components-card--member-summary
+  components-card--plain
+  gallery--member-account
+  components-textfield--default
+  components-textfield--with-hint
+  components-textfield--with-error
+  components-textfield--optional
+== proof: committed baselines (e2e/__screenshots__) and screenshots ==
+  8274 components-alert--danger--dark.png
+  8130 components-alert--danger--light.png
+  9387 components-alert--info--dark.png
+  9165 components-alert--info--light.png
+  6850 components-alert--success--dark.png
+  6720 components-alert--success--light.png
+  7874 components-alert--warning--dark.png
+  7751 components-alert--warning--light.png
+  2610 components-button--danger--dark.png
+  2697 components-button--danger--light.png
+  2393 components-button--primary--dark.png
+  2433 components-button--primary--light.png
+  1747 components-button--secondary--dark.png
+  1721 components-button--secondary--light.png
+  19267 components-card--member-summary--dark.png
+  19210 components-card--member-summary--light.png
+  12500 components-card--plain--dark.png
+  12602 components-card--plain--light.png
+  2222 components-textfield--default--dark.png
+  2178 components-textfield--default--light.png
+  3422 components-textfield--optional--dark.png
+  3387 components-textfield--optional--light.png
+  10473 components-textfield--with-error--dark.png
+  10407 components-textfield--with-error--light.png
+  6256 components-textfield--with-hint--dark.png
+  6154 components-textfield--with-hint--light.png
+  82872 gallery--member-account--dark.png
+  81986 gallery--member-account--light.png
+  75992 contrast-caught.png
+  74785 contrast-report.png
+  81566 gallery-dark.png
+  80709 gallery-light.png
+  91475 visual-diff-gallery-full.png
+  60343 visual-diff.png

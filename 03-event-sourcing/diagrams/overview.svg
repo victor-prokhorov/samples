@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1320" height="610" viewBox="0 0 1320 610" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">03. Event sourcing: the events are the source of truth</text>
+<rect x="40" y="110" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="130.0" y="146.0" font-size="16" text-anchor="middle">Command</text><text x="130.0" y="166.0" font-size="16" text-anchor="middle">withdraw 60</text>
+<rect x="270" y="110" width="220" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="380.0" y="136.0" font-size="16" text-anchor="middle">Load stream + fold</text><text x="380.0" y="156.0" font-size="16" text-anchor="middle">evolve(state, event)</text><text x="380.0" y="176.0" font-size="16" text-anchor="middle">state at version N</text>
+<rect x="540" y="110" width="220" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="650.0" y="136.0" font-size="16" text-anchor="middle">Decide</text><text x="650.0" y="156.0" font-size="16" text-anchor="middle">balance &gt;= amount?</text><text x="650.0" y="176.0" font-size="16" text-anchor="middle">returns new events</text>
+<rect x="810" y="110" width="220" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="920.0" y="146.0" font-size="16" text-anchor="middle">Append</text><text x="920.0" y="166.0" font-size="16" text-anchor="middle">expectedVersion N</text>
+<rect x="810" y="260" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="920.0" y="291.0" font-size="16" text-anchor="middle">events, insert only</text><text x="920.0" y="311.0" font-size="16" text-anchor="middle">UNIQUE (stream_id,</text><text x="920.0" y="331.0" font-size="16" text-anchor="middle">version)</text>
+<rect x="540" y="260" width="220" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="650.0" y="291.0" font-size="16" text-anchor="middle">ConcurrencyError</text><text x="650.0" y="311.0" font-size="16" text-anchor="middle">version N+1 taken:</text><text x="650.0" y="331.0" font-size="16" text-anchor="middle">reload, decide again</text>
+<rect x="810" y="420" width="220" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="920.0" y="456.0" font-size="16" text-anchor="middle">Projection</text><text x="920.0" y="476.0" font-size="16" text-anchor="middle">total deposited = 101</text>
+<rect x="1080" y="260" width="200" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1180.0" y="291.0" font-size="16" text-anchor="middle">Time travel</text><text x="1180.0" y="311.0" font-size="16" text-anchor="middle">fold the events</text><text x="1180.0" y="331.0" font-size="16" text-anchor="middle">before date T</text>
+<rect x="40" y="420" width="450" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="265.0" y="456.0" font-size="16" text-anchor="middle">Before: an accounts table holds balance = 11;</text><text x="265.0" y="476.0" font-size="16" text-anchor="middle">which deposits and withdrawals: gone</text>
+<polyline points="220,150 270,150" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="490,150 540,150" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="760,150 810,150" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="920,190 920,260" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="810,305 760,305" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<polyline points="540,305 380,305 380,190" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<polyline points="1030,305 1080,305" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="920,350 920,420" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="546.0" font-size="16" text-anchor="start">Nothing is updated in place. A rejected command writes nothing; of two concurrent withdrawals of 60</text><text x="40.0" y="566.0" font-size="16" text-anchor="start">from 71, the loser re-decides against balance 11 and is rejected instead of overdrawing.</text></svg>

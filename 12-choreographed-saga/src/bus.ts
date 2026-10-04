@@ -14,6 +14,9 @@ type OutboxRow = { id: string; event_id: string; order_id: string; type: string;
 
 export const BROKER = "localhost:59095";
 
+// The simulated crash exits with its own code, so the run script can tell it from a failed check (exit code 1).
+export const CRASH_EXIT_CODE = 3;
+
 export const kafka = new Kafka({ brokers: [BROKER], logLevel: logLevel.ERROR });
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -56,7 +59,7 @@ async function handle(s: Service, p: EachMessagePayload, crashAt?: string) {
   console.log(`   [${s.name}] <- ${e.type} ${e.orderId} (${e.topic} p${e.partition} @${e.offset}): ${line}`);
   if (crashAt === `${s.name}:${e.type}:${e.orderId}`) {
     console.log(`   [${s.name}] CRASH after the transaction committed, before Kafka got the offset of ${e.type} ${e.orderId}`);
-    process.exit(1);
+    process.exit(CRASH_EXIT_CODE);
   }
 }
 

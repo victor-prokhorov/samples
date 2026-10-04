@@ -5,3 +5,7 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - "55449:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]
+      interval: 1s
+      retries: 60
