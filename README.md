@@ -2,6 +2,10 @@
 
 [![samples](https://github.com/victor-prokhorov/samples/actions/workflows/samples.yml/badge.svg)](https://github.com/victor-prokhorov/samples/actions/workflows/samples.yml)
 
+Browse the samples, diagrams and screenshots at <https://victor-prokhorov.github.io/samples/> (GitHub Pages).
+
+<a href="https://victor-prokhorov.github.io/samples/"><img src="docs/site-home.png" alt="The GitHub Pages home: learning paths, then a card per sample with its pain, overview diagram and first screenshot" width="400"></a>
+
 ## What this shows
 
 Small, real TypeScript samples, one idea each, for engineers who change, build and run a live system. They are written for a reader who wants to see a pattern work rather than read about it: every sample runs with one script and leaves a committed proof log, so you can check the claim on GitHub without running anything.

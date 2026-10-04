@@ -1,0 +1,54 @@
+# Publishes https://victor-prokhorov.github.io/samples/ from what is committed: the READMEs, diagrams,
+# screenshots, proof logs and outputs. No sample runs here; tools/site/build.mjs only reads the repo.
+# One-time setup: Settings > Pages > Build and deployment > Source: GitHub Actions.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: tools/site/package-lock.json
+      - name: Build site/
+        working-directory: tools/site
+        run: |
+          npm ci --no-audit --no-fund
+          node build.mjs
+      - name: Every link in a generated page resolves to a file in site/ or an https URL
+        working-directory: tools/site
+        run: node check-links.mjs
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

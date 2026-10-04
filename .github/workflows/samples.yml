@@ -1,0 +1,126 @@
+# Runs every sample the way a reader would: ./NN-name/run.sh from a fresh checkout.
+# The run script's exit code is the check (its self-checks fail it); the committed logs are not compared,
+# because they carry timestamps, pids and timings. The regenerated logs, screenshots and outputs are uploaded
+# as one artifact per sample, so a red run can be read without rerunning it.
+name: samples
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: samples-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  list:
+    name: list samples and packages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      samples: ${{ steps.list.outputs.samples }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: list
+        name: Every NN-name/ folder with a run.sh (49-capstone joins once it exists)
+        run: |
+          samples=$(find . -mindepth 2 -maxdepth 2 -path './[0-9][0-9]-*/run.sh' | cut -d/ -f2 | sort | jq -Rnc '[inputs]')
+          echo "samples=$samples" >> "$GITHUB_OUTPUT"
+          echo "$samples" | jq -r '"\(length) samples: \(join(" "))"'
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      # typecheck needs the packages, not the browsers some of them can download on install
+      PUPPETEER_SKIP_DOWNLOAD: "1"
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: "1"
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: "**/package-lock.json"
+      - name: npm ci (npm install without a lockfile) and npm run typecheck, in every package with a typecheck script
+        run: |
+          failed=()
+          for pkg in $(find . -name package.json -not -path '*/node_modules/*' | sort); do
+            dir=$(dirname "$pkg")
+            jq -e '.scripts.typecheck' "$pkg" > /dev/null || continue
+            echo "::group::$dir"
+            if [ -f "$dir/package-lock.json" ]; then install=ci; else install=install; fi
+            if (cd "$dir" && npm "$install" --no-audit --no-fund && npm run typecheck); then
+              echo "::endgroup::"
+            else
+              echo "::endgroup::"
+              echo "::error title=typecheck::$dir failed (npm $install && npm run typecheck)"
+              failed+=("$dir")
+            fi
+            rm -rf "$dir/node_modules"
+          done
+          if [ ${#failed[@]} -gt 0 ]; then
+            echo "failed: ${failed[*]}"
+            exit 1
+          fi
+
+  run:
+    name: run ${{ matrix.sample }}
+    needs: list
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: ${{ fromJSON(needs.list.outputs.samples) }}
+    env:
+      # The run scripts, tools/render.mjs and 39's Lighthouse look for Chromium here
+      # (39-web-performance/src/paths.ts falls back to /opt/pw-browsers/chromium-1194/... when CHROME_PATH is unset).
+      PLAYWRIGHT_BROWSERS_PATH: /opt/pw-browsers
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: |
+            ${{ matrix.sample }}/package-lock.json
+            tools/package-lock.json
+      - name: Command-line tools the run scripts use (jq, rsync, pdftoppm, unzip)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends jq rsync poppler-utils unzip
+      - name: Chromium for Playwright 1.56.1
+        run: |
+          sudo mkdir -p "$PLAYWRIGHT_BROWSERS_PATH"
+          sudo chown "$(id -u):$(id -g)" "$PLAYWRIGHT_BROWSERS_PATH"
+          npx -y playwright@1.56.1 install --with-deps chromium
+          chrome=$(find "$PLAYWRIGHT_BROWSERS_PATH" -path '*/chromium-*/chrome-linux/chrome' | sort -V | tail -1)
+          echo "CHROME_PATH=$chrome" >> "$GITHUB_ENV"
+          ls "$PLAYWRIGHT_BROWSERS_PATH"
+      - name: Docker
+        run: |
+          docker version --format 'docker {{.Server.Version}}'
+          docker compose version
+      - name: ./${{ matrix.sample }}/run.sh
+        run: ./${{ matrix.sample }}/run.sh
+      - name: What the run changed (for information; logs differ by timestamps on every run)
+        if: always()
+        run: git status --short
+      - name: Upload the log, screenshots and outputs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.sample }}
+          path: |
+            logs/${{ matrix.sample }}.log
+            ${{ matrix.sample }}/screenshots/
+            ${{ matrix.sample }}/out/
+          if-no-files-found: warn
+          retention-days: 14
