@@ -1,7 +1,7 @@
-# 30-pipeline run 2026-10-03T11:27:00Z
-== fresh state: no pipeline state, cache, artifacts or deployments ==
-node v22.22.0, gitlab-ci-local 4.76.0, shell executor (no Docker images)
-== demo: .gitlab-ci.yml run locally by gitlab-ci-local, one copy of the project per job ==
+# 30-pipeline run 2026-10-04T00:47:18Z
+== fresh state: no pipeline state, cache, artifacts, deployments or downloaded schemas ==
+node v22.22.0, gitlab-ci-local 4.76.0, vitest 5.0.3, shell executor (no Docker images)
+== demo: .gitlab-ci.yml run locally by gitlab-ci-local, one copy of the project per job; the GitHub Actions and Azure Pipelines files compared and validated ==
 
 ## 1. A push to a branch
    concept: the pipeline is code in .gitlab-ci.yml; rules decide which jobs a pipeline gets. A push runs every check and the build, never the deploy, and the audit only warns there
@@ -27,50 +27,73 @@ node v22.22.0, gitlab-ci-local 4.76.0, shell executor (no Docker images)
    lint      >   13:14  error  Expected '===' and instead saw '=='          eqeqeq
    lint      > ✖ 3 problems (3 errors, 0 warnings)
     FAIL  lint
-   lint      finished in 6.65 s  FAIL 1
-   pipeline finished in 7.32 s
+   lint      finished in 7.92 s  FAIL 1
+   pipeline finished in 9.04 s
 
-## 4. The fix: the same pipeline passes
-   concept: each job runs in its own copy of the project (shell isolation), restores the npm cache keyed on package-lock.json, and hands its files to later jobs as artifacts
-   lint      > added 182 packages in 4s
+## 4. Untested code fails the coverage gate
+   concept: the unit job runs vitest --coverage; vitest.config.ts sets thresholds (lines, statements, functions 90%, branches 85%) and vitest exits non-zero below them, so the job and the pipeline fail. This function passes lint and tsc but has no test
+   unit $ npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+   unit >       Tests  8 passed (8)
+   unit > All files     |    64.7 |    33.33 |      75 |      70 |
+   unit >  statement.ts |      40 |    33.33 |   57.14 |      40 | 12-14
+   unit > Statements   : 64.7% ( 11/17 )
+   unit > Branches     : 33.33% ( 1/3 )
+   unit > Functions    : 75% ( 9/12 )
+   unit > Lines        : 70% ( 7/10 )
+    FAIL  unit
+   unit > ERROR: Coverage for lines (70%) does not meet global threshold (90%)
+   unit > ERROR: Coverage for functions (75%) does not meet global threshold (90%)
+   unit > ERROR: Coverage for statements (64.7%) does not meet global threshold (90%)
+   unit > ERROR: Coverage for branches (33.33%) does not meet global threshold (85%)
+   unit finished in 9.63 s  FAIL 1
+   screenshot: screenshots/coverage-gate-failed.png (reports/coverage/statement.ts.html)
+
+## 5. With its tests, the same pipeline passes
+   concept: each job runs in its own copy of the project (shell isolation), restores the npm cache keyed on package-lock.json, and hands its files to later jobs as artifacts (JUnit, coverage, a11y, dist/)
+   lint      > added 198 packages in 7s
    lint      $ npm run lint
-   lint      cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 500 ms
-   typecheck imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 463 ms
-   typecheck > added 182 packages in 3s
+   lint      cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 428 ms
+   typecheck imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 493 ms
+   typecheck > added 198 packages in 4s
    typecheck $ npm run typecheck
-   typecheck cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 86 ms
-   unit      imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 341 ms
-   a11y      imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 866 ms
-   unit      > added 182 packages in 5s
-   unit      $ npx vitest run --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
-   a11y      > added 182 packages in 5s
+   typecheck cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 102 ms
+   a11y      imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 509 ms
+   unit      imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 631 ms
+   a11y      > added 198 packages in 7s
    a11y      $ npm run a11y
-   unit      >       Tests  4 passed (4)
-   unit      > JUNIT report written to .gitlab-ci-local/builds/unit/reports/junit.xml
-   unit      cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 102 ms
-   unit      exported artifacts in 68 ms
    a11y      > axe-core 4.13.0 on the statement page: 7 rules passed, 0 violated
-   a11y      cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 82 ms
-   a11y      exported artifacts in 66 ms
-   audit     imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 202 ms
-   audit     > added 182 packages in 3s
+   a11y      cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 113 ms
+   a11y      exported artifacts in 92 ms
+   unit      > added 198 packages in 6s
+   unit      $ npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+   unit      >       Tests  8 passed (8)
+   unit      > JUNIT report written to .gitlab-ci-local/builds/unit/reports/junit.xml
+   unit      > Statements   : 100% ( 11/11 )
+   unit      > Branches     : 100% ( 1/1 )
+   unit      > Functions    : 100% ( 9/9 )
+   unit      > Lines        : 100% ( 7/7 )
+   unit      cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 84 ms
+   unit      exported artifacts in 70 ms
+   audit     imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 179 ms
+   audit     > added 198 packages in 4s
    audit     $ npm run audit
    audit     > found 0 vulnerabilities
-   audit     cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 84 ms
-   build     imported cache '0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 491 ms
-   build     > added 182 packages in 3s
+   audit     cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 92 ms
+   build     imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 247 ms
+   build     > added 198 packages in 5s
    build     $ npm run build
-   build     cache created in '.gitlab-ci-local/cache/0_package-lock-73768b204a56503c5f5edcb2702d1bbd0d90aa5e' in 84 ms
-   build     exported artifacts in 61 ms
+   build     cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 129 ms
+   build     exported artifacts in 92 ms
     PASS  lint
     PASS  typecheck
-    PASS  unit
+    PASS  unit      100% coverage
     PASS  a11y
     PASS  audit
     PASS  build
-   pipeline finished in 31 s
+   pipeline finished in 49 s
+   screenshot: screenshots/coverage-gate-passed.png (reports/coverage/index.html)
 
-## 5. A scheduled pipeline deploys
+## 6. A scheduled pipeline deploys
    concept: the deploy job needs build (it downloads dist/ from it), runs in the production environment, one at a time (resource_group), and switches a symlink so the release goes live atomically
    deploy    $ RELEASE="${CI_COMMIT_TAG:-scheduled-$CI_COMMIT_SHORT_SHA-$CI_PIPELINE_ID}"
    deploy    $ mkdir -p "$DEPLOY_DIR/releases/$RELEASE"
@@ -81,73 +104,113 @@ node v22.22.0, gitlab-ci-local 4.76.0, shell executor (no Docker images)
    deploy    > smoke ok
    deploy    $ ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
    deploy    $ echo "deployed $RELEASE to $DEPLOY_DIR/current"
-   deploy    > deployed scheduled-ae86480c-1002 to .deploy/current
+   deploy    > deployed scheduled-27f35add-1002 to .deploy/current
     PASS  lint
     PASS  typecheck
-    PASS  unit
+    PASS  unit      100% coverage
     PASS  a11y
     PASS  audit
     PASS  build
     PASS  deploy
-   pipeline finished in 32 s
-   .deploy/current -> releases/scheduled-ae86480c-1002
+   pipeline finished in 1.4 min
+   .deploy/current -> releases/scheduled-27f35add-1002
 
-## 6. A release tag deploys too, and the previous release stays for rollback
+## 7. A release tag deploys too, and the previous release stays for rollback
    concept: gitlab-ci-local --needs deploy runs deploy and what it depends on (build, which has no needs:, so every earlier stage); rolling back is pointing current at the previous release
    deploy > smoke ok
    deploy > deployed v1.4.0 to .deploy/current
     PASS  lint
     PASS  typecheck
-    PASS  unit
+    PASS  unit   100% coverage
     PASS  a11y
     PASS  audit
     PASS  build
     PASS  deploy
-   pipeline finished in 31 s
-   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"ae86480c3905853f94533f548518f4e25ab8e5f7","source":"push"}; previous releases/scheduled-ae86480c-1002 still on disk: true
+   pipeline finished in 1.12 min
+   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"27f35add9f25d4cc5b37a37da52604b68047ce75","source":"push"}; previous releases/scheduled-27f35add-1002 still on disk: true
 
-## 7. The same pipeline on GitHub Actions
-   concept: github-actions/ci.yml (not under .github/, so it does not run here) has the same jobs, commands in the same order, runners and deploy triggers; stages become needs, rules become if and on:, resource_group becomes concurrency, runner tags become runs-on labels
-   job        gitlab stage  github needs  runner      commands
-   lint       lint                        any         npm run lint
-   typecheck  typecheck     lint          any         npm run typecheck
-   unit       test          typecheck     any         npx vitest run
-   a11y       test          typecheck     any         npm run a11y
-   audit      audit         unit, a11y    any         npm run audit
-   build      build         audit         any         npm run build
-   deploy     deploy        build         production  mkdir, cp dist, package.json, release.json, smoke releases/$RELEASE, ln -sfn, mv -T
+## 8. The same pipeline on GitHub Actions and Azure Pipelines
+   concept: github-actions/ci.yml and azure-pipelines.yml (neither runs here) have the same jobs, commands in the same order (coverage flag included), runners, deploy triggers and audit rule. GitHub: stages become needs, rules become if and on:. Azure: stages stay stages (each after the previous one), rules become conditions, runner tags become an environment's VM resource
+   job        gitlab stage  github needs  azure stage (after)  runner      commands
+   lint       lint                        lint                 any         npm run lint
+   typecheck  typecheck     lint          typecheck (lint)     any         npm run typecheck
+   unit       test          typecheck     test (typecheck)     any         npx vitest run --coverage
+   a11y       test          typecheck     test (typecheck)     any         npm run a11y
+   audit      audit         unit, a11y    audit (test)         any         npm run audit
+   build      build         audit         build (audit)        any         npm run build
+   deploy     deploy        build         deploy (build)       production  mkdir, cp dist, package.json, release.json, smoke releases/$RELEASE, ln -sfn, mv -T
    deploys on: schedule yes; push main no; tag v1.4.0 yes; tag v1.4.0-rc1 no; tag v1.4 no; tag rc-1 no
-   the comparison on a drifted copy (smoke test after the switch, release.json dropped, deploy on ubuntu-latest, a loose tag filter and tag check):
-   job        gitlab stage  github needs  runner      commands
-   deploy     deploy        build         production vs any DIFFERENT: mkdir, cp dist, package.json, release.json, smoke releases/$RELEASE, ln -sfn, mv -T vs mkdir, cp dist, package.json, ln -sfn, mv -T, smoke current
-   deploys on: schedule yes; push main no; tag v1.4.0 yes; tag v1.4.0-rc1 DIFFERENT (gitlab no, github yes); tag v1.4 no; tag rc-1 no
+   audit blocks on: schedule yes; push main no; tag v1.4.0 yes
+   the comparison on drifted copies. GitHub: smoke test after the switch, release.json dropped, deploy on ubuntu-latest, a loose tag filter and tag check:
+   job        gitlab stage  github needs  azure stage (after)  runner      commands
+   deploy     deploy        build         deploy (build)       gitlab production, github any, azure production DIFFERENT: gitlab mkdir, cp dist, package.json, release.json, smoke releases/$RELEASE, ln -sfn, mv -T | github mkdir, cp dist, package.json, ln -sfn, mv -T, smoke current | azure mkdir, cp dist, package.json, release.json, smoke releases/$RELEASE, ln -sfn, mv -T
+   deploys on: schedule yes; push main no; tag v1.4.0 yes; tag v1.4.0-rc1 DIFFERENT (gitlab no, github yes, azure no); tag v1.4 no; tag rc-1 no
+   audit blocks on: schedule yes; push main no; tag v1.4.0 yes
+   Azure: the coverage flag dropped, the audit always only warns, the tag check step removed, deploy on a hosted agent:
+   job        gitlab stage  github needs  azure stage (after)  runner      commands
+   unit       test          typecheck     test (typecheck)     any         DIFFERENT: gitlab npx vitest run --coverage | github npx vitest run --coverage | azure npx vitest run
+   deploy     deploy        build         deploy (build)       gitlab production, github production, azure any mkdir, cp dist, package.json, release.json, smoke releases/$RELEASE, ln -sfn, mv -T
+   deploys on: schedule yes; push main no; tag v1.4.0 yes; tag v1.4.0-rc1 DIFFERENT (gitlab no, github no, azure yes); tag v1.4 DIFFERENT (gitlab no, github no, azure yes); tag rc-1 no
+   audit blocks on: schedule DIFFERENT (gitlab yes, github yes, azure no); push main no; tag v1.4.0 DIFFERENT (gitlab yes, github yes, azure no)
+
+## 9. Each file is valid for its platform
+   concept: a pipeline file that does not parse fails before any job runs, on the server. Each file is parsed as YAML (duplicate keys rejected) and checked against its platform's published JSON schema; one typo per file shows the check can fail
+   .gitlab-ci.yml         yaml ok, GitLab ci.json: valid
+   github-actions/ci.yml  yaml ok, SchemaStore github-workflow.json: valid
+   azure-pipelines.yml    yaml ok, azure-pipelines-vscode service-schema.json v1.261.1: valid
+   (Azure schema patched: PublishCodeCoverageResults@2 inputs added (summaryFileLocation, pathToSources, failIfCoverageEmpty))
+   .gitlab-ci.yml         with "when: allways": 1 schema error(s), /unit/artifacts/when must be equal to one of the allowed values
+   .gitlab-ci.yml         with "stage: lint; stage: lint": yaml error: Map keys must be unique at line 34, column 3
+   github-actions/ci.yml  with "run-on: ubuntu-latest": 6 schema error(s), /jobs/lint must NOT have additional properties 'run-on'
+   azure-pipelines.yml    with "dependOn: build": 25 schema error(s), /stages/5 must NOT have additional properties 'dependOn'
+   azure-pipelines.yml    with "inputs: { version: 22.x }": 868 schema error(s), /stages/0/jobs/0/steps/0/inputs must NOT have additional properties 'version'
 
 == proof: the unit job's JUnit artifact (GitLab shows it in the merge request) ==
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="4" failures="0" errors="0" time="0.025666051">
-    <testsuite name="src/statement.test.ts" timestamp="2026-10-03T11:28:40.539Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.025666051">
-        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; sums only the requested year" time="0.002436756">
+<testsuites name="vitest tests" tests="8" failures="0" errors="0" time="0.082133307">
+    <testsuite name="src/page.test.ts" timestamp="2026-10-04T00:51:04.646Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.005274256">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; declares its language" time="0.002326375">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; is zero for a year without contributions" time="0.000369336">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; lists only the requested year" time="0.000358511">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in English" time="0.020524446">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; escapes member and employer names" time="0.000168007">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in French" time="0.000651939">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; shows the year&apos;s total" time="0.000121717">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/statement.test.ts" timestamp="2026-10-04T00:51:04.648Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.076859051">
+        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; sums only the requested year" time="0.003516485">
+        </testcase>
+        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; is zero for a year without contributions" time="0.00021799">
+        </testcase>
+        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in English" time="0.061108475">
+        </testcase>
+        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in French" time="0.004362642">
         </testcase>
     </testsuite>
 </testsuites>
+== proof: the unit job's coverage artifact (Cobertura, what GitLab and Azure Pipelines read), totals and per file ==
+lines-valid="7" lines-covered="7" line-rate="1" branches-valid="1" branches-covered="1" branch-rate="1"
+name="page.ts" filename="src/page.ts" line-rate="1" branch-rate="1"
+name="statement.ts" filename="src/statement.ts" line-rate="1" branch-rate="1"
+== proof: the coverage thresholds the gate enforces (vitest.config.ts) ==
+14:      thresholds: { lines: 90, statements: 90, functions: 90, branches: 85 },
+== proof: the coverage gate in each pipeline file ==
+.gitlab-ci.yml:46:    - npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+github-actions/ci.yml:49:      - run: npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+azure-pipelines.yml:65:          - script: npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
 == proof: deployments (one directory per release, current is a symlink) ==
 .deploy:
 total 4
-lrwxrwxrwx 1 root root   15 Oct  3 11:28 current -> releases/v1.4.0
-drwxr-xr-x 4 root root 4096 Oct  3 11:28 releases
+lrwxrwxrwx 1 root root   15 Oct  4 00:51 current -> releases/v1.4.0
+drwxr-xr-x 4 root root 4096 Oct  4 00:51 releases
 
 .deploy/releases:
 total 8
-drwxr-xr-x 2 root root 4096 Oct  3 11:28 scheduled-ae86480c-1002
-drwxr-xr-x 2 root root 4096 Oct  3 11:28 v1.4.0
-.deploy/releases/scheduled-ae86480c-1002: {"release":"scheduled-ae86480c-1002","commit":"ae86480c3905853f94533f548518f4e25ab8e5f7","source":"schedule"}
-.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"ae86480c3905853f94533f548518f4e25ab8e5f7","source":"push"}
+drwxr-xr-x 2 root root 4096 Oct  4 00:50 scheduled-27f35add-1002
+drwxr-xr-x 2 root root 4096 Oct  4 00:51 v1.4.0
+.deploy/releases/scheduled-27f35add-1002: {"release":"scheduled-27f35add-1002","commit":"27f35add9f25d4cc5b37a37da52604b68047ce75","source":"schedule"}
+.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"27f35add9f25d4cc5b37a37da52604b68047ce75","source":"push"}
 == proof: the deploy job's own log, as gitlab-ci-local recorded it ==
 $ RELEASE="${CI_COMMIT_TAG:-scheduled-$CI_COMMIT_SHORT_SHA-$CI_PIPELINE_ID}"
 $ mkdir -p "$DEPLOY_DIR/releases/$RELEASE"
@@ -159,3 +222,6 @@ smoke ok
 $ ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
 $ echo "deployed $RELEASE to $DEPLOY_DIR/current"
 deployed v1.4.0 to .deploy/current
+== proof: screenshots of the coverage report, failed gate then passed ==
+80529 coverage-gate-failed.png
+32838 coverage-gate-passed.png

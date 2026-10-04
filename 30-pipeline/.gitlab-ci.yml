@@ -42,12 +42,17 @@ typecheck:
 unit:
   stage: test
   script:
-    - npx vitest run --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+    # the coverage gate: the thresholds in vitest.config.ts (lines, statements, functions 90%, branches 85%) fail this job below them
+    - npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+  coverage: '/^Lines\s*:\s*([\d.]+)%/'
   artifacts:
     when: always
     reports:
       junit: reports/junit.xml
-    paths: [reports/junit.xml]
+      coverage_report:
+        coverage_format: cobertura
+        path: reports/coverage/cobertura-coverage.xml
+    paths: [reports/junit.xml, reports/coverage/]
 
 a11y:
   stage: test

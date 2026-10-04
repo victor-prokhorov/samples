@@ -1,0 +1,77 @@
+<?xml version="1.0" ?>
+<!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
+<coverage lines-valid="7" lines-covered="7" line-rate="1" branches-valid="1" branches-covered="1" branch-rate="1" timestamp="1791075064651" complexity="0" version="0.1">
+  <sources>
+    <source>/home/claude/samples/.claude/worktrees/agent-aacb351389331fc2a/30-pipeline/.gitlab-ci-local/builds/unit</source>
+  </sources>
+  <packages>
+    <package name="main" line-rate="1" branch-rate="1">
+      <classes>
+        <class name="page.ts" filename="src/page.ts" line-rate="1" branch-rate="1">
+          <methods>
+            <method name="(anonymous_0)" hits="3" signature="()V">
+              <lines>
+                <line number="3" hits="3"/>
+              </lines>
+            </method>
+            <method name="(anonymous_1)" hits="7" signature="()V">
+              <lines>
+                <line number="3" hits="7"/>
+              </lines>
+            </method>
+            <method name="statementPage" hits="1" signature="()V">
+              <lines>
+                <line number="5" hits="1"/>
+              </lines>
+            </method>
+            <method name="(anonymous_3)" hits="2" signature="()V">
+              <lines>
+                <line number="7" hits="2"/>
+              </lines>
+            </method>
+            <method name="(anonymous_4)" hits="1" signature="()V">
+              <lines>
+                <line number="8" hits="1"/>
+              </lines>
+            </method>
+          </methods>
+          <lines>
+            <line number="3" hits="7" branch="false"/>
+            <line number="6" hits="1" branch="false"/>
+            <line number="7" hits="2" branch="false"/>
+            <line number="8" hits="1" branch="false"/>
+            <line number="10" hits="1" branch="false"/>
+          </lines>
+        </class>
+        <class name="statement.ts" filename="src/statement.ts" line-rate="1" branch-rate="1">
+          <methods>
+            <method name="annualTotalCents" hits="3" signature="()V">
+              <lines>
+                <line number="3" hits="3"/>
+              </lines>
+            </method>
+            <method name="(anonymous_1)" hits="8" signature="()V">
+              <lines>
+                <line number="4" hits="8"/>
+              </lines>
+            </method>
+            <method name="(anonymous_2)" hits="3" signature="()V">
+              <lines>
+                <line number="4" hits="3"/>
+              </lines>
+            </method>
+            <method name="formatEuros" hits="4" signature="()V">
+              <lines>
+                <line number="7" hits="4"/>
+              </lines>
+            </method>
+          </methods>
+          <lines>
+            <line number="4" hits="8" branch="false"/>
+            <line number="8" hits="4" branch="false"/>
+          </lines>
+        </class>
+      </classes>
+    </package>
+  </packages>
+</coverage>

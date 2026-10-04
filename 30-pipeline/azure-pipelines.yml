@@ -1,0 +1,151 @@
+# The same pipeline as .gitlab-ci.yml, for Azure Pipelines. To use it, put it at the root of the app's own repository and create
+# a pipeline from it (Pipelines > New pipeline > Existing Azure Pipelines YAML file).
+# Production: an environment named production with the production host registered as a VM resource (Environments > production >
+# Add resource > Virtual machines); the deploy job runs on that host's agent, so it can write into /srv.
+# Approvals and the one-deploy-at-a-time lock are not YAML: on that environment add the checks "Approvals" and "Exclusive lock".
+
+trigger:
+  batch: true # while a main build runs, later pushes wait and build together (what interruptible does in GitLab)
+  branches:
+    include: [main]
+  tags:
+    include: ["v*"] # a wildcard, not a regex: the deploy job checks ^v[0-9]+\.[0-9]+\.[0-9]+$ again
+
+pr:
+  autoCancel: true # a new commit on the pull request cancels the run on the previous one
+  branches:
+    include: ["*"]
+
+schedules:
+  - cron: "0 6 * * 2" # scheduled release: Tuesdays 06:00 UTC
+    displayName: Scheduled release
+    branches:
+      include: [main]
+    always: true # run even when nothing changed since the last scheduled run: every gate is re-run on that commit
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  npm_config_cache: $(Pipeline.Workspace)/.npm
+
+stages:
+  - stage: lint
+    jobs:
+      - job: lint
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: 22.x }
+          - task: Cache@2
+            inputs: { key: 'npm | "$(Agent.OS)" | package-lock.json', restoreKeys: 'npm | "$(Agent.OS)"', path: $(npm_config_cache) }
+          - script: npm ci --prefer-offline --no-audit --no-fund
+          - script: npm run lint
+
+  - stage: typecheck
+    jobs:
+      - job: typecheck
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: 22.x }
+          - task: Cache@2
+            inputs: { key: 'npm | "$(Agent.OS)" | package-lock.json', restoreKeys: 'npm | "$(Agent.OS)"', path: $(npm_config_cache) }
+          - script: npm ci --prefer-offline --no-audit --no-fund
+          - script: npm run typecheck
+
+  - stage: test
+    jobs:
+      - job: unit
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: 22.x }
+          - task: Cache@2
+            inputs: { key: 'npm | "$(Agent.OS)" | package-lock.json', restoreKeys: 'npm | "$(Agent.OS)"', path: $(npm_config_cache) }
+          - script: npm ci --prefer-offline --no-audit --no-fund
+          # the coverage gate: the thresholds in vitest.config.ts fail this step below them
+          - script: npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
+          - task: PublishTestResults@2 # the Tests tab of the run, like reports:junit in GitLab
+            condition: succeededOrFailed()
+            inputs: { testResultsFormat: JUnit, testResultsFiles: reports/junit.xml }
+          - task: PublishCodeCoverageResults@2 # the Code Coverage tab, like reports:coverage_report in GitLab
+            condition: succeededOrFailed()
+            inputs: { summaryFileLocation: reports/coverage/cobertura-coverage.xml }
+          - task: PublishPipelineArtifact@1
+            condition: succeededOrFailed()
+            inputs: { targetPath: reports, artifact: unit-reports }
+
+      - job: a11y
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: 22.x }
+          - task: Cache@2
+            inputs: { key: 'npm | "$(Agent.OS)" | package-lock.json', restoreKeys: 'npm | "$(Agent.OS)"', path: $(npm_config_cache) }
+          - script: npm ci --prefer-offline --no-audit --no-fund
+          - script: npm run a11y
+          - task: PublishPipelineArtifact@1
+            condition: succeededOrFailed()
+            inputs: { targetPath: reports/a11y.json, artifact: a11y }
+
+  - stage: audit
+    jobs:
+      - job: audit
+        # blocks a release, only warns on pushes and pull requests (the run ends "partially succeeded" and later stages still run).
+        # A template expression, evaluated when the run is created: Build.Reason and Build.SourceBranch are known by then.
+        continueOnError: ${{ not(or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))) }}
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: 22.x }
+          - task: Cache@2
+            inputs: { key: 'npm | "$(Agent.OS)" | package-lock.json', restoreKeys: 'npm | "$(Agent.OS)"', path: $(npm_config_cache) }
+          - script: npm ci --prefer-offline --no-audit --no-fund
+          - script: npm run audit
+
+  - stage: build
+    jobs:
+      - job: build
+        steps:
+          - task: NodeTool@0
+            inputs: { versionSpec: 22.x }
+          - task: Cache@2
+            inputs: { key: 'npm | "$(Agent.OS)" | package-lock.json', restoreKeys: 'npm | "$(Agent.OS)"', path: $(npm_config_cache) }
+          - script: npm ci --prefer-offline --no-audit --no-fund
+          - script: npm run build
+          - task: PublishPipelineArtifact@1 # kept as long as the project's retention policy says (expire_in has no YAML equivalent)
+            inputs: { targetPath: dist, artifact: dist }
+
+  - stage: deploy
+    dependsOn: build
+    # the stage only runs for the schedule or a tag starting with v; any other run shows it as skipped
+    condition: and(succeeded(), or(eq(variables['Build.Reason'], 'Schedule'), startsWith(variables['Build.SourceBranch'], 'refs/tags/v')))
+    lockBehavior: sequential # with the Exclusive lock check on the environment: one deploy at a time, queued in order
+    jobs:
+      - deployment: deploy
+        # each run is recorded in the environment's deployment history; the run waits here for the environment's approvals
+        environment:
+          name: production
+          resourceType: VirtualMachine
+        variables:
+          DEPLOY_DIR: /srv/statement-app
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                # the same rule as GitLab's $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/: a tag like v1.4.0-rc1 never deploys
+                - script: |
+                    [[ "$BUILD_SOURCEBRANCHNAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "$BUILD_SOURCEBRANCHNAME is not a release tag vX.Y.Z"; exit 1; }
+                  condition: startsWith(variables['Build.SourceBranch'], 'refs/tags/')
+                  displayName: Release tag check
+                - download: current
+                  artifact: dist
+                - script: |
+                    if [[ "$BUILD_SOURCEBRANCH" == refs/tags/* ]]; then RELEASE="$BUILD_SOURCEBRANCHNAME"; else RELEASE="scheduled-${BUILD_SOURCEVERSION::8}-$BUILD_BUILDID"; fi
+                    mkdir -p "$DEPLOY_DIR/releases/$RELEASE"
+                    cp -r dist/. "$DEPLOY_DIR/releases/$RELEASE/"
+                    echo '{"type":"module"}' > "$DEPLOY_DIR/releases/$RELEASE/package.json"
+                    printf '{"release":"%s","commit":"%s","source":"%s"}\n' "$RELEASE" "$BUILD_SOURCEVERSION" "$BUILD_REASON" > "$DEPLOY_DIR/releases/$RELEASE/release.json"
+                    # smoke-test the new release where it will run, before it goes live: if it fails, the job stops and current still points at the previous release
+                    node -e "import('$DEPLOY_DIR/releases/$RELEASE/page.js').then((m) => { if (!m.statementPage('smoke', 2026, []).includes('<html lang=\"en\">')) process.exit(1); console.log('smoke ok') })"
+                    # switch atomically: rename a new symlink over the old one, so a reader never sees a half-copied release
+                    ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
+                    echo "deployed $RELEASE to $DEPLOY_DIR/current"
+                  workingDirectory: $(Pipeline.Workspace) # download: current puts the dist artifact in $(Pipeline.Workspace)/dist
+                  displayName: Deploy

@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1320" height="560" viewBox="0 0 1320 560" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">30. Pipeline: stages and gates</text>
+<rect x="40" y="120" width="150" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="115.0" y="156.0" font-size="16" text-anchor="middle">lint</text><text x="115.0" y="176.0" font-size="16" text-anchor="middle">eslint</text>
+<rect x="230" y="120" width="150" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="305.0" y="156.0" font-size="16" text-anchor="middle">typecheck</text><text x="305.0" y="176.0" font-size="16" text-anchor="middle">tsc</text>
+<rect x="420" y="90" width="220" height="220" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="430.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">test (in parallel)</text>
+<rect x="440" y="130" width="180" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="530.0" y="166.0" font-size="16" text-anchor="middle">unit: vitest</text><text x="530.0" y="186.0" font-size="16" text-anchor="middle">coverage gate 90%</text>
+<rect x="440" y="225" width="180" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="530.0" y="266.0" font-size="16" text-anchor="middle">a11y: axe-core</text>
+<rect x="680" y="120" width="160" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="760.0" y="156.0" font-size="16" text-anchor="middle">audit: npm audit</text><text x="760.0" y="176.0" font-size="16" text-anchor="middle">blocks releases</text>
+<rect x="880" y="120" width="150" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="955.0" y="156.0" font-size="16" text-anchor="middle">build</text><text x="955.0" y="176.0" font-size="16" text-anchor="middle">dist/ artifact</text>
+<rect x="1070" y="105" width="210" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="1175.0" y="136.0" font-size="16" text-anchor="middle">deploy: production</text><text x="1175.0" y="156.0" font-size="16" text-anchor="middle">approval, one at a time,</text><text x="1175.0" y="176.0" font-size="16" text-anchor="middle">smoke test, then</text><text x="1175.0" y="196.0" font-size="16" text-anchor="middle">symlink switch</text>
+<rect x="380" y="370" width="300" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="530.0" y="401.0" font-size="16" text-anchor="middle">pipeline fails:</text><text x="530.0" y="421.0" font-size="16" text-anchor="middle">later stages never start</text>
+<rect x="900" y="360" width="380" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="1090.0" y="391.0" font-size="16" text-anchor="middle">schedule (Tue 06:00) or tag vX.Y.Z:</text><text x="1090.0" y="411.0" font-size="16" text-anchor="middle">audit blocks, deploy runs</text><text x="1090.0" y="431.0" font-size="16" text-anchor="middle">push or pull request: checks only</text>
+<polyline points="190,160 230,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="380,160 420,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="640,160 680,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="840,160 880,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="1030,160 1070,160" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="530,310 530,370" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="407.0" y="329.3" width="246.0" height="21.5" fill="#ffffff"/>
+<text x="530.0" y="345.3" font-size="14" text-anchor="middle">failing test or coverage below 90%</text>
+<polyline points="115,200 115,405 380,405" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="76.0" y="394.3" width="78.0" height="21.5" fill="#ffffff"/>
+<text x="115.0" y="410.3" font-size="14" text-anchor="middle">lint error</text>
+<polyline points="1175,360 1175,215" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="1094.0" y="276.8" width="162.0" height="21.5" fill="#ffffff"/>
+<text x="1175.0" y="292.8" font-size="14" text-anchor="middle">rules / if / condition</text>
+<text x="40.0" y="496.0" font-size="16" text-anchor="start">The same stages and gates in .gitlab-ci.yml, github-actions/ci.yml and azure-pipelines.yml (scripts/compare.ts checks it).</text><text x="40.0" y="516.0" font-size="16" text-anchor="start">Dashed: the failure path. A failed gate stops every later stage; production only changes on a schedule or a release tag.</text></svg>

@@ -57,6 +57,26 @@ async function main() {
   console.log(`   after the rollback: service ${await health()}, schema version ${schema.v}`);
   check((await health()) === "v2" && schema.v === 2, "back on v2 and schema 2");
   spawnSync("ops/service.sh", ["stop"], { stdio: "inherit" });
+
+  step(
+    "7. Backup and restore drill",
+    "a base backup (pg_basebackup) plus the WAL archive restores to any point after it: the drill keeps writing after the backup, deletes every contribution, finds the DELETE's transaction with pg_waldump, restores a fresh container to just before it, compares row counts and checksums, puts the rows back, and measures RPO and RTO against their targets",
+  );
+  const before = await one("SELECT count(*)::int AS n FROM contributions");
+  check(runbook("backup-restore-drill.md", "--set", "RPO_TARGET=60", "--set", "RTO_TARGET=300", "--rollback", "auto") === 0, "the drill succeeded");
+  const drill = await one("SELECT id FROM ops.runs WHERE runbook = 'runbooks/backup-restore-drill.md'");
+  const after = await one("SELECT count(*)::int AS n, count(*) FILTER (WHERE period = '2026-10')::int AS october FROM contributions");
+  console.log(`   contributions: ${before.n} before the drill, ${after.n} after it (${after.october} loaded after the backup, deleted, then put back)`);
+  check(after.n === before.n + 3 && after.october === 3, "every row is back, including the ones written after the base backup");
+  const children = await one(`SELECT count(*)::int AS n FROM ops.runs WHERE parent = ${Number(drill.id)} AND outcome = 'succeeded'`);
+  check(children.n === 2, "the monthly load and the member request ran after the backup, as child runs");
+  const measured = await one(`SELECT output FROM ops.steps WHERE run_id = ${Number(drill.id)} AND section = 'Verification' AND step LIKE '2.%'`);
+  const rpo = /RPO ([\d.]+) s \(target 60 s\)/.exec(measured.output);
+  const rto = /RTO ([\d.]+) s \(target 300 s\)/.exec(measured.output);
+  console.log(`   measured: RPO ${rpo?.[1]} s, RTO ${rto?.[1]} s`);
+  check(!!rpo && !!rto && Number(rpo[1]) <= 60 && Number(rto[1]) <= 300, "RPO and RTO measured and within their targets");
+  const left = spawnSync("docker", ["compose", "--profile", "drill", "ps", "-aq", "restore"], { encoding: "utf8" });
+  check(left.status === 0 && left.stdout.trim() === "", "the restore container is gone");
   await db.end();
 }
 

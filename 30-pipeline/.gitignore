@@ -1,5 +1,7 @@
-# build output and caches; reports/ (JUnit, accessibility) is committed
+# build output and caches; reports/ (JUnit, coverage, accessibility) and screenshots/ are committed
 dist/
 .npm/
 .gitlab-ci-local/
 .deploy/
+# the platforms' JSON schemas, downloaded by scripts/validate.ts
+.cache/
