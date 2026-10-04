@@ -83,6 +83,8 @@ jobs:
       # The run scripts, tools/render.mjs and 39's Lighthouse look for Chromium here
       # (39-web-performance/src/paths.ts falls back to /opt/pw-browsers/chromium-1194/... when CHROME_PATH is unset).
       PLAYWRIGHT_BROWSERS_PATH: /opt/pw-browsers
+      # 35's visual baselines hold only for the machine that took them: record them on the runner first.
+      RECORD_BASELINES: "1"
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

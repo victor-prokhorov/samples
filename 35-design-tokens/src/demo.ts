@@ -145,11 +145,17 @@ async function main() {
   check("axe finds no violation in any story, light or dark", a11y.tests.length === stories.length * 2 && a11y.failed.length === 0);
   serve([V1]);
   const a11yBad = playwright("e2e/a11y.spec.ts");
+  const axeOf = (t: PwTest) => {
+    const note = t.annotations.find((a) => a.type === "axe")?.description;
+    return note ? (JSON.parse(note) as { violations: { id: string; nodes: number; messages: string[] }[] }) : undefined;
+  };
   for (const t of a11yBad.failed) {
-    const axe = JSON.parse(t.annotations.find((a) => a.type === "axe")?.description ?? "{}") as { violations?: { id: string; nodes: number; messages: string[] }[] };
-    for (const v of axe.violations ?? []) console.log(`   ${t.title.replace("a11y ", "").padEnd(42)} ${v.id} x${v.nodes}: ${v.messages[0]}`);
+    const axe = axeOf(t);
+    // A run that failed before axe could report (a timeout opening the story) says why instead of hiding it.
+    if (!axe) console.log(`   ${t.title.replace("a11y ", "").padEnd(42)} failed before axe ran: ${(t.error ?? "").replace(/\x1b\[[0-9;]*m/g, "").split("\n")[0]}`);
+    for (const v of axe?.violations ?? []) console.log(`   ${t.title.replace("a11y ", "").padEnd(42)} ${v.id} x${v.nodes}: ${v.messages[0]}`);
   }
-  const contrastOnly = a11yBad.failed.every((t) => (JSON.parse(t.annotations.find((a) => a.type === "axe")!.description).violations as { id: string }[]).every((v) => v.id === "color-contrast"));
+  const contrastOnly = a11yBad.failed.every((t) => axeOf(t)?.violations.every((v) => v.id === "color-contrast") ?? false);
   check(`with proposal v1 served, axe agrees: ${a11yBad.failed.length} light-theme runs fail on color-contrast only, dark runs all pass`, a11yBad.failed.length > 0 && contrastOnly && a11yBad.failed.every((t) => t.title.endsWith(" light")));
 
   step(
@@ -161,6 +167,11 @@ async function main() {
   if (!existsSync(baselines) || readdirSync(baselines).length < stories.length * 2) {
     const created = playwright("e2e/visual.spec.ts", {}, ["--update-snapshots"]);
     console.log(`   no baselines yet: created ${created.tests.length} in e2e/__screenshots__ from the committed tokens`);
+  } else if (process.env.RECORD_BASELINES === "1") {
+    // Baselines only hold for the machine that took them (fonts, Chromium build). On another one, such as a CI runner,
+    // record them again from the committed tokens first, then run the same comparison.
+    const created = playwright("e2e/visual.spec.ts", {}, ["--update-snapshots"]);
+    console.log(`   RECORD_BASELINES=1: recorded ${created.tests.length} baselines on this machine from the committed tokens`);
   }
   const same = playwright("e2e/visual.spec.ts");
   console.log(`   committed tokens: ${same.passed.length} of ${same.tests.length} screenshots match the baselines`);

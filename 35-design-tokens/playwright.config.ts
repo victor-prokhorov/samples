@@ -3,7 +3,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
-  workers: 4,
+  workers: process.env.CI ? 2 : 4,
   timeout: 20_000,
   reporter: [["list"], ["json", { outputFile: process.env.REPORT ?? "test-results/report.json" }]],
   // Baselines live next to the tests under readable names (no platform suffix): they are committed, and they are only

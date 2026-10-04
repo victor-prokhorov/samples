@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")"
+ROOT="$(cd .. && pwd)"
+scrub_paths() { node "$ROOT/tools/scrub-paths.mjs" "$ROOT" "$ROOT/49-capstone" 2>/dev/null || true; }
+trap scrub_paths EXIT
 mkdir -p ../logs
-exec > >(tee ../logs/49-capstone.log) 2>&1
+exec > >(sed -u "s#$ROOT#<repo>#g" | tee ../logs/49-capstone.log) 2>&1
 echo "# 49-capstone run $(date -u +%FT%TZ)"
 echo "== fresh Postgres for the portal (docker compose down -v && up) and no earlier build =="
 docker compose down -v --remove-orphans >/dev/null 2>&1

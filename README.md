@@ -12,6 +12,7 @@ Small, real TypeScript samples, one idea each, for engineers who change, build a
 
 - **Skills they prove**: changing a live system without downtime, replacing legacy code safely, calling services that fail, publishing events, scaling and isolating data in Postgres, building an accessible bilingual full-stack portal with single sign-on, testing it at every level, and running it with pipelines, runbooks and KPIs.
 - **Three highlights**: [15](15-multi-tenancy/) shows each multi-tenancy pitfall leaking another tenant's rows, then fixes it with row-level security; [24](24-characterization/) pins a legacy PL/pgSQL calculation with a golden master and explains every mismatch; [06](06-service-reliability/) cuts a dependency's wasted database time from 15050 ms to 2045 ms by propagating deadlines.
+- **Read the story, not just the code**: three one-page [case studies](docs/case-studies/) (replacing a legacy system, an accessible bilingual portal, running the service) tie the samples to real decisions, and [49](49-capstone/) shows the product pieces working as one portal, with screenshots.
 - **Run one in two minutes**: with Node 22 and nothing else, `./04-parallel-run/run.sh` (no Docker) runs a rewrite next to legacy code on 1000 orders and writes [`logs/04-parallel-run.log`](logs/04-parallel-run.log).
 
 Each folder's README has the full story: pain, when to use it and when not, how to run it, concepts, proof excerpts and origins. [MIGRATION-PATTERNS.md](MIGRATION-PATTERNS.md) maps the wider landscape, and [design-exercise/](design-exercise/) is a worked design case that ties the samples together.
@@ -118,10 +119,10 @@ Each path is ordered: read it left to right. The main table is numbered by compl
 | 46 | [`46-load-test/`](46-load-test/) | no idea how much traffic it holds | k6 smoke/gate/ramp/soak, open model (arrival rate), SLO thresholds as a CI gate, expression index, saturation point, Little's law, coordinated omission | Postgres, k6 binary | `./46-load-test/run.sh` | [`logs/46-load-test.log`](logs/46-load-test.log) |
 | 47 | [`47-full-text-search/`](47-full-text-search/) | search that misses accents and typos | generated tsvector per language + GIN, unaccent text search configurations, websearch_to_tsquery, ts_rank_cd weights, ts_headline, pg_trgm word_similarity threshold, IMMUTABLE f_unaccent | Postgres (unaccent, pg_trgm), search page, Chromium | `./47-full-text-search/run.sh` | [`logs/47-full-text-search.log`](logs/47-full-text-search.log) |
 | 48 | [`48-object-storage/`](48-object-storage/) | large uploads through the app server | presigned PUT/GET (AWS SDK v3) with signed content type and length, SigV4 verification, browser direct upload with bucket CORS, quarantine prefix and EICAR scanner, Content-Disposition downloads | Postgres, s3rver behind a SigV4 gate, Chromium | `./48-object-storage/run.sh` | [`logs/48-object-storage.log`](logs/48-object-storage.log) |
-| | **Putting it together (planned)** | | | | | |
-| 49 | [`49-capstone/`](49-capstone/) | pieces that never form one product | one styled bilingual accessible portal with SSO, tests and KPIs | planned | `./49-capstone/run.sh` | [`logs/49-capstone.log`](logs/49-capstone.log) |
+| | **Putting it together** | | | | | |
+| 49 | [`49-capstone/`](49-capstone/) | pieces that never form one product | one portal from the samples' pieces: OIDC + PKCE into Next.js server components, RLS per transaction, design tokens (35), ICU/Intl EN-FR, error summary, four eyes, usage events to KPI tiles | Postgres, oidc-provider (npm), Chromium | `./49-capstone/run.sh` | [`logs/49-capstone.log`](logs/49-capstone.log) |
 
-Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw state as proof. Everything it prints goes to `logs/<name>.log`. Sample 49 is being built: its row links the folder and log it will add.
+Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw state as proof. Everything it prints goes to `logs/<name>.log`.
 
 ## Ports
 
@@ -152,7 +153,7 @@ Chosen to avoid clashing with other local services. From 21 on: Postgres `55430 
 | 21 | HTTP 53031 forms | 46 | Postgres 55476, HTTP 53056 member API |
 | 22 | Postgres 55452, HTTP 53032 portal (hand run; test workers use free ports) | 47 | Postgres 55477, HTTP 53057 search page |
 | 23 | Postgres 55453 | 48 | Postgres 55478, HTTP 53058 app, 53158 storage (SigV4 gate) |
-| 24 | Postgres 55454 | 49 | reserved: Postgres 55479, HTTP 53059, 53159 |
+| 24 | Postgres 55454 | 49 | Postgres 55479, HTTP 53059 portal (next start), 53159 IdP |
 | 25 | HTTP 53035 member page |  |  |
 
 ## Which one when
@@ -209,7 +210,7 @@ Chosen to avoid clashing with other local services. From 21 on: Postgres `55430 
 
 ## How they combine
 
-A strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga (12) publishes its events through per-service outboxes; every retried write between services carries 06's idempotency key; an event-sourced service (03) can publish its events through an outbox/CDC relay and keep its personal data crypto-shredded (18); a singleton relay or waker (09, 08) either claims rows or runs under a leader lease (19). On the product side, the portal (20) is the thing the others protect: its forms follow 21, its journeys are tested by 22 and its rules by 23, a rewrite of a legacy screen starts with 24, every string goes through 25, login comes from 26, the monthly import (27) and yearly campaign (28) are run from 31's runbooks, 29 says whether it works for members, 30 gates every change, and 32 is how the whole plan is written down before any of it is built. The planned samples close the loop: 33 and 34 keep the portal's API and tests honest, 37 and 42 harden it, 36, 39 and 46 measure it, 38 and 40 ship it safely, 41 and 48 connect it to partners and files, and 49 puts the whole product together.
+A strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga (12) publishes its events through per-service outboxes; every retried write between services carries 06's idempotency key; an event-sourced service (03) can publish its events through an outbox/CDC relay and keep its personal data crypto-shredded (18); a singleton relay or waker (09, 08) either claims rows or runs under a leader lease (19). On the product side, the portal (20) is the thing the others protect: its forms follow 21, its journeys are tested by 22 and its rules by 23, a rewrite of a legacy screen starts with 24, every string goes through 25, login comes from 26, the monthly import (27) and yearly campaign (28) are run from 31's runbooks, 29 says whether it works for members, 30 gates every change, and 32 is how the whole plan is written down before any of it is built. Samples 33 to 49 close the loop: 33 and 34 keep the portal's API and tests honest, 37 and 42 harden it, 36, 39 and 46 measure it, 38 and 40 ship it safely, 41 and 48 connect it to partners and files, and 49 puts the whole product together.
 
 ## Repo conventions
 
