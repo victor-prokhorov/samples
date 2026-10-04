@@ -10,6 +10,7 @@
     "demo": "tsx src/demo.ts",
     "resume": "tsx src/resume.ts",
     "timeline": "tsx src/timeline.ts",
+    "verify": "tsx src/verify.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

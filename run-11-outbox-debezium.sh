@@ -17,22 +17,22 @@ npm run --silent setup | cut -c1-120
 echo "== waiting for connector to open its replication slot =="
 until [ "$(psql -Atc "SELECT count(*) FROM pg_replication_slots WHERE active")" = "1" ]; do sleep 2; done
 curl -s localhost:58084/connectors/outbox-connector/status; echo
-echo "== consumer (background) =="
+echo "== consumer (background, stops after 3 events and checks them) =="
 out=$(mktemp)
-npm run --silent consume >"$out" 2>&1 &
+npm run --silent consume -- --messages 3 >"$out" 2>&1 &
 consumer=$!
 until grep -q "subscribed" "$out"; do kill -0 "$consumer" 2>/dev/null || { cat "$out"; echo "consumer died"; exit 1; }; sleep 1; done
 echo "== app =="
 npm run --silent app
 echo
-echo "== waiting for 3 events to reach the consumer =="
-for _ in $(seq 1 60); do [ "$(grep -c '^consumer: outbox' "$out")" -ge 3 ] && break; sleep 1; done
-sleep 3
-kill "$consumer" 2>/dev/null || true
-grep '^consumer:' "$out"
-got=$(grep -c '^consumer: outbox' "$out" || true)
+echo "== waiting for 3 events to reach the consumer (it then waits 3s more for any unexpected one) =="
+for _ in $(seq 1 60); do kill -0 "$consumer" 2>/dev/null || break; sleep 1; done
+kill -0 "$consumer" 2>/dev/null && { kill "$consumer"; echo "consumer: still waiting for 3 events after 60s"; }
+code=0
+wait "$consumer" || code=$?
+grep -v "subscribed" "$out" | grep -v '^{"level"' || true
 rm -f "$out"
-[ "$got" -eq 3 ] || { echo "expected 3 consumer events, got $got"; exit 1; }
+[ "$code" = 0 ] || exit 1
 echo
 echo "== proof: orders table (alice shipped, carol committed without an event, no bob) =="
 psql -c "SELECT * FROM orders ORDER BY id"

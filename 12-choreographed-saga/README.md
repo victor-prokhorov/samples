@@ -12,15 +12,18 @@
 
 One shot with proof: `./run-12-choreographed-saga.sh` from the repo root (log in [`../logs/12-choreographed-saga.log`](../logs/12-choreographed-saga.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55446, Kafka 59095):
 
 ```sh
 docker compose up -d --wait
 npm i
 npm run setup      # 4 databases, 4 topics with 3 partitions each, stock = 10
-npm run demo       # wiring, happy path, payment failure, shipping failure, then inventory crashes before its offset commit (exit 1)
+npm run demo       # wiring, happy path, payment failure, shipping failure, then inventory crashes before its offset commit (exit 3)
 npm run resume     # new process: Kafka redelivers, processed_messages makes it a no-op; then one topic lags (out-of-order events)
 npm run timeline -- order-C order-D order-E   # rebuild each saga from the four outboxes
+npm run verify     # check every service database once all sagas are done
 ```
 
 ## Files
@@ -94,7 +97,7 @@ order-events      1         -              1              -
 A new process gets `OrderPlaced` again and skips it; the saga continues from the committed outbox row:
 
 ```
-   [inventory] <- OrderPlaced order-D (order-events p1 @0): DUPLICATE event_id=f0104b91 already in processed_messages, skipped
+   [inventory] <- OrderPlaced order-D (order-events p1 @0): DUPLICATE event_id=cd4c53ca already in processed_messages, skipped
    [orders] <- InventoryReserved order-D (inventory-events p1 @0): order pending -> reserved
    [payments] <- InventoryReserved order-D (inventory-events p1 @0): charged 42.00, outbox <- PaymentCharged
    ...
@@ -115,11 +118,11 @@ order-C's saga, rebuilt from four databases. The orders table says `rejected`, a
 ```
    order-C (the orders table only says: rejected)
    +    0ms orders    OrderPlaced       after the HTTP call                processed by inventory
-   +   53ms inventory InventoryReserved after orders OrderPlaced           processed by orders, payments
-   +  157ms payments  PaymentCharged    after inventory InventoryReserved  processed by orders, shipping
-   +  254ms shipping  ShipmentFailed    after payments PaymentCharged      processed by orders, payments
-   +  353ms payments  PaymentRefunded   after shipping ShipmentFailed      processed by inventory
-   +  359ms inventory InventoryReleased after payments PaymentRefunded     processed by nobody
+   +  101ms inventory InventoryReserved after orders OrderPlaced           processed by orders, payments
+   +  209ms payments  PaymentCharged    after inventory InventoryReserved  processed by orders, shipping
+   +  395ms shipping  ShipmentFailed    after payments PaymentCharged      processed by orders, payments
+   +  518ms payments  PaymentRefunded   after shipping ShipmentFailed      processed by inventory
+   +  562ms inventory InventoryReleased after payments PaymentRefunded     processed by nobody
 ```
 
 Same end state as 08: stock `10 - 2 (A) - 1 (D) - 1 (E) = 6`, C refunded, B never charged, only A, D and E shipped, D processed once:
@@ -138,6 +141,27 @@ Same end state as 08: stock `10 - 2 (A) - 1 (D) - 1 (E) = 6`, C refunded, B neve
 
  OrderPlaced | order-D
 (1 row)
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: order-A completed: 2 reserved (stock 8), 84.00 charged, shipped
+   check ok: order-B rejected; the release left stock, charges and shipments as before it
+   check ok: order-C rejected; refund then release left stock and shipments as before it
+   check ok: order-C's charge is kept as refunded
+4 checks passed
+   check ok: after the crash order-D is pending, yet inventory committed its reservation and the processed OrderPlaced
+   check ok: after the restart order-D completed, reserved once (stock 10 - 2 - 1 = 7) and charged once
+   check ok: order-E completed, and the late InventoryReserved did not move it back
+3 checks passed
+   check ok: orders: A, D, E completed; B, C rejected
+   check ok: inventory: 10 - 2 (A) - 1 (D) - 1 (E) = 6 left, reservations only for A, D, E
+   check ok: payments: C refunded, B never charged
+   check ok: shipping: only A, D, E
+   check ok: inventory processed OrderPlaced for order-D once, although Kafka delivered it twice
+   check ok: every outbox is drained
+6 checks passed
 ```
 
 ## Origins and further reading

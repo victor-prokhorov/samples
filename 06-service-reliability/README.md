@@ -12,6 +12,8 @@ A caller process against `payments`, a separate HTTP process with its own Postgr
 
 One shot with proof: `./run-06-service-reliability.sh` from the repo root (log in [`../logs/06-service-reliability.log`](../logs/06-service-reliability.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55445, HTTP 53010 payments, 53011 catalog):
 
 ```sh
@@ -45,61 +47,62 @@ npm run demo     # starts payments (npm run payments) as a child process, runs t
 A timeout frees the caller. Only the propagated deadline also stops the dependency's work:
 
 ```
-   no timeout                     caller: waited 1526-1529ms, 10 ok
-                                  payments: 10 queries ran to completion, 0 cancelled at the deadline, 15204ms of DB time in total, 0 answers written to a closed connection
-   200ms timeout                  caller: waited 201-203ms, 10 timeout (no reply within 200ms)
-                                  payments: 10 queries ran to completion, 0 cancelled at the deadline, 15050ms of DB time in total, 10 answers written to a closed connection
-   200ms timeout + x-deadline-ms  caller: waited 201-202ms, 10 timeout (no reply within 200ms)
-                                  payments: 0 queries ran to completion, 10 cancelled at the deadline, 2045ms of DB time in total, 10 answers written to a closed connection
+   no timeout                     caller: waited 1565-1569ms, 10 ok
+                                  payments: 10 queries ran to completion, 0 cancelled at the deadline, 15448ms of DB time in total, 0 answers written to a closed connection
+   200ms timeout                  caller: waited 202-204ms, 10 timeout (no reply within 200ms)
+                                  payments: 10 queries ran to completion, 0 cancelled at the deadline, 15066ms of DB time in total, 10 answers written to a closed connection
+   200ms timeout + x-deadline-ms  caller: waited 200-201ms, 10 timeout (no reply within 200ms)
+                                  payments: 0 queries ran to completion, 10 cancelled at the deadline, 2092ms of DB time in total, 10 answers written to a closed connection
 ```
 
 A shared pool lets slow payments starve healthy catalog. The bulkhead rejects instead:
 
 ```
-   one shared pool (10 sockets)  payments: 10 ok; catalog waited 1457-1458ms (queued behind payments)
-   bulkhead (payments limit 4)   payments: 4 ok, 6 bulkhead-full (4 calls already in flight), rejections took 0ms; catalog waited 2ms
+   one shared pool (10 sockets)  payments: 10 ok; catalog waited 1471-1484ms (queued behind payments)
+   bulkhead (payments limit 4)   payments: 4 ok, 6 bulkhead-full (4 calls already in flight), rejections took 0ms; catalog waited 3-5ms
 ```
 
 Transient failures are retried, a 400 is not (abridged):
 
 ```
    payments will answer: connection reset, then ok
-      attempt 1: network (socket hang up) -> retry in 18ms
-      => ok after 21ms; payments received 2 request(s)
+      attempt 1: network (socket hang up) -> retry in 70ms
+      => ok after 79ms; payments received 2 request(s)
    payments will answer: 400 bad request
       attempt 1: HTTP 400 invalid amount -> not retryable, give up
-      => failed: HTTP 400 invalid amount after 0ms; payments received 1 request(s)
+      => failed: HTTP 400 invalid amount after 1ms; payments received 1 request(s)
 ```
 
-100 callers at once against 5 requests per 25ms. Lockstep retries arrive as spikes and most are shed again. Full jitter spreads them and everyone gets through. During a full outage, the budget cuts the load from 500 requests to 110:
+100 callers at once against 5 requests per 25ms. Immediate retries and lockstep backoff arrive as spikes that are shed again, so many callers give up. Full jitter spreads the retries out and nearly everyone gets through, with fewer requests than either. During a full outage, the budget cuts the load from 500 requests to 110:
 
 ```
    immediate retries
-      arrivals per 100ms: 465
-      465 requests reached payments for 100 callers; 10 succeeded, 90 gave up; slowest caller done after 32ms
+      arrivals per 100ms: 107 265  66
+      438 requests reached payments for 100 callers; 30 succeeded, 70 gave up; slowest caller done after 197ms
    exponential backoff, no jitter (100, 200, 400, 800ms: every caller retries at the same instants)
-      arrivals per 100ms: 100  95   0  90   0   0   0  85   0   0   0   0   0   0   0  80
-      450 requests reached payments for 100 callers; 25 succeeded, 75 gave up; slowest caller done after 1523ms
+      arrivals per 100ms: 100  90   0  80   0   0   0  56  11   0   0   0   0   0   0  33  19
+      389 requests reached payments for 100 callers; 59 succeeded, 41 gave up; slowest caller done after 1605ms
    exponential backoff, full jitter (random between 0 and 100, 200, 400, 800ms)
-      arrivals per 100ms: 211  42  41  15  10   7   3   3   0   2   1   1
-      336 requests reached payments for 100 callers; 100 succeeded, 0 gave up; slowest caller done after 1136ms
+      arrivals per 100ms: 162  80  44  12  16   6   6   3   2   2   2   1
+      336 requests reached payments for 100 callers; 99 succeeded, 1 gave up; slowest caller done after 1114ms
    payments is fully down (503 for everything): retries cannot help, they only multiply the load
    full jitter, no budget
-      arrivals per 100ms: 220  73  48  27  30  30  17   7  10  17  10   8   3
-      500 requests reached payments for 100 callers; 0 succeeded, 100 gave up; slowest caller done after 1288ms
+      arrivals per 100ms: 153 108  66  27  30  35  19  13   9  15   7  15   2   0   1
+      500 requests reached payments for 100 callers; 0 succeeded, 100 gave up; slowest caller done after 1430ms
    full jitter + retry budget (each request earns 0.1 retry token, a retry costs 1, at most 10 banked)
-      arrivals per 100ms: 109   1
-      110 requests reached payments for 100 callers; 0 succeeded, 100 gave up; slowest caller done after 99ms
+      arrivals per 100ms: 105   5
+      110 requests reached payments for 100 callers; 0 succeeded, 100 gave up; slowest caller done after 125ms
 ```
 
 The same fault, a commit followed by a late answer, with and without a key. Then a concurrent duplicate and a reused key:
 
 ```
+   concept: a timeout says nothing about whether the server committed; the caller sends one Idempotency-Key per logical charge and reuses it on every retry, the server stores the response under that key in the same transaction as the charge and replays it
    alice, no key. payments commits the charge, then answers after 1000ms
-      attempt 1: timeout (no reply within 300ms) -> retry in 67ms
+      attempt 1: timeout (no reply within 300ms) -> retry in 53ms
       => 201 {"id":2,"customer":"alice","amount":"42.00"}
    bob, key charge-bob-1. same fault
-      attempt 1: timeout (no reply within 300ms) -> retry in 85ms
+      attempt 1: timeout (no reply within 300ms) -> retry in 94ms
       => 201 {"id":3,"amount":"42.00","customer":"bob"} (idempotent-replayed: stored response, no new charge)
    carol, key charge-carol-1 sent twice at once (a double click). payments holds the first transaction open for 1000ms
       attempt 1: HTTP 409 a request with this key is in flight -> retry in 1000ms
@@ -123,20 +126,47 @@ The same fault, a commit followed by a late answer, with and without a key. Then
 Without a breaker, all 40 calls reach the degraded payments. With one, 9 do. It probes through the crash and closes after the restart:
 
 ```
-   without a breaker, 2s: 40 timeout (no reply within 200ms); each took 200-202ms; payments received 40 requests
-      t+ 408ms breaker closed -> open (5 consecutive failures)
-      t+1427ms breaker open -> half-open (1000ms cooldown over, let one probe through)
-      t+1629ms breaker half-open -> open (probe failed: timeout (no reply within 200ms))
+   without a breaker, 2s: 40 timeout (no reply within 200ms); each took 200-218ms; payments received 40 requests
+      t+ 407ms breaker closed -> open (5 consecutive failures)
+      t+1419ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+1620ms breaker half-open -> open (probe failed: timeout (no reply within 200ms))
    with a breaker, 2s degraded: 9 timeout (no reply within 200ms), 31 breaker-open; payments received 9 requests; fast failures took 0ms
-   [payments pid 55069] killed
-      t+2647ms breaker open -> half-open (1000ms cooldown over, let one probe through)
-      t+2648ms breaker half-open -> open (probe failed: network (ECONNREFUSED))
-   ...
-   [payments pid 55334] listening on :53010, catalog on :53011
-   t+3976ms payments restarted, healthy
-      t+4685ms breaker open -> half-open (1000ms cooldown over, let one probe through)
-      t+4687ms breaker half-open -> closed (probe succeeded)
-   with a breaker, 1.5s healed: 14 breaker-open, 16 ok
+   [payments pid 1649] killed
+      t+2648ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+2649ms breaker half-open -> open (probe failed: network (connect ECONNREFUSED 127.0.0.1:53010))
+      t+3658ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+3659ms breaker half-open -> open (probe failed: network (connect ECONNREFUSED 127.0.0.1:53010))
+   with a breaker, 1.5s down: 28 breaker-open, 2 network (connect ECONNREFUSED 127.0.0.1:53010)
+   [payments pid 9698] listening on :53010, catalog on :53011
+   t+4286ms payments restarted, healthy
+      t+4687ms breaker open -> half-open (1000ms cooldown over, let one probe through)
+      t+4690ms breaker half-open -> closed (probe succeeded)
+   with a breaker, 1.5s healed: 8 breaker-open, 22 ok
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: no timeout: every caller waits out the 1500ms of DB work
+   check ok: 200ms timeout: callers are freed at ~200ms, but payments still runs all 10 queries and answers no one
+   check ok: with x-deadline-ms: payments cancels all 10 queries at the deadline, under a third of the DB time
+   check ok: one shared pool: healthy catalog calls queue behind slow payments for over 1s
+   check ok: bulkhead: 4 payment calls run, 6 are rejected at once, catalog answers in under 200ms
+   check ok: 503, 503, then ok: the retry succeeds
+   check ok: slow (timeout), then ok: the retry succeeds
+   check ok: connection reset, then ok: the retry succeeds
+   check ok: a 400 is not retried: one request, then give up
+   check ok: 503 forever: gives up after at most 4 attempts within the 2s deadline
+   check ok: full jitter gets more callers through than immediate retries or lockstep backoff, with fewer requests than either
+   check ok: during a full outage every attempt is made without a budget (500 requests); the budget cuts that to at most 110
+   check ok: reusing a key with a different request is rejected with 422
+   check ok: bob's retry and carol's duplicate got the stored response back
+   check ok: without a key alice was charged twice; with one, bob and carol once each
+   check ok: one stored response per key
+   check ok: without a breaker every call reaches the degraded payments and times out
+   check ok: with a breaker, under a third of the calls reach payments; the rest fail fast
+   check ok: after the restart a probe succeeds, the breaker closes and calls succeed again
+19 checks passed
 ```
 
 ## Origins and further reading

@@ -11,6 +11,7 @@
     "resume": "tsx src/resume.ts",
     "timer": "tsx src/timer.ts",
     "waker": "tsx src/waker.ts",
+    "verify": "tsx src/verify.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

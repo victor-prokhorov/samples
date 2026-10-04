@@ -1,4 +1,4 @@
-# 13-partitioning run 2026-09-27T13:15:36Z
+# 13-partitioning run 2026-10-04T00:52:36Z
 == fresh Postgres (docker compose down -v && up) ==
  Container 13-partitioning-postgres-1 Healthy 
 setup: orders PARTITION BY HASH (customer_id) into 4 partitions (orders_p0..orders_p3)
@@ -11,6 +11,7 @@ setup: orders PARTITION BY HASH (customer_id) into 4 partitions (orders_p0..orde
    carol desk     -> orders_p1 (id 4)
    dave  chair    -> orders_p0 (id 5)
    erin  lamp     -> orders_p0 (id 6)
+   check ok: the parent table owns no rows; one customer's rows always land in the same partition
 
 ## 2. Partition pruning
    concept: a query that filters on the partition key only touches the matching partition
@@ -18,6 +19,7 @@ setup: orders PARTITION BY HASH (customer_id) into 4 partitions (orders_p0..orde
        Recheck Cond: (customer_id = 'alice'::text)
        ->  Bitmap Index Scan on orders_p1_pkey
              Index Cond: (customer_id = 'alice'::text)
+   check ok: a lookup by the partition key touches one partition, alice's (orders_p1)
 
 ## 3. No key, no pruning
    concept: without the partition key every partition is scanned (in sharding: every shard is queried)
@@ -30,19 +32,25 @@ setup: orders PARTITION BY HASH (customer_id) into 4 partitions (orders_p0..orde
              Filter: (item = 'lamp'::text)
        ->  Seq Scan on orders_p3 orders_4
              Filter: (item = 'lamp'::text)
+   check ok: a lookup without the key scans all 4 partitions
 
 ## 4. Uniqueness must include the key
    concept: each partition has its own index, so Postgres cannot enforce uniqueness on id alone
    rejected: unique constraint on partitioned table must include all partitioning columns
+   check ok: UNIQUE (id) without the partition key is refused
 
 ## 5. Still one server
    concept: one transaction can span partitions and rolls back atomically; after sharding (11) this is no longer true
    rejected: null value in column "item" of relation "orders_p2" violates not-null constraint
    alice's cable rows after rollback: 0
+   check ok: alice's insert in orders_p1 rolled back with bob's failed one in orders_p2
 
 ## 6. Changing the key moves the row
    concept: UPDATE of customer_id deletes from one partition and inserts into another, in the same transaction
    erin's lamp now belongs to frank -> orders_p2
+   check ok: the row moved from orders_p0 to orders_p2, and exists once
+
+6 checks passed
 
 == proof: the parent table owns no rows, the partitions do ==
  rows_in_parent_only 

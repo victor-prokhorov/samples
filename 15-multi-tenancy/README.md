@@ -12,6 +12,8 @@ Three isolation models on one Postgres, named as in the AWS SaaS whitepapers: po
 
 One shot with proof: `./run-15-multi-tenancy.sh` from the repo root (log in [`../logs/15-multi-tenancy.log`](../logs/15-multi-tenancy.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55447):
 
 ```sh
@@ -127,6 +129,46 @@ Silo: no path between databases, the cost in connections, and bigco's move with 
    bigco write, invoice 21004: rejected: duplicate key value violates unique constraint "invoices_pkey"
    bigco write: ok, invoice id 20004 in silo_bigco
    bigco    -> silo_bigco: invoices 20004, total 49990400
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: without RLS, a query that forgets WHERE tenant_id reads every tenant's rows
+   check ok: under RLS the same query returns only the current tenant's rows: no cross-tenant read
+   check ok: with no tenant set the policy fails closed: 0 rows, no error
+   check ok: after SET LOCAL ends, the setting is '' rather than missing
+   check ok: the owner bypasses RLS until FORCE; the superuser bypasses it always
+   check ok: a session-level SET leaks acme's tenant into the next request on the pooled connection
+   check ok: SET LOCAL ends with the transaction: the next request sees 0 rows
+   check ok: WITH CHECK rejects writing a row into another tenant, by INSERT or UPDATE
+   check ok: acme cannot update globex's invoice: 0 rows touched
+   check ok: without a tenant_id index acme's query filters out every other tenant's rows; with one it reads only its own
+   check ok: a global UNIQUE (number) stops globex having its own invoice 1
+   check ok: with UNIQUE (tenant_id, number) acme and globex both have an invoice 1
+   check ok: a plain foreign key let acme point at globex's customer, and the owner's validation under RLS missed it
+   check ok: with row_security = off or as a superuser, validation sees the bad row and refuses
+   check ok: the composite foreign key refuses another tenant's customer
+   check ok: acme's report finishes within its 5000ms; bigco's is cancelled at its 200ms
+16 checks passed
+   check ok: each request runs as its tenant's role, in its tenant's schema
+   check ok: a schema-qualified name reaches another tenant under one shared role; the tenant's own role is denied
+   check ok: session-level role and search_path leak hooli's context into the next request
+   check ok: with LOCAL settings and DISCARD ALL, a request without context fails loudly
+   check ok: one schema's data stops the loop: the fleet is left half migrated
+   check ok: after the fix the re-run skips done schemas and migrates the rest
+   check ok: every tenant schema adds relations to the catalog: pg_class grew by 8000 for 1000 tenants
+7 checks passed
+   check ok: the directory routes pooled tenants to pool and siloed ones to their own database
+   check ok: a silo connection cannot read another tenant's database
+   check ok: connections are per database: 5 busy requests per tenant hold 5 connections in each database
+   check ok: deleting umbrella is one DROP DATABASE: the database and the directory row are gone
+   check ok: while bigco moves its writes are refused
+   check ok: the copy in silo_bigco has the same invoice count and total as the pool
+   check ok: the copied ids without their sequences collide on the 4th new invoice
+   check ok: after setval, new invoices continue after the copied ids, in silo_bigco
+   check ok: bigco now lives only in silo_bigco; acme still in the pool
+9 checks passed
 ```
 
 ## Origins and further reading

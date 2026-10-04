@@ -10,6 +10,7 @@
     "step": "tsx src/narrate.ts",
     "replica": "tsx src/replica.ts",
     "advisory": "tsx src/advisory.ts",
+    "verify": "tsx src/verify.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

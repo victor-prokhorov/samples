@@ -12,13 +12,15 @@ Same outbox idea as 09, but the relay is Debezium reading the WAL (10) instead o
 
 One shot with proof: `./run-11-outbox-debezium.sh` from the repo root (log in [`../logs/11-outbox-debezium.log`](../logs/11-outbox-debezium.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55436, Kafka 59093, Kafka Connect 58084):
 
 ```sh
 docker compose up -d --wait
 npm i
 npm run setup     # orders + outbox tables, register connector with EventRouter
-npm run consume   # terminal 1
+npm run consume   # terminal 1 (-- --messages 3: stop 3s after the 3rd event and check them)
 npm run app       # terminal 2
 ```
 
@@ -39,6 +41,8 @@ npm run app       # terminal 2
 - **Trade-offs vs 09**: lower latency, no DB polling, no table cleanup, but Kafka Connect, Debezium and a replication slot to run and monitor. Both share the core limit: every write path must remember to emit.
 
 ## Proof (`logs/11-outbox-debezium.log`)
+
+The committed log was recorded before the self-checks were added (the app checks the tables, and the consumer now stops 3s after the third event and checks what arrived); the next run adds their lines.
 
 The app wrote four outbox rows. One was rolled back (bob), and in step 4 all of alice's rows were deleted: OrderShipped in the same transaction that inserted it, the two earlier ones after they had committed (their inserts are already in the WAL). The app also committed carol's order without an outbox row (the dual-write simulation).
 

@@ -20,10 +20,14 @@ echo "== proof: audit events waiting in each service's outbox (no row for mallor
 psql -d orders -c "SELECT id, entity, entity_id, action, actor, shipped_at FROM audit_outbox ORDER BY id"
 psql -d billing -c "SELECT id, entity, entity_id, action, actor, shipped_at FROM audit_outbox ORDER BY id"
 echo "== shipper pass 1: stores the orders events centrally, crashes before marking them shipped =="
-npm run --silent ship -- --crash-after-send || echo "shipper exited with $?"
+code=0
+npm run --silent ship -- --crash-after-send || code=$?
+echo "shipper exited with $code (3 is the simulated crash)"
+[ "$code" = 3 ] || exit 1
 echo "== proof: orders rows still unshipped locally (the crashed transaction rolled back), yet already stored centrally =="
 psql -d orders -c "SELECT id, shipped_at FROM audit_outbox ORDER BY id"
 psql -d audit -c "SELECT count(*) AS stored_centrally FROM audit_events"
+npm run --silent verify -- crashed
 echo "== shipper pass 2: re-sends the orders events (deduped by event_id), then the billing ones =="
 npm run --silent ship
 echo
@@ -39,3 +43,4 @@ psql -d audit -c "SELECT after->>'total' AS last_audited_total FROM audit_events
 echo "== proof: local outboxes are drained; shipped rows can now be deleted on a retention schedule =="
 psql -d orders -c "SELECT count(*) FILTER (WHERE shipped_at IS NULL) AS unshipped, count(*) AS total FROM audit_outbox"
 psql -d billing -c "SELECT count(*) FILTER (WHERE shipped_at IS NULL) AS unshipped, count(*) AS total FROM audit_outbox"
+npm run --silent verify -- final

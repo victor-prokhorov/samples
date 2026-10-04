@@ -1,4 +1,5 @@
 import { Experiment } from "./scientist.js";
+import { check } from "./check.js";
 import { Order, legacyShipping, rewrittenShippingV1, rewrittenShippingV2 } from "./shipping.js";
 
 function mulberry32(seed: number) {
@@ -39,6 +40,8 @@ function main() {
   const servedV1 = serve(orders, (o) => first.run(o));
   first.report();
   console.log(`   users unaffected: served total ${servedV1} === legacy total ${legacyRevenue}: ${servedV1 === legacyRevenue}`);
+  check("the buggy rewrite disagrees on some orders", first.runs === 1000 && first.mismatches.length > 0);
+  check("callers still got the legacy answer for every order", servedV1 === legacyRevenue);
   step("2. Read the mismatches", "each mismatch is a real input where the rewrite disagrees; group them to find the bug");
   const thrown = first.mismatches.filter((m) => m.candidate.error);
   const freeEdge = first.mismatches.filter((m) => !m.candidate.error && m.control.value === 0).length;
@@ -48,15 +51,19 @@ function main() {
   console.log(`   ${weightRounding} from weight rounding: legacy rounds the order total up to kg, rewrite rounds each item`);
   const sample = first.mismatches.find((m) => !m.candidate.error && m.control.value !== 0);
   if (sample) console.log(`   example: ${JSON.stringify(sample.input)} -> control ${sample.control.value}, candidate ${sample.candidate.value}`);
+  check("the mismatches fall into three bugs, each seen at least once", thrown.length > 0 && freeEdge > 0 && weightRounding > 0);
+  check("every candidate exception was swallowed and is the empty-cart one", thrown.every((m) => m.candidate.error === "order has no items" && m.input.items.length === 0));
   step("3. Fix the candidate and run again", "keep running until mismatches are zero on real traffic; only then is the rewrite trusted");
   const second = new Experiment("shipping-v2", legacyShipping, rewrittenShippingV2, random);
   serve(orders, (o) => second.run(o));
   second.report();
+  check("the fixed rewrite matches legacy on all 1000 orders", second.runs === 1000 && second.mismatches.length === 0);
   step("4. Cut over", "swap control and candidate: the rewrite now serves, legacy keeps running as the check, then it is deleted");
   const cutover = new Experiment("shipping-cutover", rewrittenShippingV2, legacyShipping, random);
   const servedV2 = serve(orders, (o) => cutover.run(o));
   cutover.report();
   console.log(`   served total ${servedV2} === legacy total ${legacyRevenue}: ${servedV2 === legacyRevenue}`);
+  check("after the cutover the rewrite serves, legacy as the check finds no mismatch, and revenue is unchanged", cutover.mismatches.length === 0 && servedV2 === legacyRevenue);
 }
 
 main();

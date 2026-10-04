@@ -10,6 +10,7 @@
     "demo": "tsx src/demo.ts",
     "scaled": "tsx src/scaled.ts",
     "outage": "tsx src/outage.ts",
+    "verify": "tsx src/verify.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

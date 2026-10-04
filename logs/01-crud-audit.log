@@ -1,4 +1,4 @@
-# 01-crud-audit run 2026-09-27T15:59:37Z
+# 01-crud-audit run 2026-10-04T00:48:23Z
 == fresh Postgres (docker compose down -v && up) ==
  Container 01-crud-audit-postgres-1 Healthy 
 == demo ==
@@ -6,27 +6,36 @@
 ## 1. Create
    concept: INSERT the row and an audit entry (before=null, after=row) in one transaction
    created: { id: 1, name: 'Keyboard', price: '49.00' }
+   check ok: create writes one audit row: before=null, after=the new row
 
 ## 2. Update
    concept: lock the row (SELECT ... FOR UPDATE), capture before, UPDATE, write audit with before and after
    bob: { id: 1, name: 'Keyboard', price: '39.00' }
    alice: { id: 1, name: 'Mech Keyboard', price: '39.00' }
+   check ok: each update writes one audit row with the before and after values
 
 ## 3. Atomicity
    concept: if the audit insert fails (empty actor violates CHECK), the data change rolls back with it
    rejected: new row for relation "audit_log" violates check constraint "audit_log_actor_check"
    price still: 39.00
+   check ok: the update with an empty actor is rejected
+   check ok: the rolled-back update left the price unchanged and wrote no audit row
 
 ## 4. Delete
    concept: the row disappears from products, but the audit entry keeps its last value (before=row, after=null)
    read after delete: null
+   check ok: the row is gone from products after the delete
 
 ## 5. History
    concept: the products table only knows the present; audit_log answers who changed what, when, from what to what
-   2026-09-27T15:59:39.435Z create by alice before=null after={"id":1,"name":"Keyboard","price":"49.00"}
-   2026-09-27T15:59:39.437Z update by bob   before={"id":1,"name":"Keyboard","price":"49.00"} after={"id":1,"name":"Keyboard","price":"39.00"}
-   2026-09-27T15:59:39.439Z update by alice before={"id":1,"name":"Keyboard","price":"39.00"} after={"id":1,"name":"Mech Keyboard","price":"39.00"}
-   2026-09-27T15:59:39.443Z delete by carol before={"id":1,"name":"Mech Keyboard","price":"39.00"} after=null
+   2026-10-04T00:48:31.719Z create by alice before=null after={"id":1,"name":"Keyboard","price":"49.00"}
+   2026-10-04T00:48:31.727Z update by bob   before={"id":1,"name":"Keyboard","price":"49.00"} after={"id":1,"name":"Keyboard","price":"39.00"}
+   2026-10-04T00:48:31.730Z update by alice before={"id":1,"name":"Keyboard","price":"39.00"} after={"id":1,"name":"Mech Keyboard","price":"39.00"}
+   2026-10-04T00:48:31.742Z delete by carol before={"id":1,"name":"Mech Keyboard","price":"39.00"} after=null
+   check ok: the history survives the delete: one audit row per change (create, update, update, delete), the last one keeping the final value
+   check ok: audit_log holds no row from the rolled-back change
+
+7 checks passed
 
 == proof: products table (current state only, row is gone) ==
  id | name | price 

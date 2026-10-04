@@ -12,6 +12,8 @@
 
 One shot with proof: `./run-17-audit-outbox.sh` from the repo root (log in [`../logs/17-audit-outbox.log`](../logs/17-audit-outbox.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55444):
 
 ```sh
@@ -19,7 +21,8 @@ docker compose up -d --wait
 npm i
 npm run setup    # databases orders, billing, audit
 npm run demo     # app writes with actors, plus a rolled-back change
-npm run ship     # copy outbox rows to the central store (add -- --crash-after-send to simulate a crash)
+npm run ship     # copy outbox rows to the central store (add -- --crash-after-send to simulate a crash, exit 3)
+npm run verify -- final   # central log, append-only, the psql gap, drained outboxes (crashed: after a crashed pass)
 ```
 
 ## Files
@@ -76,6 +79,23 @@ ERROR:  audit_events is append-only: TRUNCATE rejected
 
  last_audited_total
  38.25
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: orders' outbox holds one audit event per committed change, with the actor
+   check ok: billing's outbox holds its own event
+   check ok: mallory's change rolled back together with its audit event: total still 38.25, no event
+3 checks passed
+   check ok: after the crash orders' 2 events are still unshipped locally, yet already stored centrally
+1 check passed
+   check ok: the central log has one row per event (3) despite the re-send
+   check ok: the timeline spans both services, with no event from mallory's rolled-back change
+   check ok: the central log is append-only: UPDATE, DELETE and TRUNCATE are all rejected
+   check ok: the gap: the psql UPDATE set the total to 0 and left no audit trace (last audited total 38.25)
+   check ok: both local outboxes are drained
+5 checks passed
 ```
 
 ## Origins and further reading

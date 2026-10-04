@@ -1,4 +1,4 @@
-# 18-crypto-shredding run 2026-09-28T06:17:12Z
+# 18-crypto-shredding run 2026-10-04T00:54:13Z
 == fresh Postgres with databases events, keys, kms (docker compose down -v && up) ==
  Container 18-crypto-shredding-postgres-1 Healthy 
 setup: databases events (append-only events), keys (per-subject wrapped DEKs, email blind index), kms (KEK 1, blind-index key)
@@ -6,28 +6,32 @@ setup: databases events (append-only events), keys (per-subject wrapped DEKs, em
 
 ## 1. One data key per subject, wrapped by the KEK
    concept: each customer gets a random 256-bit DEK; the key store keeps it only wrapped (encrypted) by a KEK held in the KMS
-   alice -> subject ac3c12a0-5fa5-4098-a1c5-97a8123a4375, DEK wrapped by KEK 1
-   bob   -> subject 389b4036-cd2d-4480-a37e-e5024eb8c4a8, DEK wrapped by KEK 1
+   alice -> subject ab06b94c-cc17-4c6b-95a7-b8ba1b2fb5ca, DEK wrapped by KEK 1
+   bob   -> subject f78c088d-1d27-415f-814b-a03259492dbb, DEK wrapped by KEK 1
+   check ok: the key store holds one wrapped DEK per subject, never the plaintext key
 
 ## 2. PII encrypted, the rest in clear
    concept: name, email and address are AES-256-GCM ciphertext under the subject's DEK; event type, order and amount stay queryable
-   events <- #1 ac3c12a0 CustomerRegistered {} encrypted: name, email
-   events <- #2 389b4036 CustomerRegistered {} encrypted: name, email
-   events <- #3 ac3c12a0 OrderPlaced {"order":"A-1","amount":"42.50"} encrypted: ship_to
-   events <- #4 389b4036 OrderPlaced {"order":"B-1","amount":"19.90"} encrypted: ship_to
-   events <- #5 ac3c12a0 OrderPlaced {"order":"A-2","amount":"7.00"} encrypted: ship_to
+   events <- #1 ab06b94c CustomerRegistered {} encrypted: name, email
+   events <- #2 f78c088d CustomerRegistered {} encrypted: name, email
+   events <- #3 ab06b94c OrderPlaced {"order":"A-1","amount":"42.50"} encrypted: ship_to
+   events <- #4 f78c088d OrderPlaced {"order":"B-1","amount":"19.90"} encrypted: ship_to
+   events <- #5 ab06b94c OrderPlaced {"order":"A-2","amount":"7.00"} encrypted: ship_to
+   check ok: the events table holds no plaintext PII, but the amounts are in clear
 
 ## 3. Lookup by email through a blind index
    concept: ciphertext cannot be indexed, so the key store keeps HMAC(blind-index key, normalized email) -> subject
-   " Alice@Example.COM " -> hmac 025bebb637c9ec67... -> subject ac3c12a0-5fa5-4098-a1c5-97a8123a4375
-   #1 ac3c12a0 CustomerRegistered                          | name=Alice Martin email=alice@example.com
-   #3 ac3c12a0 OrderPlaced        order=A-1 amount=42.50   | ship_to=12 rue des Lilas, Lyon
-   #5 ac3c12a0 OrderPlaced        order=A-2 amount=7.00    | ship_to=12 rue des Lilas, Lyon
+   " Alice@Example.COM " -> hmac 5a74a26e99651f14... -> subject ab06b94c-cc17-4c6b-95a7-b8ba1b2fb5ca
+   #1 ab06b94c CustomerRegistered                          | name=Alice Martin email=alice@example.com
+   #3 ab06b94c OrderPlaced        order=A-1 amount=42.50   | ship_to=12 rue des Lilas, Lyon
+   #5 ab06b94c OrderPlaced        order=A-2 amount=7.00    | ship_to=12 rue des Lilas, Lyon
+   check ok: a messy spelling of alice's email finds her subject through the blind index; her 3 events decrypt
 
 ## 4. A fresh IV for every encryption
    concept: same key, same plaintext, different ciphertext: equal values cannot be spotted, and GCM never reuses a nonce under one key
-   seal("alice@example.com") #1 = X5vOeziT8vOcj+7rJDD4WwLVVbnvIEV1...
-   seal("alice@example.com") #2 = 2PWzM9YB+0ALWwanZuJB7sVr4f31ei+Q...
+   seal("alice@example.com") #1 = vDHJu+UWoNEdlNpQoXl3Qu48OBeAy4OS...
+   seal("alice@example.com") #2 = dU9yx7jxUvXjk1ky0zoDVb3RFifaWqjx...
+   check ok: sealing the same value twice gives two different ciphertexts
 
 ## 5. AAD binds each ciphertext to its subject and field
    concept: the AAD (subject id + field name) is authenticated, not stored: a ciphertext moved elsewhere, or edited, fails to decrypt
@@ -35,72 +39,86 @@ setup: databases events (append-only events), keys (per-subject wrapped DEKs, em
    alice's email ciphertext, pasted into her name field: rejected, Unsupported state or unable to authenticate data
    bob's email ciphertext, pasted into alice's email (wrong DEK and wrong AAD): rejected, Unsupported state or unable to authenticate data
    alice's email with one bit flipped: rejected, Unsupported state or unable to authenticate data
+   check ok: the right ciphertext in the right place decrypts; moved, swapped or edited ciphertext is rejected
+
+5 checks passed
 
 == proof: what the events table actually holds (PII is ciphertext, order and amount in clear) ==
  id | subject  |        type        |                data                 |                           pii                            
 ----+----------+--------------------+-------------------------------------+----------------------------------------------------------
-  1 | ac3c12a0 | CustomerRegistered | {}                                  | {"name": "TrZkzifAMuS8a8VDWpwLNLchdz3Gbi0WpjnXU1t7rPRgDW
-  2 | 389b4036 | CustomerRegistered | {}                                  | {"name": "KADMdqGP0zbZPfPcDDnvL5ZeJdGWfPEiiNTwSZL7qY3LCU
-  3 | ac3c12a0 | OrderPlaced        | {"order": "A-1", "amount": "42.50"} | {"ship_to": "r9Yd10wUCkHOHSxo017vhsouoDS5QHsOFYrAaQgAKuo
-  4 | 389b4036 | OrderPlaced        | {"order": "B-1", "amount": "19.90"} | {"ship_to": "U1lpi0QwqHa602u7maaq4RF/d5O1fSdIp8WiUUg4OFr
-  5 | ac3c12a0 | OrderPlaced        | {"order": "A-2", "amount": "7.00"}  | {"ship_to": "hKbHZc/YUyWWmGUWpDlgDR+h1nucJWfaf+KI814sWsS
+  1 | ab06b94c | CustomerRegistered | {}                                  | {"name": "OvyxFfvD6Vp8Xlj5HRlANbmdGTCxj9wWmTCxy7ApccF0Ax
+  2 | f78c088d | CustomerRegistered | {}                                  | {"name": "RXOuVX8jOy67H4AOePaQqoAn44+7Kh+fqZ6T3hRtxmVvFg
+  3 | ab06b94c | OrderPlaced        | {"order": "A-1", "amount": "42.50"} | {"ship_to": "DaCyA+1Ff8NVt+i74GiAsHO96r7YhNR+WG430jCdsGt
+  4 | f78c088d | OrderPlaced        | {"order": "B-1", "amount": "19.90"} | {"ship_to": "SooxriRPNpMRfxyctEo4gNhIs4w4ERa+1+FAk+jh9QY
+  5 | ab06b94c | OrderPlaced        | {"order": "A-2", "amount": "7.00"}  | {"ship_to": "Uo8gFILnMEEmipXSiO2vZkXNsJVgeWMrP0HGhgOduPx
 (5 rows)
 
 == proof: the key store holds only wrapped DEKs and HMACs, never a plaintext key or email ==
  subject  |       wrapped_dek        | kek_id 
 ----------+--------------------------+--------
- ac3c12a0 | YoLHwmhQYNGd/Rzt0WTHMQTj |      1
- 389b4036 | dZ7xvu8547Tg0I4ydIeT70Qr |      1
+ ab06b94c | w4rn6ifQjfMPF48oFcFMf3HM |      1
+ f78c088d | 7hTg914rQJsunJlToqrW/y8E |      1
 (2 rows)
 
     email_hash    | subject  
 ------------------+----------
- 025bebb637c9ec67 | ac3c12a0
- fddbc3b65bb34866 | 389b4036
+ 5a74a26e99651f14 | ab06b94c
+ 766f6776ed6a0c91 | f78c088d
 (2 rows)
 
  events |         pii_fingerprint          
 --------+----------------------------------
-      5 | e03c50d380239956d689c5561ab3a3ee
+      5 | e4ba23ee87255947dd17b972d46bbc05
 (1 row)
 
 == KEK rotation: rewrap the DEKs, leave the data alone ==
 rotate: new KEK 2 in the kms, 2 DEKs unwrapped and rewrapped under it; not one event re-encrypted
+   check ok: every DEK is now wrapped by KEK 2
+   check ok: the events are untouched: same count, same PII fingerprint
+
+2 checks passed
  subject  |       wrapped_dek        | kek_id 
 ----------+--------------------------+--------
- ac3c12a0 | dhwoDgMox5CnrMr4tiWgRtT4 |      2
- 389b4036 | z/UPAS0KzQ50yCW6hqVtlwCU |      2
+ ab06b94c | Y9L2xRWxnO7XS84AE2fV69PP |      2
+ f78c088d | dAvB9HwNEPqBSRQU6p/eXSQw |      2
 (2 rows)
 
 == proof: same events, same fingerprint (the append-only trigger would have rejected any UPDATE anyway) ==
  events |         pii_fingerprint          
 --------+----------------------------------
-      5 | e03c50d380239956d689c5561ab3a3ee
+      5 | e4ba23ee87255947dd17b972d46bbc05
 (1 row)
 
 == nightly backups: pg_dump of events (fine) and of keys (the mistake this run will show) ==
--rw-r--r-- 1 root root 3778 Sep 28 06:17 /tmp/events-backup.sql
--rw-r--r-- 1 root root 2868 Sep 28 06:17 /tmp/keys-backup.sql
+-rw-rw-rw- 1 root root 3777 Oct  4 00:54 /tmp/events-backup.sql
+-rw-rw-rw- 1 root root 2868 Oct  4 00:54 /tmp/keys-backup.sql
 == proof: the events backup holds no plaintext PII, but the amounts are in it ==
 lines matching Alice|alice@|Lilas: 0
 lines matching 42.50: 1
 == alice asks to be forgotten ==
-erase: alice@example.com -> subject ac3c12a0-5fa5-4098-a1c5-97a8123a4375, DEK deleted from the key store (its blind-index row cascades)
+erase: alice@example.com -> subject ab06b94c-cc17-4c6b-95a7-b8ba1b2fb5ca, DEK deleted from the key store (its blind-index row cascades)
+   check ok: alice@example.com's DEK and blind-index row are gone from the key store
+
+1 check passed
 == proof: her events cannot be deleted, the log is append-only ==
 ERROR:  events is append-only: DELETE rejected
 CONTEXT:  PL/pgSQL function reject_change() line 3 at RAISE
 == proof: read everything back. alice's rows are still there, her PII is gone, bob is untouched ==
 read: events from database events, keys from database keys
 read: lookup alice@example.com -> no subject
-   #1 ac3c12a0 CustomerRegistered                          | name=<erased> email=<erased>
-   #2 389b4036 CustomerRegistered                          | name=Bob Keller email=bob@example.com
-   #3 ac3c12a0 OrderPlaced        order=A-1 amount=42.50   | ship_to=<erased>
-   #4 389b4036 OrderPlaced        order=B-1 amount=19.90   | ship_to=3 Hauptstrasse, Bern
-   #5 ac3c12a0 OrderPlaced        order=A-2 amount=7.00    | ship_to=<erased>
+   #1 ab06b94c CustomerRegistered                          | name=<erased> email=<erased>
+   #2 f78c088d CustomerRegistered                          | name=Bob Keller email=bob@example.com
+   #3 ab06b94c OrderPlaced        order=A-1 amount=42.50   | ship_to=<erased>
+   #4 f78c088d OrderPlaced        order=B-1 amount=19.90   | ship_to=3 Hauptstrasse, Bern
+   #5 ab06b94c OrderPlaced        order=A-2 amount=7.00    | ship_to=<erased>
+   check ok: all 5 events are still there; alice's PII is erased
+   check ok: bob's PII is untouched
+
+2 checks passed
  subject  | events | total_amount 
 ----------+--------+--------------
- 389b4036 |      2 |        19.90
- ac3c12a0 |      3 |        49.50
+ ab06b94c |      3 |        49.50
+ f78c088d |      2 |        19.90
 (2 rows)
 
  keys_left 
@@ -112,20 +130,28 @@ read: lookup alice@example.com -> no subject
 CREATE DATABASE
 == proof: alice is unreadable in the restored backup too; no one had to edit it ==
 read: events from database events_restored, keys from database keys
-   #1 ac3c12a0 CustomerRegistered                          | name=<erased> email=<erased>
-   #2 389b4036 CustomerRegistered                          | name=Bob Keller email=bob@example.com
-   #3 ac3c12a0 OrderPlaced        order=A-1 amount=42.50   | ship_to=<erased>
-   #4 389b4036 OrderPlaced        order=B-1 amount=19.90   | ship_to=3 Hauptstrasse, Bern
-   #5 ac3c12a0 OrderPlaced        order=A-2 amount=7.00    | ship_to=<erased>
+   #1 ab06b94c CustomerRegistered                          | name=<erased> email=<erased>
+   #2 f78c088d CustomerRegistered                          | name=Bob Keller email=bob@example.com
+   #3 ab06b94c OrderPlaced        order=A-1 amount=42.50   | ship_to=<erased>
+   #4 f78c088d OrderPlaced        order=B-1 amount=19.90   | ship_to=3 Hauptstrasse, Bern
+   #5 ab06b94c OrderPlaced        order=A-2 amount=7.00    | ship_to=<erased>
+   check ok: all 5 events are still there; alice's PII is erased
+   check ok: bob's PII is untouched
+
+2 checks passed
 == cautionary proof: restore the keys backup as well, and alice is back ==
 CREATE DATABASE
 read: events from database events_restored, keys from database keys_restored
-read: lookup alice@example.com -> ac3c12a0-5fa5-4098-a1c5-97a8123a4375
-   #1 ac3c12a0 CustomerRegistered                          | name=Alice Martin email=alice@example.com
-   #2 389b4036 CustomerRegistered                          | name=Bob Keller email=bob@example.com
-   #3 ac3c12a0 OrderPlaced        order=A-1 amount=42.50   | ship_to=12 rue des Lilas, Lyon
-   #4 389b4036 OrderPlaced        order=B-1 amount=19.90   | ship_to=3 Hauptstrasse, Bern
-   #5 ac3c12a0 OrderPlaced        order=A-2 amount=7.00    | ship_to=12 rue des Lilas, Lyon
+read: lookup alice@example.com -> ab06b94c-cc17-4c6b-95a7-b8ba1b2fb5ca
+   #1 ab06b94c CustomerRegistered                          | name=Alice Martin email=alice@example.com
+   #2 f78c088d CustomerRegistered                          | name=Bob Keller email=bob@example.com
+   #3 ab06b94c OrderPlaced        order=A-1 amount=42.50   | ship_to=12 rue des Lilas, Lyon
+   #4 f78c088d OrderPlaced        order=B-1 amount=19.90   | ship_to=3 Hauptstrasse, Bern
+   #5 ab06b94c OrderPlaced        order=A-2 amount=7.00    | ship_to=12 rue des Lilas, Lyon
+   check ok: all 5 events are still there; alice's PII is readable
+   check ok: bob's PII is untouched
+
+2 checks passed
 == the key store's backups must be short-lived (or erasures replayed after restore); dropping the restored copy and the dump ==
 DROP DATABASE
 /tmp/events-backup.sql

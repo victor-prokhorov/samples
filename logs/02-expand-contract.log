@@ -1,4 +1,4 @@
-# 02-expand-contract run 2026-09-27T15:59:52Z
+# 02-expand-contract run 2026-10-04T00:48:34Z
 == fresh Postgres (docker compose down -v && up) ==
  Container 02-expand-contract-postgres-1 Healthy 
 == demo: rename users.name -> display_name while old and new app versions run side by side ==
@@ -6,11 +6,13 @@
 ## 0. Starting point
    concept: schema has users.name, v1 runs in production
    v1 (write name, read name): write ok, read 1 rows, all have a name
+   check ok: v1 writes and reads a name for every row
 
 ## Naive: rename in one step
    concept: RENAME breaks every running instance the moment it commits; a rolling deploy always has old code running
    migration naive: ALTER TABLE users RENAME COLUMN name TO display_name
    v1 (write name, read name): FAILS: column "name" of relation "users" does not exist
+   check ok: the naive rename breaks the running v1 the moment it commits
    migration undo: ALTER TABLE users RENAME COLUMN display_name TO name
 
 ## 1. Expand
@@ -18,33 +20,44 @@
    migration M1: ALTER TABLE users ADD COLUMN display_name TEXT, ALTER COLUMN name DROP NOT NULL
    v1 (write name, read name): write ok, read 2 rows, all have a name
    v2 (write both, read name): write ok, read 3 rows, all have a name
+   check ok: v1 and v2 each write and read a name for every row
    too early: reading the new column before the backfill would show blanks
    probe v3 (write both, read display_name): 2 rows WITHOUT a name
+   check ok: before the backfill, a reader of display_name sees rows without a name
 
 ## 2. Migrate data
    concept: v1 is fully retired, so every writer now fills both columns; backfill the old rows
    migration M2: UPDATE users SET display_name = name WHERE display_name IS NULL
    v2 (write both, read name): write ok, read 4 rows, all have a name
+   check ok: v2 writes and reads a name for every row
 
 ## 3. Switch reads
    concept: deploy v3 which reads the new column; v2 and v3 overlap during the rollout
    v2 (write both, read name): write ok, read 5 rows, all have a name
    v3 (write both, read display_name): write ok, read 6 rows, all have a name
+   check ok: v2 and v3 each write and read a name for every row
 
 ## 4. Stop writing the old column
    concept: all writers fill display_name and the backfill is done, so it can become NOT NULL; deploy v4, overlapping with v3
    migration M3: ALTER TABLE users ALTER COLUMN display_name SET NOT NULL
    v3 (write both, read display_name): write ok, read 7 rows, all have a name
    v4 (write display_name, read display_name): write ok, read 8 rows, all have a name
+   check ok: v3 and v4 each write and read a name for every row
 
 ## 5. Contract
    concept: v3 is fully retired, nobody reads or writes name any more: drop it
    migration M4: ALTER TABLE users DROP COLUMN name
    v4 (write display_name, read display_name): write ok, read 9 rows, all have a name
+   check ok: v4 writes and reads a name for every row
 
 ## Why the order matters
    concept: had v3 still been running, the contract step would have broken it
    v3 (write both, read display_name): FAILS: column "name" of relation "users" does not exist
+   check ok: contracting while v3 still ran would have broken it
+   check ok: the final schema has only id and display_name, NOT NULL
+   check ok: every row written by every version in every phase has a display_name (9 rows)
+
+11 checks passed
 
 == proof: final schema has only display_name, NOT NULL ==
  column_name  | is_nullable 

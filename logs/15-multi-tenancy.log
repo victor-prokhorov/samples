@@ -1,4 +1,4 @@
-# 15-multi-tenancy run 2026-09-28T06:25:07Z
+# 15-multi-tenancy run 2026-10-04T00:53:17Z
 == fresh Postgres with databases pool, bridge, silo_initech, silo_umbrella (docker compose down -v && up) ==
  Container 15-multi-tenancy-postgres-1 Healthy 
 setup: roles migrator (owner of every table, CREATEDB) and app (NOSUPERUSER NOBYPASSRLS, not an owner)
@@ -11,18 +11,22 @@ setup: databases silo_initech, silo_umbrella, one per tenant, same schema as the
 ## 1. Pool: a forgotten WHERE tenant_id
    concept: all tenants share one invoices table; isolation is a WHERE tenant_id = $1 that every query must remember
    acme's invoice list, WHERE tenant_id forgotten: acme 2, bigco 20000, globex 1
+   check ok: without RLS, a query that forgets WHERE tenant_id reads every tenant's rows
 
 ## 2. Row-Level Security
    concept: the database adds the tenant filter to every query; the app sets app.tenant_id per transaction and the same forgotten query is now scoped
    policy: USING (tenant_id = NULLIF(current_setting('app.tenant_id', true), '')), same expression WITH CHECK
    acme, same query:   acme 2
    globex, same query: globex 1
+   check ok: under RLS the same query returns only the current tenant's rows: no cross-tenant read
 
 ## 3. No tenant set: zero rows, not an error
    concept: current_setting(..., true) returns NULL when the setting is missing, tenant_id = NULL is never true, so the policy fails closed and silently
    no tenant set: 0 rows
    strict current_setting on a fresh connection: rejected: unrecognized configuration parameter "app.tenant_id"
+   check ok: with no tenant set the policy fails closed: 0 rows, no error
    same connection after one request with SET LOCAL: current_setting('app.tenant_id') = "" (hence NULLIF(..., ''))
+   check ok: after SET LOCAL ends, the setting is '' rather than missing
 
 ## 4. The owner and superusers bypass RLS
    concept: ENABLE ROW LEVEL SECURITY does not apply to the table owner, superusers or BYPASSRLS roles; FORCE fixes the owner, nothing fixes a superuser
@@ -31,13 +35,16 @@ setup: databases silo_initech, silo_umbrella, one per tenant, same schema as the
    ALTER TABLE ... FORCE ROW LEVEL SECURITY
    migrator (owner), no tenant set:  0 rows
    postgres (superuser):             acme 2, bigco 20000, globex 1
+   check ok: the owner bypasses RLS until FORCE; the superuser bypasses it always
 
 ## 5. SET vs SET LOCAL on a pooled connection
    concept: pool of 1 connection: a session-level SET outlives the request and the next request on that connection inherits the tenant
    request 1 (acme): SET app.tenant_id = 'acme' (session level), connection back to the pool
    request 2 (globex job, forgot to set the tenant): acme 2
+   check ok: a session-level SET leaks acme's tenant into the next request on the pooled connection
    after RESET, request 1 (acme): set_config('app.tenant_id', 'acme', true) = SET LOCAL, ends with the transaction
    request 2 (globex job, forgot to set the tenant): 0 rows
+   check ok: SET LOCAL ends with the transaction: the next request sees 0 rows
    SET LOCAL with a bind parameter: rejected: syntax error at or near "$1"
 
 ## 6. WITH CHECK blocks writes into another tenant
@@ -45,6 +52,8 @@ setup: databases silo_initech, silo_umbrella, one per tenant, same schema as the
    acme inserts a row with tenant_id 'globex': rejected: new row violates row-level security policy for table "invoices"
    acme moves its invoice 1 to globex: rejected: new row violates row-level security policy for table "invoices"
    acme updates globex's invoice 100: 0 rows updated (invisible, not an error)
+   check ok: WITH CHECK rejects writing a row into another tenant, by INSERT or UPDATE
+   check ok: acme cannot update globex's invoice: 0 rows touched
 
 ## 7. Indexes lead with tenant_id
    concept: RLS is a filter, not a partition: without an index starting with tenant_id, acme's query walks past everyone else's rows
@@ -60,27 +69,36 @@ setup: databases silo_initech, silo_umbrella, one per tenant, same schema as the
      Limit (actual rows=2 loops=1)
        ->  Index Scan Backward using invoices_tenant_id_id_idx on invoices (actual rows=2 loops=1)
              Index Cond: (tenant_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text))
+   check ok: without a tenant_id index acme's query filters out every other tenant's rows; with one it reads only its own
 
 ## 8. Unique constraints must include tenant_id
    concept: UNIQUE (number) is global: globex cannot have its own invoice 1, and the rejection tells globex another tenant has one (under RLS Postgres hides the key value, not the fact)
    globex creates invoice 1: rejected: duplicate key value violates unique constraint "invoices_number_key"
+   check ok: a global UNIQUE (number) stops globex having its own invoice 1
    ALTER TABLE invoices ... ADD UNIQUE (tenant_id, number)
    globex creates invoice 1: ok, acme and globex both have an invoice 1
+   check ok: with UNIQUE (tenant_id, number) acme and globex both have an invoice 1
 
 ## 9. Foreign keys must include tenant_id
    concept: foreign key checks bypass RLS, so a plain FOREIGN KEY (customer_id) accepts another tenant's customer; and adding a constraint validates only the rows the migrating role can see
    acme creates invoice 3 for customer 2 (globex's Grace): accepted
    migrator (owner, forced RLS) adds FOREIGN KEY (tenant_id, customer_id): accepted, convalidated = true, rows violating it: 1
    the validation query ran under RLS with no tenant set, saw zero rows, and found nothing wrong
+   check ok: a plain foreign key let acme point at globex's customer, and the owner's validation under RLS missed it
    same, with SET row_security = off: rejected: query would be affected by row-level security policy for table "invoices"
    same, as postgres (bypasses RLS): rejected: insert or update on table "invoices" violates foreign key constraint "invoices_customer_fkey" (Key (tenant_id, customer_id)=(acme, 2) is not present in table "customers".)
+   check ok: with row_security = off or as a superuser, validation sees the bad row and refuses
    deleted the cross-tenant row, then added the composite foreign key as postgres
    acme creates invoice 3 for customer 2 again: rejected: insert or update on table "invoices" violates foreign key constraint "invoices_customer_fkey" (Key is not present in table "customers".)
+   check ok: the composite foreign key refuses another tenant's customer
 
 ## 10. Noisy neighbor: a per-tenant statement_timeout
    concept: one database serves every tenant, so one tenant's heavy query takes CPU from all; each tenant's limit comes from the directory
    acme   report (statement_timeout 5000ms): done, count = 1
    bigco  report (statement_timeout 200ms): rejected: canceling statement due to statement timeout
+   check ok: acme's report finishes within its 5000ms; bigco's is cancelled at its 200ms
+
+16 checks passed
 
 == proof: whom RLS applies to. app is neither superuser nor BYPASSRLS nor owner; the owner only since FORCE ==
  rolname  | rolsuper | rolbypassrls 
@@ -138,36 +156,45 @@ setup: databases silo_initech, silo_umbrella, one per tenant, same schema as the
    hooli    runs as tenant_hooli, search_path t_hooli: invoices #1, #2
    initrode runs as tenant_initrode, search_path t_initrode: invoices #1, #1
    vandelay runs as tenant_vandelay, search_path t_vandelay: invoices #1
+   check ok: each request runs as its tenant's role, in its tenant's schema
 
 ## 12. search_path is not a security boundary
    concept: schema-qualified names ignore search_path; only privileges stop them, so each tenant needs its own role and the app must switch to it
    one shared role, search_path t_hooli, SELECT FROM t_initrode.invoices: 2 rows of initrode's
    role tenant_hooli, same query: rejected: permission denied for schema t_initrode
+   check ok: a schema-qualified name reaches another tenant under one shared role; the tenant's own role is denied
 
 ## 13. search_path and role leak on a pooled connection
    concept: pool of 1 connection: session-level settings stay on the connection, the next request inherits the previous tenant's schema and role
    request 1 (hooli): SET ROLE tenant_hooli; SET search_path = t_hooli (session level)
    request 2 (initrode, forgot the context): runs as tenant_hooli, sees 2 invoices (hooli's)
+   check ok: session-level role and search_path leak hooli's context into the next request
    after DISCARD ALL (a pool reset query), request 1 (hooli): the same settings, LOCAL to its transaction
    request 2 (initrode, forgot the context): rejected: relation "invoices" does not exist (loud, where RLS returned zero rows)
+   check ok: with LOCAL settings and DISCARD ALL, a request without context fails loudly
 
 ## 14. Every migration runs once per schema
    concept: migration 2 (add currency, UNIQUE (number)) loops over the schemas, one transaction each; tenant data differs, so one schema can fail and leave the fleet half migrated
      t_hooli: migrated to 2
      t_initrode: failed: could not create unique index "invoices_number_key" (Key (number)=(1) is duplicated.); loop stopped
    versions now: t_hooli 2, t_initrode 1, t_vandelay 1; the app must handle both shapes until every schema is done
+   check ok: one schema's data stops the loop: the fleet is left half migrated
    fixed initrode's duplicate invoice number, re-ran the loop:
      t_hooli: already at 2, skipped
      t_initrode: migrated to 2
      t_vandelay: migrated to 2
    versions now: t_hooli 2, t_initrode 2, t_vandelay 2
+   check ok: after the fix the re-run skips done schemas and migrates the rest
 
 ## 15. Catalog bloat at many tenants
    concept: every schema copies every table, index and sequence into the system catalogs; 1000 more tenants, then migration 2 across all of them
    3 tenants                        3 tenant schemas, pg_class 437 rows, pg_attribute 3228 rows, system catalogs 7776 kB
    1003 tenants                     1003 tenant schemas, pg_class 5437 rows, pg_attribute 30228 rows, system catalogs 20 MB
-   migration 2 over 1000 more schemas: 3.0s, one transaction each (varies by machine)
+   migration 2 over 1000 more schemas: 6.7s, one transaction each (varies by machine)
    1003 tenants, after migration 2  1003 tenant schemas, pg_class 8437 rows, pg_attribute 43228 rows, system catalogs 25 MB
+   check ok: every tenant schema adds relations to the catalog: pg_class grew by 8000 for 1000 tenants
+
+7 checks passed
 
 == proof: migration versions per schema, and migration 2 applied in t_initrode ==
    schema   | max 
@@ -201,38 +228,49 @@ Indexes:
    globex   -> pool: invoices 2, total 1490
    initech  -> silo_initech: invoices 2, total 6000
    umbrella -> silo_umbrella: invoices 1, total 9900
+   check ok: the directory routes pooled tenants to pool and siloed ones to their own database
 
 ## 17. No path between databases
    concept: a connection is bound to one database; a bug in a query cannot reach another tenant's rows
    initech's connection reads silo_umbrella.public.invoices: rejected: cross-database references are not implemented: "silo_umbrella.public.invoices"
+   check ok: a silo connection cannot read another tenant's database
 
 ## 18. What a silo costs
    concept: every database carries its own catalogs, and every database needs its own connections: connections are per database, a pool cannot share them
    on disk: pool 10 MB, silo_initech 7767 kB, silo_umbrella 7767 kB (pool holds 20000+ invoices, each silo 1 or 2)
    app connections with 5 busy requests per tenant: pool 5, silo_initech 5, silo_umbrella 5; max_connections 100
    every pooled tenant shares the pool database's connections; at 5 per silo, 20 silo tenants fill the server
+   check ok: connections are per database: 5 busy requests per tenant hold 5 connections in each database
 
 ## 19. Deleting one tenant
    concept: umbrella leaves: in a silo that is one DROP DATABASE, not a DELETE ... WHERE tenant_id on every table followed by vacuum
    DROP DATABASE silo_umbrella; directory row removed
    umbrella request: rejected: unknown tenant umbrella
+   check ok: deleting umbrella is one DROP DATABASE: the database and the directory row are gone
 
 ## 20. Moving a big tenant from the pool to a silo
    concept: pause bigco's writes, copy its rows by tenant_id into a new database, verify, flip the directory, delete it from the pool
    directory: bigco moving = true; bigco write: rejected: bigco is being moved: writes paused, reads still served by pool
+   check ok: while bigco moves its writes are refused
    bigco read during the move: bigco    -> pool: invoices 20000, total 49990000
    copied into silo_bigco, ids kept: customers 1, invoices 20000
    verify: pool invoices 20000, total 49990000; silo_bigco invoices 20000, total 49990000
+   check ok: the copy in silo_bigco has the same invoice count and total as the pool
    directory flipped: bigco -> silo_bigco, moving = false, statement_timeout 5000ms (no neighbors left to protect)
    bigco write, invoice 21001: ok, id 1
    bigco write, invoice 21002: ok, id 2
    bigco write, invoice 21003: ok, id 3
    bigco write, invoice 21004: rejected: duplicate key value violates unique constraint "invoices_pkey"
+   check ok: the copied ids without their sequences collide on the 4th new invoice
    the copy kept the ids but not the sequences: they restarted at 1, ids 1-3 were free, 4 was taken. setval to max(id), with the tenant set (under forced RLS max(id) is NULL otherwise)
    bigco write: ok, invoice id 20004 in silo_bigco
+   check ok: after setval, new invoices continue after the copied ids, in silo_bigco
    deleted from the pool: invoices 20000, customers 1
    acme     -> pool: invoices 2, total 4600
    bigco    -> silo_bigco: invoices 20004, total 49990400
+   check ok: bigco now lives only in silo_bigco; acme still in the pool
+
+9 checks passed
 
 == proof: the directory after the move and the delete ==
    id    | placement |      db      | statement_timeout_ms | moving 

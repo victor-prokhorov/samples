@@ -1,4 +1,5 @@
 import pg from "pg";
+import { check } from "./check.js";
 import { asTenant, closeAll, pool, reason, rejection, step } from "./db.js";
 import { forget, read, route, write } from "./router.js";
 import { SILO_SCHEMA } from "./schema.js";
@@ -21,10 +22,17 @@ async function where(tenant: string) {
 
 async function main() {
   step("16. Silo: one database per tenant", "the directory maps each tenant to a database; the router opens a pool per database and the same code runs everywhere");
-  for (const t of ["acme", "globex", "initech", "umbrella"]) console.log(`   ${await where(t)}`);
+  const placed: string[] = [];
+  for (const t of ["acme", "globex", "initech", "umbrella"]) {
+    placed.push(await where(t));
+    console.log(`   ${placed[placed.length - 1]}`);
+  }
+  check("the directory routes pooled tenants to pool and siloed ones to their own database", ["pool", "pool", "silo_initech", "silo_umbrella"].every((db, i) => placed[i].includes(`-> ${db}:`)));
   step("17. No path between databases", "a connection is bound to one database; a bug in a query cannot reach another tenant's rows");
   const initech = await route("initech");
-  console.log(`   initech's connection reads silo_umbrella.public.invoices: rejected: ${await rejection(() => initech.pool.query("SELECT count(*) FROM silo_umbrella.public.invoices"))}`);
+  const crossDb = await rejection(() => initech.pool.query("SELECT count(*) FROM silo_umbrella.public.invoices"));
+  console.log(`   initech's connection reads silo_umbrella.public.invoices: rejected: ${crossDb}`);
+  check("a silo connection cannot read another tenant's database", crossDb.includes("cross-database references are not implemented"));
   step("18. What a silo costs", "every database carries its own catalogs, and every database needs its own connections: connections are per database, a pool cannot share them");
   const { rows: sizes } = await admin.query("SELECT datname, pg_size_pretty(pg_database_size(datname)) AS size FROM pg_database WHERE datname IN ('pool', 'silo_initech', 'silo_umbrella') ORDER BY 1");
   console.log(`   on disk: ${sizes.map((r) => `${r.datname} ${r.size}`).join(", ")} (pool holds 20000+ invoices, each silo 1 or 2)`);
@@ -34,16 +42,22 @@ async function main() {
   const { rows: max } = await admin.query("SHOW max_connections");
   console.log(`   app connections with 5 busy requests per tenant: ${conns.map((r) => `${r.datname} ${r.n}`).join(", ")}; max_connections ${max[0].max_connections}`);
   console.log(`   every pooled tenant shares the pool database's connections; at 5 per silo, ${Math.floor(Number(max[0].max_connections) / 5)} silo tenants fill the server`);
+  check("connections are per database: 5 busy requests per tenant hold 5 connections in each database", conns.length === 3 && conns.every((r) => r.n === 5));
   for (const c of held) c.release();
   step("19. Deleting one tenant", "umbrella leaves: in a silo that is one DROP DATABASE, not a DELETE ... WHERE tenant_id on every table followed by vacuum");
   await forget("silo_umbrella");
   await admin.query("DROP DATABASE silo_umbrella");
   await shared.query("DELETE FROM tenants WHERE id = 'umbrella'");
   console.log("   DROP DATABASE silo_umbrella; directory row removed");
-  console.log(`   umbrella request: rejected: ${await rejection(() => read("umbrella", (c) => c.query(counted)))}`);
+  const gone = await rejection(() => read("umbrella", (c) => c.query(counted)));
+  console.log(`   umbrella request: rejected: ${gone}`);
+  const { rows: left } = await admin.query("SELECT count(*)::int AS n FROM pg_database WHERE datname = 'silo_umbrella'");
+  check("deleting umbrella is one DROP DATABASE: the database and the directory row are gone", gone.includes("unknown tenant") && left[0].n === 0);
   step("20. Moving a big tenant from the pool to a silo", "pause bigco's writes, copy its rows by tenant_id into a new database, verify, flip the directory, delete it from the pool");
   await shared.query("UPDATE tenants SET moving = true WHERE id = 'bigco'");
-  console.log(`   directory: bigco moving = true; bigco write: rejected: ${await rejection(() => write("bigco", (c) => c.query(newInvoice, [21000])))}`);
+  const paused = await rejection(() => write("bigco", (c) => c.query(newInvoice, [21000])));
+  console.log(`   directory: bigco moving = true; bigco write: rejected: ${paused}`);
+  check("while bigco moves its writes are refused", paused.includes("writes paused"));
   console.log(`   bigco read during the move: ${await where("bigco")}`);
   await admin.query("CREATE DATABASE silo_bigco");
   const target = pool("migrator", "silo_bigco");
@@ -60,25 +74,38 @@ async function main() {
     );
   });
   console.log(`   copied into silo_bigco, ids kept: customers ${source.customers.length}, invoices ${source.invoices.length}`);
-  const check = async (p: pg.Pool) => (await asTenant(p, "bigco", (c) => c.query(counted))).rows[0];
-  const [before, after] = [await check(shared), await check(target)];
+  const count = async (p: pg.Pool) => (await asTenant(p, "bigco", (c) => c.query(counted))).rows[0];
+  const [before, after] = [await count(shared), await count(target)];
   console.log(`   verify: pool invoices ${before.n}, total ${before.total}; silo_bigco invoices ${after.n}, total ${after.total}`);
+  check("the copy in silo_bigco has the same invoice count and total as the pool", before.n === 20000 && after.n === before.n && after.total === before.total);
   await shared.query("UPDATE tenants SET db = 'silo_bigco', placement = 'silo', moving = false, statement_timeout_ms = 5000 WHERE id = 'bigco'");
   console.log("   directory flipped: bigco -> silo_bigco, moving = false, statement_timeout 5000ms (no neighbors left to protect)");
+  let collision = "";
   for (let number = 21001; ; number++) {
     const outcome = await write("bigco", (c) => c.query(newInvoice, [number]))
       .then(({ rows }) => `ok, id ${rows[0].id}`)
       .catch((err) => `rejected: ${reason(err)}`);
     console.log(`   bigco write, invoice ${number}: ${outcome}`);
-    if (outcome.startsWith("rejected")) break;
+    if (outcome.startsWith("rejected")) {
+      collision = outcome;
+      break;
+    }
   }
+  check("the copied ids without their sequences collide on the 4th new invoice", collision.includes("invoices_pkey"));
   await asTenant(target, "bigco", (c) => c.query("SELECT setval(pg_get_serial_sequence('invoices', 'id'), max(id)) FROM invoices; SELECT setval(pg_get_serial_sequence('customers', 'id'), max(id)) FROM customers"));
   console.log("   the copy kept the ids but not the sequences: they restarted at 1, ids 1-3 were free, 4 was taken. setval to max(id), with the tenant set (under forced RLS max(id) is NULL otherwise)");
   const { rows: created } = await write("bigco", (c) => c.query(newInvoice, [21100]));
   console.log(`   bigco write: ok, invoice id ${created[0].id} in ${created[0].db}`);
+  check("after setval, new invoices continue after the copied ids, in silo_bigco", created[0].id === 20004 && created[0].db === "silo_bigco");
   const deleted = await asTenant(shared, "bigco", async (c) => [(await c.query("DELETE FROM invoices")).rowCount, (await c.query("DELETE FROM customers")).rowCount]);
   console.log(`   deleted from the pool: invoices ${deleted[0]}, customers ${deleted[1]}`);
-  for (const t of ["acme", "bigco"]) console.log(`   ${await where(t)}`);
+  const moved: string[] = [];
+  for (const t of ["acme", "bigco"]) {
+    moved.push(await where(t));
+    console.log(`   ${moved[moved.length - 1]}`);
+  }
+  const { rows: remaining } = await shared.query("SELECT count(*)::int AS n FROM invoices WHERE tenant_id = 'bigco'");
+  check("bigco now lives only in silo_bigco; acme still in the pool", deleted[0] === 20000 && moved[0].includes("-> pool:") && moved[1].includes("-> silo_bigco: invoices 20004") && remaining[0].n === 0);
   await closeAll();
 }
 

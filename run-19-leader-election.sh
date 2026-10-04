@@ -43,12 +43,14 @@ sleep 3.5
 for r in a b c; do kill "$(pid "$r")"; wait "$(pid "$r")" || true; done
 echo "== proof: without election the job ran three times every second =="
 psql -c "SELECT to_char(date_trunc('second', at), 'HH24:MI:SS') AS second, count(*) AS runs, string_agg(holder, ', ' ORDER BY holder) AS by FROM ticks GROUP BY 1 ORDER BY 1"
+npm run --silent verify -- no-election
 psql -qc "TRUNCATE ticks"
 npm run --silent step -- 2
 for r in a b c; do start "$r"; done
 sleep 3.5
 echo "== proof: one lease row, one holder; expires_at is on the database clock =="
 psql -c "SELECT name, holder, term, to_char(renewed_at, 'HH24:MI:SS.FF1') AS renewed_at, to_char(expires_at, 'HH24:MI:SS.FF1') AS expires_at, round(extract(epoch FROM expires_at - now())::numeric, 1) AS expires_in_s FROM leases"
+npm run --silent verify -- lease
 npm run --silent step -- 3
 first=$(leader)
 note "kill -9 $first (pid $(pid "$first"))"
@@ -78,20 +80,21 @@ for t in ticks fenced_ticks; do
   psql -c "SELECT id, holder, term, to_char(at, 'HH24:MI:SS.FF1') AS at FROM $t WHERE term IN (3, 4) AND id >= (SELECT max(id) FROM $t WHERE term = 3 AND id < (SELECT min(id) FROM $t WHERE term = 4)) ORDER BY id"
 done
 psql -c "SELECT * FROM fence"
+npm run --silent verify -- terms
 npm run --silent step -- 7
 node --import tsx src/advisory.ts hold &
 holder=$!
 sleep 1.5
 psql -c "SELECT locktype, objid, pid, mode, granted FROM pg_locks WHERE locktype = 'advisory'"
-node --import tsx src/advisory.ts take 0
+node --import tsx src/advisory.ts take 0 held
 note "kill -STOP the holder (pid $holder)"
 kill -STOP "$holder"
-node --import tsx src/advisory.ts take 4000
+node --import tsx src/advisory.ts take 4000 held
 note "kill -CONT, then kill -9 the holder"
 kill -CONT "$holder"
 kill -9 "$holder"
 wait "$holder" 2>/dev/null || true
-node --import tsx src/advisory.ts take 4000
+node --import tsx src/advisory.ts take 4000 free
 echo "== proof: what ends a session whose client vanished without closing it (0 = off, or the OS default for keepalives) =="
 psql -c "SELECT name, setting, unit FROM pg_settings WHERE name IN ('tcp_keepalives_idle', 'tcp_keepalives_interval', 'tcp_keepalives_count', 'tcp_user_timeout', 'idle_session_timeout') ORDER BY name"
 docker compose exec -T postgres sh -c 'cd /proc/sys/net/ipv4 && grep . tcp_keepalive_time tcp_keepalive_intvl tcp_keepalive_probes'

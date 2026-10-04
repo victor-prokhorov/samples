@@ -12,6 +12,9 @@ const STEPS: Step[] = [
   { name: "createShipment", action: shipping.create },
 ];
 
+// The simulated crash exits with its own code, so the run script can tell it from a failed check (exit code 1).
+export const CRASH_EXIT_CODE = 3;
+
 export const clock = () => new Date().toISOString().slice(11, 19);
 
 async function save(id: string, state: string, step: number, error?: string) {
@@ -51,7 +54,7 @@ export async function runSaga(id: string, crashAfter?: string) {
       console.log(`   [${id}] step ${step + 1} ${s.name}: ok`);
       if (crashAfter === s.name) {
         console.log(`   [${id}] CRASH after ${s.name} ran, before the saga log recorded it`);
-        process.exit(1);
+        process.exit(CRASH_EXIT_CODE);
       }
       step++;
       await save(id, state, step);

@@ -12,6 +12,8 @@ Each customer (data subject) gets a random data key (DEK). Personal fields in th
 
 One shot with proof: `./run-18-crypto-shredding.sh` from the repo root (log in [`../logs/18-crypto-shredding.log`](../logs/18-crypto-shredding.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55448):
 
 ```sh
@@ -21,7 +23,7 @@ npm run setup                        # databases events, keys, kms
 npm run demo                         # two customers, encrypted events, blind index, IV and AAD checks
 npm run rotate                       # new KEK, DEKs rewrapped, events untouched
 npm run erase -- alice@example.com   # delete alice's DEK
-npm run read -- --email alice@example.com   # read everything back (add --events / --keys to read restored copies)
+npm run read -- --email alice@example.com   # read everything back (add --events / --keys to read restored copies, --expect-alice erased|readable to check)
 ```
 
 ## Files
@@ -50,19 +52,19 @@ The events table holds ciphertext for PII and clear values for the rest; the key
 
 ```
  id | subject  |        type        |                data                 |                           pii
-  1 | ac3c12a0 | CustomerRegistered | {}                                  | {"name": "TrZkzifAMuS8a8VDWpwLNLchdz3Gbi0WpjnXU1t7rPRgDW
-  3 | ac3c12a0 | OrderPlaced        | {"order": "A-1", "amount": "42.50"} | {"ship_to": "r9Yd10wUCkHOHSxo017vhsouoDS5QHsOFYrAaQgAKuo
+  1 | ab06b94c | CustomerRegistered | {}                                  | {"name": "OvyxFfvD6Vp8Xlj5HRlANbmdGTCxj9wWmTCxy7ApccF0Ax
+  3 | ab06b94c | OrderPlaced        | {"order": "A-1", "amount": "42.50"} | {"ship_to": "DaCyA+1Ff8NVt+i74GiAsHO96r7YhNR+WG430jCdsGt
 
  subject  |       wrapped_dek        | kek_id
- ac3c12a0 | YoLHwmhQYNGd/Rzt0WTHMQTj |      1
- 389b4036 | dZ7xvu8547Tg0I4ydIeT70Qr |      1
+ ab06b94c | w4rn6ifQjfMPF48oFcFMf3HM |      1
+ f78c088d | 7hTg914rQJsunJlToqrW/y8E |      1
 ```
 
 A fresh IV every time, and AAD rejects moved or edited ciphertext:
 
 ```
-   seal("alice@example.com") #1 = X5vOeziT8vOcj+7rJDD4WwLVVbnvIEV1...
-   seal("alice@example.com") #2 = 2PWzM9YB+0ALWwanZuJB7sVr4f31ei+Q...
+   seal("alice@example.com") #1 = vDHJu+UWoNEdlNpQoXl3Qu48OBeAy4OS...
+   seal("alice@example.com") #2 = dU9yx7jxUvXjk1ky0zoDVb3RFifaWqjx...
    alice's email, read as alice's email: ok, "alice@example.com"
    alice's email ciphertext, pasted into her name field: rejected, Unsupported state or unable to authenticate data
    bob's email ciphertext, pasted into alice's email (wrong DEK and wrong AAD): rejected, Unsupported state or unable to authenticate data
@@ -73,13 +75,13 @@ KEK rotation rewraps the DEKs; the events are byte for byte the same:
 
 ```
  events |         pii_fingerprint
-      5 | e03c50d380239956d689c5561ab3a3ee
+      5 | e4ba23ee87255947dd17b972d46bbc05
 rotate: new KEK 2 in the kms, 2 DEKs unwrapped and rewrapped under it; not one event re-encrypted
  subject  |       wrapped_dek        | kek_id
- ac3c12a0 | dhwoDgMox5CnrMr4tiWgRtT4 |      2
- 389b4036 | z/UPAS0KzQ50yCW6hqVtlwCU |      2
+ ab06b94c | Y9L2xRWxnO7XS84AE2fV69PP |      2
+ f78c088d | dAvB9HwNEPqBSRQU6p/eXSQw |      2
  events |         pii_fingerprint
-      5 | e03c50d380239956d689c5561ab3a3ee
+      5 | e4ba23ee87255947dd17b972d46bbc05
 ```
 
 The nightly events backup holds no plaintext PII, but the amounts are in it:
@@ -92,29 +94,54 @@ lines matching 42.50: 1
 Alice is erased. Her rows cannot be deleted, they are still there, and her PII is gone; bob is untouched:
 
 ```
-erase: alice@example.com -> subject ac3c12a0-5fa5-4098-a1c5-97a8123a4375, DEK deleted from the key store (its blind-index row cascades)
+erase: alice@example.com -> subject ab06b94c-cc17-4c6b-95a7-b8ba1b2fb5ca, DEK deleted from the key store (its blind-index row cascades)
 ERROR:  events is append-only: DELETE rejected
 read: lookup alice@example.com -> no subject
-   #1 ac3c12a0 CustomerRegistered                          | name=<erased> email=<erased>
-   #2 389b4036 CustomerRegistered                          | name=Bob Keller email=bob@example.com
-   #3 ac3c12a0 OrderPlaced        order=A-1 amount=42.50   | ship_to=<erased>
-   #4 389b4036 OrderPlaced        order=B-1 amount=19.90   | ship_to=3 Hauptstrasse, Bern
-   #5 ac3c12a0 OrderPlaced        order=A-2 amount=7.00    | ship_to=<erased>
+   #1 ab06b94c CustomerRegistered                          | name=<erased> email=<erased>
+   #2 f78c088d CustomerRegistered                          | name=Bob Keller email=bob@example.com
+   #3 ab06b94c OrderPlaced        order=A-1 amount=42.50   | ship_to=<erased>
+   #4 f78c088d OrderPlaced        order=B-1 amount=19.90   | ship_to=3 Hauptstrasse, Bern
+   #5 ab06b94c OrderPlaced        order=A-2 amount=7.00    | ship_to=<erased>
  subject  | events | total_amount
- 389b4036 |      2 |        19.90
- ac3c12a0 |      3 |        49.50
+ ab06b94c |      3 |        49.50
+ f78c088d |      2 |        19.90
 ```
 
 The pre-erasure backup, restored into `events_restored`, is just as unreadable for alice. Restoring the key store's backup too brings her back:
 
 ```
 read: events from database events_restored, keys from database keys
-   #1 ac3c12a0 CustomerRegistered                          | name=<erased> email=<erased>
+   #1 ab06b94c CustomerRegistered                          | name=<erased> email=<erased>
 ...
 read: events from database events_restored, keys from database keys_restored
-read: lookup alice@example.com -> ac3c12a0-5fa5-4098-a1c5-97a8123a4375
-   #1 ac3c12a0 CustomerRegistered                          | name=Alice Martin email=alice@example.com
-   #3 ac3c12a0 OrderPlaced        order=A-1 amount=42.50   | ship_to=12 rue des Lilas, Lyon
+read: lookup alice@example.com -> ab06b94c-cc17-4c6b-95a7-b8ba1b2fb5ca
+   #1 ab06b94c CustomerRegistered                          | name=Alice Martin email=alice@example.com
+   #3 ab06b94c OrderPlaced        order=A-1 amount=42.50   | ship_to=12 rue des Lilas, Lyon
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: the key store holds one wrapped DEK per subject, never the plaintext key
+   check ok: the events table holds no plaintext PII, but the amounts are in clear
+   check ok: a messy spelling of alice's email finds her subject through the blind index; her 3 events decrypt
+   check ok: sealing the same value twice gives two different ciphertexts
+   check ok: the right ciphertext in the right place decrypts; moved, swapped or edited ciphertext is rejected
+5 checks passed
+   check ok: every DEK is now wrapped by KEK 2
+   check ok: the events are untouched: same count, same PII fingerprint
+2 checks passed
+   check ok: alice@example.com's DEK and blind-index row are gone from the key store
+1 check passed
+   check ok: all 5 events are still there; alice's PII is erased
+   check ok: bob's PII is untouched
+2 checks passed
+   check ok: all 5 events are still there; alice's PII is erased
+   check ok: bob's PII is untouched
+2 checks passed
+   check ok: all 5 events are still there; alice's PII is readable
+   check ok: bob's PII is untouched
+2 checks passed
 ```
 
 ## Origins and further reading
