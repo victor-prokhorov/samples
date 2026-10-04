@@ -1,0 +1,30 @@
+{
+  "name": "48-object-storage",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "tsx src/setup.ts",
+    "storage": "tsx src/storage.ts",
+    "app": "tsx src/app.ts",
+    "scanner": "tsx src/scanner.ts",
+    "demo": "tsx src/demo.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.1146.0",
+    "@aws-sdk/s3-request-presigner": "^3.1146.0",
+    "pg": "^8.13.0",
+    "s3rver": "^3.7.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.0",
+    "@types/s3rver": "^3.7.4",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}

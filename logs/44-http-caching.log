@@ -1,0 +1,149 @@
+# 44-http-caching run 2026-10-04T00:48:29Z
+== fresh Postgres for members, fund prices, help pages and the invalidation outbox (docker compose down -v && up) ==
+ Container 44-http-caching-postgres-1 Healthy 
+setup: 50 members with sessions, 40 funds with 146080 daily prices, help pages in en and fr, invalidation outbox and triggers
+== demo: the origin (:53054) and the shared cache (:53154) as separate processes, a load generator, Chromium for the browser cache and the leak ==
+   [origin] member pages and API on :53054
+   [cache] invalidation on: LISTEN cache_invalidations, outbox after #0
+   [cache] shared cache on :53154 -> origin :53054
+
+## 1. Cache-Control per resource type (straight from the origin)
+   concept: the origin decides who may store each response and for how long; a shared cache and a browser read the same header differently (s-maxage and private are for shared caches)
+   hashed asset       /assets/app.503f4b48f9.css       200  Cache-Control: public, max-age=31536000, immutable  ETag: "COKjZjo4LWezoMGF"
+   personal (JSON)    /api/me                          200  Cache-Control: private, no-cache  ETag: "FRJjvNewbMQxIMEq"
+   personal (page)    /members/me                      200  Cache-Control: private, no-cache  ETag: "VAA354ia61wAHgvz"
+   shared reference   /api/funds                       200  Cache-Control: public, max-age=0, s-maxage=300, stale-while-revalidate=60  Cache-Tag: funds  ETag: "funds-v1"
+   bilingual page     /help/contributions              200  Cache-Control: public, max-age=60, s-maxage=600  Vary: Accept-Language  ETag: "JciQ6oUqex6qRycG"
+   ok   hashed assets are public, a year, immutable
+   ok   personal data is private, no-cache, with an ETag
+   ok   shared reference data: s-maxage with stale-while-revalidate, an ETag and a tag to purge by
+   ok   the bilingual page says it varies by Accept-Language, and answered in French
+
+## 2. Conditional GET: 304 Not Modified
+   concept: the client sends back the ETag it has in If-None-Match; if nothing changed the origin answers 304 with no body
+   /api/me with If-None-Match "FRJjvNewbMQxIMEq": 304, 0 body bytes (the 200 was 117)
+   /api/funds 200 in 137.2 ms (2734 bytes); with If-None-Match "funds-v1": 304 in 4.5 ms (the ETag is the data version: no query to run)
+   ok   both answer 304 with an empty body
+   ok   the version-based ETag makes the 304 cheaper than the 200
+   Chromium visited /members/me, /help/contributions, /members/me; the origin saw: {"/members/me 200":1,"asset 200":2,"/help/contributions 200":1,"/members/me 304":1}
+   ok   the browser fetched each asset once (immutable), and revalidated its private page (304) instead of downloading it again
+
+## 3. Hit ratio and latency, with and without the shared cache
+   concept: 1,500 requests from 16 concurrent clients with empty browser caches (50 members, 6 Accept-Language spellings); the cache answers what it may share and passes personal pages through
+   [cache] purge everything: 0 entries
+   [cache] purge everything: 0 entries
+                  origin requests  wall s  req/s   p50 / p95 ms by type: asset, funds, help, personal, all
+   without cache             1500    15.2     99   1.0 / 8.5,  408.7 / 1791.1,  8.1 / 244.1,  14.3 / 197.8,  5.8 / 982.1
+   with cache                 307     2.5    598   12.1 / 68.8,  12.1 / 71.4,  11.9 / 59.6,  34.2 / 231.6,  14.1 / 83.2
+   hit ratio: all 78.8%, assets 99.3%, funds 98.1%, help 96.8%, personal 0.0% (always PASS)
+   cache outcomes: HIT 1182, MISS 18, PASS 300; entries stored: /assets/app.<hash>.css, /help/contributions [accept-language=en], /help/contributions [accept-language=fr], /assets/app.<hash>.js, /api/funds
+   ok   the shared cache answers at least 75% of requests without the origin
+   ok   personal pages are never answered from the shared cache
+   ok   the origin gets at least 3 times fewer requests
+   ok   the fund list's p95 drops at least 5 times, and the overall p95 at least 2 times
+
+## 4. Vary: Accept-Language
+   concept: one URL, two languages: the cache keys entries on the request header the response names in Vary, normalised to the language the origin will pick, so 6 spellings make 2 entries
+   Accept-Language: en-GB,en;q=0.9             -> HIT  Content-Language: en  How contributions work
+   Accept-Language: fr-FR,fr;q=0.9,en;q=0.8    -> HIT  Content-Language: fr  Comment fonctionnent les cotisations
+   Accept-Language: fr                         -> HIT  Content-Language: fr  Comment fonctionnent les cotisations
+   Accept-Language: en-US,en;q=0.9             -> HIT  Content-Language: en  How contributions work
+   Accept-Language: fr-CA,fr;q=0.9,en;q=0.7    -> HIT  Content-Language: fr  Comment fonctionnent les cotisations
+   Accept-Language: de-DE,de;q=0.9,en;q=0.5    -> HIT  Content-Language: en  How contributions work
+   ok   two entries for the help page (en, fr), each served to the right readers
+
+## 5. The privacy bug: a personal page cached as public
+   concept: a build sends Cache-Control: public on /members/me (and drops Vary on the help page); the URL is the same for every member, so the shared cache hands member 1's page to member 2
+   [origin] member pages and API on :53054 (BUGGY build: personal pages public, help page without Vary)
+   [cache] purge everything: 5 entries
+   member 1 (Alice) opens /members/me: Alice Martin  [MISS, Cache-Control: public, max-age=300]
+   member 2 (Bruno) opens /members/me: Alice Martin  [HIT]  <- Alice's name, IBAN and balance
+   ok   with the buggy header the shared cache serves member 1's page to member 2
+   without Vary: an English reader fills the entry, then a French reader gets How contributions work [HIT]
+   ok   without Vary the French reader gets the English page
+   deploy the fix (private, no-cache; Vary back) ...
+   [origin] member pages and API on :53054
+   member 2 right after the deploy: Alice Martin [HIT]  <- the leaked entry is still fresh for 300 s
+   ok   fixing the origin is not enough: the stored entry keeps leaking until it expires or is purged
+   [cache] purge url /members/me: 1 entries
+   [cache] purge url /help/contributions: 1 entries
+   purge: {"purged":1} for /members/me, {"purged":1} for /help/contributions
+   member 2 after the purge: Bruno Lefèvre [PASS, Cache-Control: private, no-cache], again: Bruno Lefèvre [PASS]
+   ok   after the fix and the purge, member 2 sees their own page, never stored (PASS), and French readers get French
+
+## 6. Data changes: waiting for the TTL versus event-driven invalidation
+   concept: with only a TTL a price change waits up to s-maxage (+ stale-while-revalidate); with the outbox the cache purges the tag at commit, so the TTL can stay long and the hit ratio high
+   [cache] invalidation off: entries live until their TTL
+   [cache] purge everything: 3 entries
+   fund 1 price 109.5275 [MISS]; 400 s later, nothing changed: [REVALIDATED], origin answered {"/api/funds 304":1}
+   ok   past s-maxage + stale-while-revalidate the cache revalidates with If-None-Match, and the origin answers 304
+   UPDATE fund_prices: fund 1 is now 120.4803 in Postgres (invalidation off)
+     right after: 109.5275 [HIT, Age 0]
+     +290 s: 109.5275 [HIT, Age 290]
+     +20 s (age 310, stale): 109.5275 [STALE, Age 310]
+     next request: 120.4803 [HIT, Age 0]
+   ok   with only the TTL the old price is served for 300 s, then once more while revalidating (stale-while-revalidate), then the new one
+   [cache] invalidation on: LISTEN cache_invalidations, outbox after #1
+   [cache] outbox #2 (UPDATE on fund_prices): purged tag funds, 1 entries, 2 ms after the change
+   invalidation on: 120.4803 [HIT] -> UPDATE (now 126.5043) -> 126.5043 [MISS] 248 ms after the commit
+   ok   with the outbox the next request after the commit misses and gets the new price within a second
+   the cache's LISTEN connection drops (pg_terminate_backend), and a price changes while it is gone:
+   [cache] invalidation connection lost; reconnecting and replaying the outbox after #2
+   [cache] outbox #3 (UPDATE on fund_prices): purged tag funds, 1 entries, 289 ms after the change
+   price 122.7092 served [MISS] 374 ms after the commit: the NOTIFY was lost, the outbox row was not
+   ok   after reconnecting, the cache replays the outbox from the last id it saw and purges
+   ok   every change left one outbox row
+
+== 21 checks passed, 0 failed ==
+
+== proof: the raw headers, origin then cache (curl -sI) ==
+-- GET /api/funds from the origin
+HTTP/1.1 200 OK
+etag: "funds-v4"
+cache-control: public, max-age=0, s-maxage=300, stale-while-revalidate=60
+cache-tag: funds
+-- GET /api/funds through the cache, twice (the second is a HIT with an Age; Cache-Tag is not passed on)
+HTTP/1.1 200 OK
+etag: "funds-v4"
+cache-control: public, max-age=0, s-maxage=300, stale-while-revalidate=60
+x-cache: HIT
+age: 0
+HTTP/1.1 200 OK
+etag: "funds-v4"
+cache-control: public, max-age=0, s-maxage=300, stale-while-revalidate=60
+x-cache: HIT
+age: 1
+-- GET /members/me through the cache as member 1, with the ETag it got: 304, still PASS (never stored)
+HTTP/1.1 304 Not Modified
+etag: "VAA354ia61wAHgvz"
+cache-control: private, no-cache
+x-cache: PASS
+-- GET /help/contributions through the cache in French
+HTTP/1.1 200 OK
+cache-control: public, max-age=60, s-maxage=600
+content-language: fr
+vary: Accept-Language
+x-cache: MISS
+== proof: the invalidation outbox (one row per change, written by the trigger in the same transaction) ==
+ id |  tag  |        reason         |      at      
+----+-------+-----------------------+--------------
+  1 | funds | UPDATE on fund_prices | 00:49:11.455
+  2 | funds | UPDATE on fund_prices | 00:49:11.704
+  3 | funds | UPDATE on fund_prices | 00:49:11.961
+(3 rows)
+
+ name  | version 
+-------+---------
+ funds |       4
+(1 row)
+
+== proof: the trigger that writes it ==
+       tgname        |  on_table   | per_statement 
+---------------------+-------------+---------------
+ fund_prices_changed | fund_prices | t
+ funds_changed       | funds       | t
+(2 rows)
+
+== proof: screenshots ==
+22955 screenshots/fixed-member-2-sees-own-page.png
+22336 screenshots/leak-member-2-sees-member-1.png

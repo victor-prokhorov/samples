@@ -1,0 +1,184 @@
+# 47-full-text-search run 2026-10-03T15:00:08Z
+== fresh Postgres (docker compose down -v && up) ==
+ Container 47-full-text-search-postgres-1 Healthy 
+== setup: unaccent and pg_trgm, two text search configurations, 200,000 generated rows per table, GIN indexes ==
+loaded 200010 help articles and 200008 employers in 69669 ms; built 3 GIN indexes in 23228 ms
+== demo: naive ILIKE, then tsvector + unaccent + websearch_to_tsquery + ts_rank_cd + ts_headline, pg_trgm for names, and the page ==
+   200010 help articles (10 written in English and French, the rest a generated archive) and 200008 employers
+
+## 1. The first version: ILIKE '%x%'
+   concept: a substring match is accent-sensitive, typo-intolerant and unranked, and a leading % means no B-tree can help, so every row is read
+   articles ILIKE '%elodie%': 0 rows
+   ok   ILIKE misses the articles a member means by "elodie"
+   articles ILIKE '%retraite anticipee%': 0 rows
+   ok   ILIKE misses the articles a member means by "retraite anticipee"
+   articles ILIKE '%Élodie%': 3 rows, in table order: early-retirement, transfer-out, adviser
+   ok   only the exact accented spelling finds them, and the article about Élodie is not first
+   employers ILIKE '%globx%': 0 rows
+   ok   ILIKE finds no employer for the typo or missing accent "globx"
+   employers ILIKE '%initek%': 0 rows
+   ok   ILIKE finds no employer for the typo or missing accent "initek"
+   employers ILIKE '%boulangerie elodie%': 0 rows
+   ok   ILIKE finds no employer for the typo or missing accent "boulangerie elodie"
+
+## 2. A text search configuration with unaccent
+   concept: en_unaccent and fr_unaccent copy english and french, and run unaccent before the stemmer, so the document and the query are normalised the same way
+   to_tsvector('french',      'Élodie, retraite anticipée') = 'anticip':3 'retrait':2 'élod':1
+   to_tsvector('fr_unaccent', 'Élodie, retraite anticipée') = 'anticipe':3 'elod':1 'retrait':2
+   to_tsvector('fr_unaccent', 'elodie retraite anticipee')  = 'anticipe':3 'elod':1 'retrait':2
+   ok   with unaccent the accented text and the unaccented query give the same lexemes
+   search "elodie": 6 hits, 3 English and 3 French
+   ok   "elodie" finds the articles about Élodie in both languages
+   search "retraite anticipee": fr [Retraite] [anticipée] : quand puis-je arrêter de travailler ?
+   ok   "retraite anticipee" finds "Retraite anticipée"
+
+## 3. websearch_to_tsquery
+   concept: takes what people type (quotes for a phrase, - to exclude, OR) and never raises a syntax error, unlike to_tsquery
+   "\"early retirement\" -tax" en: 'earli' <-> 'retir' & !'tax'       fr: 'early' <-> 'retir' & !'tax'
+   "pension OR épargne"       en: 'pension' | 'epargn'               fr: 'pension' | 'epargn'
+   "beneficiaries"            en: 'beneficiari'                      fr: 'beneficiar'
+   "retraite & | ("           en: 'retrait'                          fr: 'retrait'
+   to_tsquery('fr_unaccent', 'retraite & | (') -> syntax error in tsquery: "retraite & | ("
+   ok   to_tsquery rejects raw user input that websearch_to_tsquery accepts
+   early retirement: en [Early] [retirement]: when can I stop working?; en Ill-health [retirement]
+   "early retirement" -tax: en [Early] [retirement]: when can I stop working?
+   beneficiaries: en Naming a [beneficiary]
+   ok   without quotes both words anywhere match 2 articles; the phrase keeps only the one where they are adjacent; the plural finds the singular title
+
+## 4. Ranking: ts_rank_cd with weights
+   concept: title words carry weight A and body words B; weights {0.1, 0.2, 0.4, 1.0} are {D, C, B, A}, so a title hit counts 2.5 times a body hit
+   1.400  en  Meet [Élodie], your pensions adviser
+   1.400  fr  [Élodie], votre conseillère retraite
+   0.400  en  Early retirement: when can I stop working?
+   0.400  en  Transferring your pension to another scheme
+   0.400  fr  Retraite anticipée : quand puis-je arrêter de travailler ?
+   0.400  fr  Transférer votre épargne vers un autre régime
+   ok   the two articles with Élodie in the title rank above the four that only mention her in the body
+
+## 5. Highlighting: ts_headline
+   concept: returns the best fragments with the matched words marked; it normalises words with the same configuration, so the accented original is the one marked
+   en: [Élodie] Durand answers members' questions by phone and video call, in English and in French. She can explain your options but cannot choose
+   fr: [Élodie] Durand répond aux questions des adhérents par téléphone et en visioconférence, en français et en anglais. Elle explique vos options mais ne peut pas choisir à votre
+   ok   ts_headline marks the original accented word for the unaccented query
+
+## 6. Typos: pg_trgm on employer names
+   concept: trigram similarity on f_unaccent(lower(name)) with a GIN gin_trgm_ops index; word_similarity (<%) compares the query with the best-matching part of a long name
+   globx                Globex Corporation (0.67)
+   initek               Initech (0.71)
+   boulangerie elodie   Boulangerie Élodie (1), Boulangerie Evans Bellevue & Associés (0.72), Boulangerie Evans Bellevue & Fils (0.72)
+   lefevre garage       Garage Lefèvre & Fils (1), Garage Legrand Bellevue Ltd (0.6), Garage Legrand Bellevue SA (0.6)
+   ok   typos, missing accents and word order still find the right employer first
+   the threshold trades recall for noise (pg_trgm.word_similarity_threshold, default 0.6):
+     threshold 0.30: "boulanjerie elodi" matches 6583 employers
+     threshold 0.45: "boulanjerie elodi" matches 106 employers
+     threshold 0.60: "boulanjerie elodi" matches 1 employers
+     threshold 0.80: "boulanjerie elodi" matches 0 employers
+     at 0.60 the one match is Boulangerie Élodie (0.67)
+   ok   a loose threshold floods the list, the default keeps the one meant, too strict a one loses it
+
+## 7. Bad versus good on 200,000 rows each (EXPLAIN ANALYZE, best of 5)
+   concept: the naive queries read every row (Seq Scan); the good ones go through the GIN indexes (Bitmap Index Scan)
+   articles 'Élodie'
+     bad  (ILIKE, exact spelling "Élodie"):  2344.7 ms, 3 rows, Seq Scan on help_articles
+     good (tsvector, typed "elodie"):     0.4 ms, 6 rows, Bitmap Heap Scan on help_articles + Bitmap Index Scan on help_articles_search_en + Bitmap Index Scan on help_articles_search_fr + Index Scan on help_articles_pkey
+   ok   articles 'Élodie': the bad query is a Seq Scan, the good one an index scan, at least 10 times faster
+   articles 'retraite anticipee'
+     bad  (ILIKE, exact spelling "retraite anticipée"):  5828.6 ms, 1 rows, Seq Scan on help_articles
+     good (tsvector, typed "retraite anticipee"):     0.4 ms, 1 rows, Bitmap Heap Scan on help_articles + Bitmap Index Scan on help_articles_search_en + Bitmap Index Scan on help_articles_search_fr + Index Scan on help_articles_pkey
+   ok   articles 'retraite anticipee': the bad query is a Seq Scan, the good one an index scan, at least 10 times faster
+   employers 'initek'
+     bad  (ILIKE, exact spelling "Initech"):   272.6 ms, 1 rows, Seq Scan on employers
+     good (trigram, typed "initek"):     0.2 ms, 1 rows, Bitmap Heap Scan on employers + Bitmap Index Scan on employers_name_trgm
+   ok   employers 'initek': the bad query is a Seq Scan, the good one an index scan, at least 10 times faster
+
+## 8. The search page
+   concept: the page escapes the article text, then turns ts_headline's markers into <mark>
+[search] help centre on :53057
+   /search?q=elodie: 4 highlights in English results, 4 in French, first employer: Boulangerie Élodie similarity 1
+   ok   the page shows highlighted results in both languages and the accented employer
+   /search?q="><img src=x onerror=alert(1)> elodie: 0 <img> elements in the page, search box shows "\"><img src=x onerror=alert(1)> elodie"
+   ok   markup typed in the query is shown as text, never rendered
+
+== 20 checks passed, 0 failed ==
+
+== proof: the text search configurations (word tokens go through unaccent, then the stemmer) ==
+   cfgname   |   token   |      dictionaries      
+-------------+-----------+------------------------
+ en_unaccent | asciiword | english_stem
+ en_unaccent | hword     | unaccent, english_stem
+ en_unaccent | word      | unaccent, english_stem
+ fr_unaccent | asciiword | french_stem
+ fr_unaccent | hword     | unaccent, french_stem
+ fr_unaccent | word      | unaccent, french_stem
+(6 rows)
+
+== proof: the generated columns and indexes ==
+ column_name |                                                                generation_expression                                                                
+-------------+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ search_en   | (setweight(to_tsvector('en_unaccent'::regconfig, title_en), 'A'::"char") || setweight(to_tsvector('en_unaccent'::regconfig, body_en), 'B'::"char"))
+ search_fr   | (setweight(to_tsvector('fr_unaccent'::regconfig, title_fr), 'A'::"char") || setweight(to_tsvector('fr_unaccent'::regconfig, body_fr), 'B'::"char"))
+(2 rows)
+
+        indexname        |  size   |                                               indexdef                                                
+-------------------------+---------+-------------------------------------------------------------------------------------------------------
+ help_articles_search_en | 6736 kB | CREATE INDEX help_articles_search_en ON public.help_articles USING gin (search_en)
+ help_articles_search_fr | 6496 kB | CREATE INDEX help_articles_search_fr ON public.help_articles USING gin (search_fr)
+ employers_name_trgm     | 13 MB   | CREATE INDEX employers_name_trgm ON public.employers USING gin (f_unaccent(lower(name)) gin_trgm_ops)
+(3 rows)
+
+== proof: what the index stores for one curated article (French, accents gone, stems kept) ==
+       slug       |                                                                                                                                                                                                   search_fr                                                                                                                                                                                                   
+------------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ early-retirement | '55':18B 'a':15B 'an':19B 'anticipe':2A,30B 'arret':7A 'avant':50B 'chaqu':32B 'conseiller':48B 'decid':52B 'demand':12B 'durand':46B 'elod':45B 'longtemp':39B 'part':16B 'permet':27B 'plus':38B 'pouv':11B 'pren':40B 'puis':5A 'puis-j':4A 'puisqu':34B 'quand':3A 'reduit':31B 'regim':25B 'regl':22B 'rend':42B 'rendez-vous':41B 'retrait':1A,14B,29B,49B 'serv':37B 'si':20B 'travaill':9A 'vers':33B
+(1 row)
+
+== proof: EXPLAIN ANALYZE, bad: ILIKE '%Élodie%' over every text column ==
+                                                                        QUERY PLAN                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit (actual time=0.022..4170.297 rows=3 loops=1)
+   ->  Seq Scan on help_articles (actual time=0.021..4170.293 rows=3 loops=1)
+         Filter: ((title_en ~~* '%Élodie%'::text) OR (body_en ~~* '%Élodie%'::text) OR (title_fr ~~* '%Élodie%'::text) OR (body_fr ~~* '%Élodie%'::text))
+         Rows Removed by Filter: 200007
+ Planning Time: 1.261 ms
+ Execution Time: 4170.327 ms
+(6 rows)
+
+== proof: EXPLAIN ANALYZE, good: the English and French tsvector columns for what was typed, 'elodie' ==
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on help_articles (actual time=0.023..0.024 rows=3 loops=1)
+   Recheck Cond: ((search_en @@ '''elodi'''::tsquery) OR (search_fr @@ '''elod'''::tsquery))
+   Heap Blocks: exact=1
+   ->  BitmapOr (actual time=0.017..0.017 rows=0 loops=1)
+         ->  Bitmap Index Scan on help_articles_search_en (actual time=0.009..0.009 rows=3 loops=1)
+               Index Cond: (search_en @@ '''elodi'''::tsquery)
+         ->  Bitmap Index Scan on help_articles_search_fr (actual time=0.002..0.002 rows=3 loops=1)
+               Index Cond: (search_fr @@ '''elod'''::tsquery)
+ Planning Time: 5.023 ms
+ Execution Time: 0.092 ms
+(10 rows)
+
+== proof: EXPLAIN ANALYZE, bad and good employer search ==
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
+ Limit (actual time=0.015..300.719 rows=1 loops=1)
+   ->  Seq Scan on employers (actual time=0.014..300.715 rows=1 loops=1)
+         Filter: (name ~~* '%Initech%'::text)
+         Rows Removed by Filter: 200007
+ Planning Time: 0.530 ms
+ Execution Time: 300.748 ms
+(6 rows)
+
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on employers (actual time=0.292..0.293 rows=1 loops=1)
+   Filter: ('initek'::text <% f_unaccent(lower(name)))
+   Heap Blocks: exact=1
+   ->  Bitmap Index Scan on employers_name_trgm (actual time=0.232..0.232 rows=1 loops=1)
+         Index Cond: (f_unaccent(lower(name)) %> 'initek'::text)
+ Planning Time: 2.433 ms
+ Execution Time: 0.362 ms
+(7 rows)
+
+== proof: screenshots/search-elodie.png ==
+135335 screenshots/search-elodie.png
