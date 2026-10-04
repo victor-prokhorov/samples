@@ -1,22 +1,26 @@
-# 09-outbox-polling run 2026-09-27T20:18:35Z
+# 09-outbox-polling run 2026-10-04T00:51:01Z
 == fresh Postgres + Kafka (docker compose down -v && up), no Debezium ==
  Container 09-outbox-polling-kafka-1 Healthy 
 setup: orders + outbox tables, topic order-events
-== consumer (background) ==
+== consumer (background, stops after 4 deliveries and checks them against the outbox) ==
 == app ==
 
 ## 1. Business write + event in one transaction
    concept: orders row and outbox row commit together; the app does not talk to Kafka
-   outbox <- OrderPlaced event_id=1bbd86f7-7e21-47f0-b45e-40a987d181e5
+   outbox <- OrderPlaced event_id=beba223c-9859-46f3-886e-f70e4ccdce16
 
 ## 2. Next state change, next event
    concept: each event is a row waiting for the relay (published_at IS NULL)
-   outbox <- OrderPaid event_id=2adb9ceb-38de-4285-b9a0-a2c4b4af564c
+   outbox <- OrderPaid event_id=a1b72ad4-ca83-426f-8517-a559061a5a7e
 
 ## 3. Rollback drops the event too
    concept: business write fails -> whole transaction rolls back -> no outbox row to publish
-   outbox <- OrderPlaced event_id=8eee784b-6894-48ce-b693-df59b8124f7b
+   outbox <- OrderPlaced event_id=a715dccb-c638-400e-b451-36326887fe14
    rejected: payment provider down, order 2 aborted
+   check ok: alice's order is paid and bob's rolled back: one order row
+   check ok: two events wait in the outbox, both for alice's order; bob's event rolled back with his order
+
+2 checks passed
 
 == proof: outbox rows waiting for the relay (published_at is null) ==
  id |    type     | aggregate_id | published_at 
@@ -28,7 +32,7 @@ setup: orders + outbox tables, topic order-events
 == relay pass 1: crashes after sending to Kafka, before marking published ==
 relay: claimed + sent #1 OrderPlaced, #2 OrderPaid
 relay: CRASH after send, before marking published (transaction never commits)
-relay exited with 1
+relay exited with 3 (3 is the simulated crash)
 == proof: rows are still unpublished, the crashed transaction rolled back ==
  id |    type     | published_at 
 ----+-------------+--------------
@@ -36,6 +40,9 @@ relay exited with 1
   2 | OrderPaid   | 
 (2 rows)
 
+   check ok: after the crash both rows are still unpublished: the claim transaction died with the process
+
+1 check passed
 == relay pass 2: restarts, re-sends the same rows, marks them published ==
 relay: claimed + sent #1 OrderPlaced, #2 OrderPaid
 relay: marked 2 published
@@ -47,12 +54,19 @@ relay: outbox drained
   2 | OrderPaid   | t
 (2 rows)
 
+   check ok: after pass 2 every outbox row is marked published
+
+1 check passed
 == consumer output: 2 events, then the same 2 again from pass 2, skipped by event_id ==
-consumer: subscribed to order-events
-consumer: OrderPlaced key=1 event_id=1bbd86f7-7e21-47f0-b45e-40a987d181e5 payload={"total":"42.50","orderId":1,"customer":"alice"}
-consumer: OrderPaid key=1 event_id=2adb9ceb-38de-4285-b9a0-a2c4b4af564c payload={"orderId":1}
-consumer: DUPLICATE OrderPlaced event_id=1bbd86f7-7e21-47f0-b45e-40a987d181e5 skipped (idempotent consumer)
-consumer: DUPLICATE OrderPaid event_id=2adb9ceb-38de-4285-b9a0-a2c4b4af564c skipped (idempotent consumer)
+consumer: OrderPlaced key=1 event_id=beba223c-9859-46f3-886e-f70e4ccdce16 payload={"total":"42.50","orderId":1,"customer":"alice"}
+consumer: OrderPaid key=1 event_id=a1b72ad4-ca83-426f-8517-a559061a5a7e payload={"orderId":1}
+consumer: DUPLICATE OrderPlaced event_id=beba223c-9859-46f3-886e-f70e4ccdce16 skipped (idempotent consumer)
+consumer: DUPLICATE OrderPaid event_id=a1b72ad4-ca83-426f-8517-a559061a5a7e skipped (idempotent consumer)
+consumer: 4 deliveries, 2 events processed
+   check ok: every outbox event reached the consumer and was processed exactly once
+   check ok: the 2 re-sent copies from the crashed relay pass were skipped as duplicates
+
+2 checks passed
 
 == proof: orders table (alice paid, no bob) ==
  id | customer | status | total 

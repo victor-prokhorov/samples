@@ -20,6 +20,8 @@ Zero-downtime rename of `users.name` to `display_name`. Four app versions (`src/
 
 One shot with proof: `./run-02-expand-contract.sh` from the repo root (log in [`../logs/02-expand-contract.log`](../logs/02-expand-contract.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55438):
 
 ```sh
@@ -74,6 +76,23 @@ Contracting too early would have broken v3, which is why each phase waits for th
 ```
 ## Why the order matters
    v3 (write both, read display_name): FAILS: column "name" of relation "users" does not exist
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: v1 writes and reads a name for every row
+   check ok: the naive rename breaks the running v1 the moment it commits
+   check ok: v1 and v2 each write and read a name for every row
+   check ok: before the backfill, a reader of display_name sees rows without a name
+   check ok: v2 writes and reads a name for every row
+   check ok: v2 and v3 each write and read a name for every row
+   check ok: v3 and v4 each write and read a name for every row
+   check ok: v4 writes and reads a name for every row
+   check ok: contracting while v3 still ran would have broken it
+   check ok: the final schema has only id and display_name, NOT NULL
+   check ok: every row written by every version in every phase has a display_name (9 rows)
+11 checks passed
 ```
 
 ## Origins and further reading

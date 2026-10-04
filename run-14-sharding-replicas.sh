@@ -40,3 +40,4 @@ psql shard0-primary -c "SELECT * FROM orders ORDER BY id"
 psql shard1-primary -c "SELECT * FROM orders ORDER BY id"
 echo "== proof: a replica is the same data, in recovery (read-only) =="
 docker compose exec -T --index 4 shard0-replica psql -U postgres -c "SELECT pg_is_in_recovery(), count(*) AS orders FROM orders"
+npm run --silent verify

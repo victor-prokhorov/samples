@@ -12,6 +12,8 @@ The four partitions of `13-partitioning`, reduced to two, each moved onto its ow
 
 One shot with proof: `./run-14-sharding-replicas.sh` from the repo root (log in [`../logs/14-sharding-replicas.log`](../logs/14-sharding-replicas.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55441 shard 0 primary, 55442 shard 1 primary, replicas on random ports):
 
 ```sh
@@ -24,6 +26,7 @@ npm run scaled                                                               # r
 docker compose stop shard1-primary
 npm run outage                                                               # shard 1 writes fail, its reads still work
 docker compose start shard1-primary
+npm run verify                                                               # each shard holds only its customers, replicas caught up
 ```
 
 ## Files
@@ -86,10 +89,34 @@ After `--scale shard0-replica=4 --scale shard1-replica=3`, reads spread over the
 With `shard1-primary` stopped, its writes fail, shard 0 is unaffected, and shard 1's replicas keep answering without being promoted:
 
 ```
-   write dave -> shard1-primary rejected: connect ECONNREFUSED ::1:55442, connect ECONNREFUSED 127.0.0.1:55442
+   write dave -> shard1-primary rejected: connect ECONNREFUSED 127.0.0.1:55442
    write alice -> shard0-primary ok (id 6): the other shard is unaffected
 
    read dave -> shard1-replica-1: 1 orders (in recovery: true)
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: every write went to the primary of the customer's shard, and both shards got writes
+   check ok: a replica refuses writes
+   check ok: reads alternate over the shard's replicas, never the primary
+   check ok: the paused replica still answers, with old data (2 orders); the others have all 3
+   check ok: after resume every replica converges on the primary
+5 checks passed
+   check ok: shard 0: the router found all 4 replicas and spread the reads evenly
+   check ok: shard 1: the router found all 3 replicas and spread the reads evenly
+   check ok: the scaled cluster has 4 replicas on shard 0 and 3 on shard 1
+3 checks passed
+   check ok: a write for dave is refused while shard 1's primary is down (no replica takes over)
+   check ok: a write for alice on shard 0 still succeeds
+   check ok: every shard 1 replica still answers reads of dave (1 order), and stays a replica
+3 checks passed
+   check ok: shard 0 holds only its own customers (alice, bob, carol)
+   check ok: shard 0: all 4 replicas are read-only copies with the primary's 6 orders
+   check ok: shard 1 holds only its own customers (dave, erin)
+   check ok: shard 1: all 3 replicas are read-only copies with the primary's 2 orders
+4 checks passed
 ```
 
 ## Origins and further reading

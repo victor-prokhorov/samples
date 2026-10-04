@@ -12,6 +12,8 @@ Bank account aggregate. Commands (`open`, `deposit`, `withdraw`) validate agains
 
 One shot with proof: `./run-03-event-sourcing.sh` from the repo root (log in [`../logs/03-event-sourcing.log`](../logs/03-event-sourcing.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55433):
 
 ```sh
@@ -53,15 +55,15 @@ The invariant is checked against rebuilt state, and two writers race:
 
 ## 3b. Retry
    v4 balance=71 -> appended {"type":"MoneyWithdrawn","amount":60}
-   writer B: conflict on attempt 1 (stream account-... moved past v4), reloading and deciding again
-   writer B rejected: insufficient funds: balance 11, asked 60
+   writer A: conflict on attempt 1 (stream account-... moved past v4), reloading and deciding again
+   writer A rejected: insufficient funds: balance 11, asked 60
 ```
 
 State at any point in time, plus a projection derived after the fact:
 
 ```
    current state: { owner: 'alice', balance: 11, version: 5 }
-   as of 2026-09-27T16:28:50.483Z: { owner: 'alice', balance: 70, version: 3 }
+   as of 2026-10-04T00:48:51.479Z: { owner: 'alice', balance: 70, version: 3 }
    by version is the same fold over a prefix, e.g. as of v1: { owner: 'alice', balance: 0, version: 1 }
    total deposited = 101
 ```
@@ -77,6 +79,19 @@ The raw table has exactly 5 facts: nothing from the rejected withdrawals and not
                6 |       5 | MoneyWithdrawn | {"amount": 60}
 
  events_stream_id_version_key | UNIQUE (stream_id, version)
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: withdrawing 500 from a balance of 70 is rejected and appends nothing
+   check ok: the second writer with the same expected version gets a ConcurrencyError
+   check ok: of two concurrent withdrawals of 60 from 71, one wins and the retried loser is rejected for insufficient funds
+   check ok: the stream holds exactly 5 facts, versions 1 to 5, and folds to balance 11
+   check ok: nothing from a rejected command or a losing writer was stored
+   check ok: replaying the events recorded before v4 gives the state at v3, balance 70
+   check ok: a projection added later derives total deposited = 101 from the same events
+7 checks passed
 ```
 
 ## Origins and further reading

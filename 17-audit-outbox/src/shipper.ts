@@ -1,6 +1,8 @@
 import { SERVICES, auditDb, closeAll, tx } from "./db.js";
 
 const crashAfterSend = process.argv.includes("--crash-after-send");
+// The simulated crash exits with its own code, so the run script can tell it from a real failure (exit code 1).
+const CRASH_EXIT_CODE = 3;
 
 type OutboxRow = { id: string; event_id: string; entity: string; entity_id: string; action: string; actor: string; reason: string; before: object | null; after: object | null; occurred_at: Date };
 
@@ -21,7 +23,7 @@ async function main() {
         }
         if (crashAfterSend && rows.length) {
           console.log(`shipper: CRASH after sending the ${service.name} events, before marking them shipped`);
-          process.exit(1);
+          process.exit(CRASH_EXIT_CODE);
         }
         if (rows.length) await c.query("UPDATE audit_outbox SET shipped_at = now() WHERE id = ANY($1)", [rows.map((r) => r.id)]);
         return rows.length;

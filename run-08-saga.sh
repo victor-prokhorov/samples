@@ -12,7 +12,10 @@ npm install --silent --no-audit --no-fund
 psql() { docker compose exec -T postgres psql -U postgres "$@"; }
 npm run --silent setup
 echo "== demo (the process is killed in scenario 4) =="
-npm run --silent demo || echo "demo exited with $?"
+code=0
+npm run --silent demo || code=$?
+echo "demo exited with $code (3 is the simulated crash; 1 would be a failed check)"
+[ "$code" = 3 ] || exit 1
 echo "== proof: saga log right after the crash (order-D stuck at step 1 although its charge exists) =="
 psql -d orchestrator -c "SELECT id, state, step, error FROM sagas ORDER BY id"
 psql -d payments -c "SELECT * FROM charges WHERE saga_id = 'order-D'"
@@ -42,3 +45,4 @@ echo "== proof: payments (C refunded, D charged exactly once despite running the
 psql -d payments -c "SELECT * FROM charges ORDER BY saga_id"
 echo "== proof: shipping (only the completed sagas: A, D, E) =="
 psql -d shipping -c "SELECT * FROM shipments ORDER BY saga_id"
+npm run --silent verify

@@ -12,15 +12,18 @@ The simplest reliable way to publish events: a transactional outbox with a polli
 
 One shot with proof: `./run-09-outbox-polling.sh` from the repo root (log in [`../logs/09-outbox-polling.log`](../logs/09-outbox-polling.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55437, Kafka 59094):
 
 ```sh
 docker compose up -d --wait
 npm i
 npm run setup     # orders + outbox tables, Kafka topic
-npm run consume   # terminal 1: idempotent consumer, dedupes by event_id header
+npm run consume   # terminal 1: idempotent consumer, dedupes by event_id header (-- --messages 4: stop after 4 deliveries and check them)
 npm run app       # terminal 2: writes orders + outbox rows
-npm run relay     # drain the outbox to Kafka (add -- --crash-after-send to simulate a crash)
+npm run relay     # drain the outbox to Kafka (add -- --crash-after-send to simulate a crash, exit 3)
+npm run verify -- crashed   # or drained: check the outbox state after each relay pass
 ```
 
 ## Files
@@ -49,12 +52,12 @@ The app commits two events; bob's rolled back with his order. Before the relay r
   2 | OrderPaid   | 1            |
 ```
 
-Relay pass 1 is killed for real (`process.exit(1)`) after the Kafka send, before its commit. The rows are still unpublished, because the claim transaction died with the process:
+Relay pass 1 is killed for real (`process.exit(3)`, a code of its own so the run script can tell the crash from a failed check) after the Kafka send, before its commit. The rows are still unpublished, because the claim transaction died with the process:
 
 ```
 relay: claimed + sent #1 OrderPlaced, #2 OrderPaid
 relay: CRASH after send, before marking published (transaction never commits)
-relay exited with 1
+relay exited with 3 (3 is the simulated crash)
 
  id |    type     | published_at
   1 | OrderPlaced |
@@ -69,13 +72,29 @@ relay: marked 2 published
 relay: outbox drained
 ```
 
-The consumer got each event twice (at-least-once) and processed each once (idempotent):
+The consumer got each event twice (at-least-once) and processed each once (idempotent). It stops after the 4 deliveries and checks them against the outbox:
 
 ```
 consumer: OrderPlaced key=1 event_id=<placed> payload={"total":"42.50","orderId":1,"customer":"alice"}
 consumer: OrderPaid key=1 event_id=<paid> payload={"orderId":1}
 consumer: DUPLICATE OrderPlaced event_id=<placed> skipped (idempotent consumer)
 consumer: DUPLICATE OrderPaid event_id=<paid> skipped (idempotent consumer)
+consumer: 4 deliveries, 2 events processed
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: alice's order is paid and bob's rolled back: one order row
+   check ok: two events wait in the outbox, both for alice's order; bob's event rolled back with his order
+2 checks passed
+   check ok: after the crash both rows are still unpublished: the claim transaction died with the process
+1 check passed
+   check ok: after pass 2 every outbox row is marked published
+1 check passed
+   check ok: every outbox event reached the consumer and was processed exactly once
+   check ok: the 2 re-sent copies from the crashed relay pass were skipped as duplicates
+2 checks passed
 ```
 
 ## Origins and further reading

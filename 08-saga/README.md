@@ -12,16 +12,19 @@ Places an order across inventory, payments and shipping without a distributed tr
 
 One shot with proof: `./run-08-saga.sh` from the repo root (log in [`../logs/08-saga.log`](../logs/08-saga.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55439):
 
 ```sh
 docker compose up -d --wait
 npm i
 npm run setup    # create the 4 databases and tables, stock = 10
-npm run demo     # happy path, payment failure, shipping failure, then a crash mid-saga (exit 1)
+npm run demo     # happy path, payment failure, shipping failure, then a crash mid-saga (exit 3)
 npm run resume   # new process: reload unfinished sagas from the log and finish them
 npm run timer    # start order-E with a 30s hold; it parks as a row and the process exits
 npm run waker    # poll every 5s, wake due sagas, exit when none is waiting
+npm run verify   # check every database against the saga log
 ```
 
 ## Files
@@ -89,23 +92,23 @@ A new process resumes from the log. It re-runs `chargePayment`, which is idempot
 order-E has a 30s fraud hold. The process that starts it parks it and exits:
 
 ```
-   19:50:04 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 19:50:34; this process stops driving it
-   19:50:04 timer process exits; order-E now exists only as a row
- order-E | waiting |    3 | 2026-09-27 19:50:34.125534+00
+   00:50:21 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 00:50:51; this process stops driving it
+   00:50:21 timer process exits; order-E now exists only as a row
+ order-E | waiting |    3 | 2026-10-04 00:50:51.496316+00
 ```
 
 A first waker is killed 10s in and the row is untouched. A second waker process picks order-E up when it is due and finishes it:
 
 ```
-   19:50:09 tick: order-E due in 25s
-   19:50:14 waker #1 killed (exit 143)
- order-E | waiting |    3 | 2026-09-27 19:50:34.125534+00
+   00:50:27 tick: order-E due in 24s
+   00:50:32 waker #1 killed (exit 143)
+ order-E | waiting |    3 | 2026-10-04 00:50:51.496316+00
 
-## waker (pid 79440)
-   19:50:14 tick: order-E due in 20s
+## waker (pid 6784)
+   00:50:33 tick: order-E due in 18s
    ...
-   19:50:29 tick: order-E due in 5s
-   19:50:34 [order-E] due, claimed (waiting -> running, 0.5s after wake_at because of the poll interval)
+   00:50:48 tick: order-E due in 3s
+   00:50:53 [order-E] due, claimed (waiting -> running, 2.2s after wake_at because of the poll interval)
       -> HTTP POST shipping-service/shipments/order-E
    [order-E] step 4 createShipment: ok
    [order-E] completed
@@ -124,6 +127,29 @@ Every database ends consistent: stock `10 - 2 (A) - 1 (D) - 1 (E) = 6`, C refund
  order-A | Paris
  order-D | Lyon
  order-E | Lille
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: order-A completed: 2 reserved (stock 8), 84.00 charged, 1 shipment
+   check ok: order-B aborted and its compensation left every balance as it was before it
+   check ok: order-B was never charged
+   check ok: order-C aborted and its compensation (refund, then release) left every balance as it was before it
+   check ok: order-C's charge is kept as refunded, not deleted
+5 checks passed
+   check ok: after the crash the saga log says order-D is at step 1, yet its charge exists
+   check ok: order-D completed after the restart, charged exactly once although chargePayment ran twice
+2 checks passed
+   check ok: order-E is parked as a row: waiting at step 3, wake_at 30s from now
+1 check passed
+   check ok: this waker claimed order-E once it was due and completed it
+1 check passed
+   check ok: saga log: A, D, E completed; B, C aborted after compensating back to step 0
+   check ok: inventory: 10 - 2 (A) - 1 (D) - 1 (E) = 6 left, reservations only for A, D, E
+   check ok: payments: C refunded, D charged once, B never charged
+   check ok: shipping: only the completed sagas A, D, E
+4 checks passed
 ```
 
 ## Origins and further reading

@@ -9,6 +9,7 @@
     "setup": "tsx src/setup.ts",
     "demo": "tsx src/demo.ts",
     "ship": "tsx src/shipper.ts",
+    "verify": "tsx src/verify.ts",
     "typecheck": "tsc"
   },
   "dependencies": {

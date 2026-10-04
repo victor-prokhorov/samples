@@ -12,6 +12,8 @@ Splits one table into four on the same Postgres: native hash partitioning, `orde
 
 One shot with proof: `./run-13-partitioning.sh` from the repo root (log in [`../logs/13-partitioning.log`](../logs/13-partitioning.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55440):
 
 ```sh
@@ -62,6 +64,18 @@ No global uniqueness, but atomic transactions across partitions (alice's insert 
 
    rejected: null value in column "item" of relation "orders_p2" violates not-null constraint
    alice's cable rows after rollback: 0
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: the parent table owns no rows; one customer's rows always land in the same partition
+   check ok: a lookup by the partition key touches one partition, alice's (orders_p1)
+   check ok: a lookup without the key scans all 4 partitions
+   check ok: UNIQUE (id) without the partition key is refused
+   check ok: alice's insert in orders_p1 rolled back with bob's failed one in orders_p2
+   check ok: the row moved from orders_p0 to orders_p2, and exists once
+6 checks passed
 ```
 
 ## Origins and further reading

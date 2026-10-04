@@ -12,6 +12,8 @@ Replaces a monolith one capability at a time, behind a routing facade that clien
 
 One shot with proof: `./run-05-strangler-fig.sh` from the repo root (log in [`../logs/05-strangler-fig.log`](../logs/05-strangler-fig.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: HTTP 53000 proxy, 53001 legacy, 53002 new):
 
 ```sh
@@ -59,6 +61,22 @@ Legacy traffic shrinks as routes move, with a rollback in the middle, and every 
    GET /orders/1   -> new-service     same contract as legacy: true
    GET /invoices/1 -> new-service     same contract as legacy: true
    legacy handled 0/3 client requests
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: every response keeps legacy's contract
+   check ok: everything served by legacy; legacy handled 3/3
+   check ok: every response keeps legacy's contract
+   check ok: only orders served by the new service; legacy handled 2/3
+   check ok: every response keeps legacy's contract
+   check ok: everything served by legacy; legacy handled 3/3
+   check ok: every response keeps legacy's contract
+   check ok: only orders, invoices served by the new service; legacy handled 1/3
+   check ok: every response keeps legacy's contract
+   check ok: only orders, invoices, users served by the new service; legacy handled 0/3
+10 checks passed
 ```
 
 ## Origins and further reading

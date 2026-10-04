@@ -12,6 +12,8 @@
 
 One shot with proof: `./run-01-crud-audit.sh` from the repo root (log in [`../logs/01-crud-audit.log`](../logs/01-crud-audit.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55434):
 
 ```sh
@@ -58,6 +60,19 @@ After the delete, `products` is empty but the history survives. Note id `4` is m
   2 | product | 1         | update | bob   | {"id": 1, "name": "Keyboard", "price": "49.00"}      | {"id": 1, "name": "Keyboard", "price": "39.00"}
   3 | product | 1         | update | alice | {"id": 1, "name": "Keyboard", "price": "39.00"}      | {"id": 1, "name": "Mech Keyboard", "price": "39.00"}
   5 | product | 1         | delete | carol | {"id": 1, "name": "Mech Keyboard", "price": "39.00"} |
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: create writes one audit row: before=null, after=the new row
+   check ok: each update writes one audit row with the before and after values
+   check ok: the update with an empty actor is rejected
+   check ok: the rolled-back update left the price unchanged and wrote no audit row
+   check ok: the row is gone from products after the delete
+   check ok: the history survives the delete: one audit row per change (create, update, update, delete), the last one keeping the final value
+   check ok: audit_log holds no row from the rolled-back change
+7 checks passed
 ```
 
 ## Origins and further reading

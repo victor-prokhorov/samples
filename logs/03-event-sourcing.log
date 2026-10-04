@@ -1,8 +1,8 @@
-# 03-event-sourcing run 2026-09-27T16:28:49Z
+# 03-event-sourcing run 2026-10-04T00:48:44Z
 == fresh Postgres (docker compose down -v && up) ==
  Container 03-event-sourcing-postgres-1 Healthy 
 == demo ==
-stream: account-e0e044fa-54fa-4f2d-a719-ec3adf45993d
+stream: account-699a5293-da4f-47cf-be5b-bcf10a5765f4
 
 ## 1. Commands produce events
    concept: a command loads the stream, folds it into state, validates, and appends new facts; no row is ever updated
@@ -13,18 +13,21 @@ stream: account-e0e044fa-54fa-4f2d-a719-ec3adf45993d
 ## 2. Invariants are checked against rebuilt state
    concept: withdraw 500 with balance 70 must be rejected, and nothing is appended
    rejected: insufficient funds: balance 70, asked 500
+   check ok: withdrawing 500 from a balance of 70 is rejected and appends nothing
 
 ## 3. Optimistic concurrency
    concept: two writers read the same version; the first append wins, the second hits UNIQUE(stream_id, version)
    writer A and writer B both read v3
    writer A appended v4
-   writer B: ConcurrencyError=true (stream account-e0e044fa-54fa-4f2d-a719-ec3adf45993d moved past v3)
+   writer B: ConcurrencyError=true (stream account-699a5293-da4f-47cf-be5b-bcf10a5765f4 moved past v3)
+   check ok: the second writer with the same expected version gets a ConcurrencyError
 
 ## 3b. Retry
    concept: two concurrent withdrawals of 60 from 71: the loser reloads, re-decides against the new balance, and is rejected instead of overdrawing
    v4 balance=71 -> appended {"type":"MoneyWithdrawn","amount":60}
-   writer B: conflict on attempt 1 (stream account-e0e044fa-54fa-4f2d-a719-ec3adf45993d moved past v4), reloading and deciding again
-   writer B rejected: insufficient funds: balance 11, asked 60
+   writer A: conflict on attempt 1 (stream account-699a5293-da4f-47cf-be5b-bcf10a5765f4 moved past v4), reloading and deciding again
+   writer A rejected: insufficient funds: balance 11, asked 60
+   check ok: of two concurrent withdrawals of 60 from 71, one wins and the retried loser is rejected for insufficient funds
 
 ## 4. The stream is the source of truth
    concept: the full history is stored; current state is only a left fold over it
@@ -38,24 +41,30 @@ stream: account-e0e044fa-54fa-4f2d-a719-ec3adf45993d
 │ 4       │ 5 │ 'MoneyWithdrawn' │         │ 60     │
 └─────────┴───┴──────────────────┴─────────┴────────┘
    current state: { owner: 'alice', balance: 11, version: 5 }
+   check ok: the stream holds exactly 5 facts, versions 1 to 5, and folds to balance 11
+   check ok: nothing from a rejected command or a losing writer was stored
 
 ## 5. Time travel
    concept: replay only the events recorded before a date to answer "what was the state at the end of March?"
-   as of 2026-09-27T16:28:50.483Z: { owner: 'alice', balance: 70, version: 3 }
+   as of 2026-10-04T00:48:51.479Z: { owner: 'alice', balance: 70, version: 3 }
+   check ok: replaying the events recorded before v4 gives the state at v3, balance 70
    by version is the same fold over a prefix, e.g. as of v1: { owner: 'alice', balance: 0, version: 1 }
 
 ## 6. Projections (read models)
    concept: any new view can be derived later by replaying the same events, e.g. total deposited
    total deposited = 101
+   check ok: a projection added later derives total deposited = 101 from the same events
+
+7 checks passed
 
 == proof: raw events table (append-only, one row per fact) ==
  global_position |                  stream_id                   | version |      type      |        data        
 -----------------+----------------------------------------------+---------+----------------+--------------------
-               1 | account-e0e044fa-54fa-4f2d-a719-ec3adf45993d |       1 | AccountOpened  | {"owner": "alice"}
-               2 | account-e0e044fa-54fa-4f2d-a719-ec3adf45993d |       2 | MoneyDeposited | {"amount": 100}
-               3 | account-e0e044fa-54fa-4f2d-a719-ec3adf45993d |       3 | MoneyWithdrawn | {"amount": 30}
-               4 | account-e0e044fa-54fa-4f2d-a719-ec3adf45993d |       4 | MoneyDeposited | {"amount": 1}
-               6 | account-e0e044fa-54fa-4f2d-a719-ec3adf45993d |       5 | MoneyWithdrawn | {"amount": 60}
+               1 | account-699a5293-da4f-47cf-be5b-bcf10a5765f4 |       1 | AccountOpened  | {"owner": "alice"}
+               2 | account-699a5293-da4f-47cf-be5b-bcf10a5765f4 |       2 | MoneyDeposited | {"amount": 100}
+               3 | account-699a5293-da4f-47cf-be5b-bcf10a5765f4 |       3 | MoneyWithdrawn | {"amount": 30}
+               4 | account-699a5293-da4f-47cf-be5b-bcf10a5765f4 |       4 | MoneyDeposited | {"amount": 1}
+               6 | account-699a5293-da4f-47cf-be5b-bcf10a5765f4 |       5 | MoneyWithdrawn | {"amount": 60}
 (5 rows)
 
 == proof: the unique constraint that enforces optimistic concurrency ==

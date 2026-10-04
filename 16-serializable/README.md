@@ -12,6 +12,8 @@ When SERIALIZABLE is a must and when it is not, on the "never sell more than we 
 
 One shot with proof: `./run-16-serializable.sh` from the repo root (log in [`../logs/16-serializable.log`](../logs/16-serializable.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55443):
 
 ```sh
@@ -83,6 +85,23 @@ Each level raises its own `40001`: REPEATABLE READ for two writers of one row, S
 ```
    aborted with: could not serialize access due to concurrent update
    aborted with: could not serialize access due to read/write dependencies among transactions
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: lost update under READ COMMITTED: more buyers told "sold" than stock went down (oversold)
+   check ok: REPEATABLE READ with retries sells exactly 10, no lost update
+   check ok: REPEATABLE READ aborted the second writers with "concurrent update" (40001)
+   check ok: one atomic UPDATE ... WHERE stock > 0 sells exactly 10
+   check ok: UNIQUE (event_id, seat) sells seat A1 exactly once
+   check ok: write skew happens under READ COMMITTED: oversold
+   check ok: write skew happens under REPEATABLE READ too: oversold
+   check ok: SERIALIZABLE with retries prevents the write skew: exactly 10 sold
+   check ok: SERIALIZABLE aborted one side of each conflict with "read/write dependencies" (40001)
+   check ok: locking the parent row under READ COMMITTED also sells exactly 10
+   check ok: the last scenario left exactly 10 tickets for 10 distinct buyers
+11 checks passed
 ```
 
 ## Origins and further reading

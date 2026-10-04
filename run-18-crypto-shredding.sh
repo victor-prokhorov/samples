@@ -29,24 +29,28 @@ psql -d events -c "SELECT count(*) AS events, md5(string_agg(pii::text, ',' ORDE
 echo "== nightly backups: pg_dump of events (fine) and of keys (the mistake this run will show) =="
 sh_pg "pg_dump -U postgres events > /tmp/events-backup.sql && pg_dump -U postgres keys > /tmp/keys-backup.sql && ls -l /tmp/*-backup.sql"
 echo "== proof: the events backup holds no plaintext PII, but the amounts are in it =="
-sh_pg "echo \"lines matching Alice|alice@|Lilas: \$(grep -cE 'Alice|alice@|Lilas' /tmp/events-backup.sql)\"; echo \"lines matching 42.50: \$(grep -c '42.50' /tmp/events-backup.sql)\""
+pii=$(sh_pg "grep -cE 'Alice|alice@|Lilas' /tmp/events-backup.sql || true")
+amounts=$(sh_pg "grep -c '42.50' /tmp/events-backup.sql || true")
+echo "lines matching Alice|alice@|Lilas: $pii"
+echo "lines matching 42.50: $amounts"
+[ "$pii" = 0 ] && [ "$amounts" -gt 0 ] || { echo "FAILED: the events backup should hold the amounts but no plaintext PII"; exit 1; }
 echo "== alice asks to be forgotten =="
 npm run --silent erase -- alice@example.com
 echo "== proof: her events cannot be deleted, the log is append-only =="
 psql -d events -c "DELETE FROM events WHERE type = 'CustomerRegistered'" || true
 echo "== proof: read everything back. alice's rows are still there, her PII is gone, bob is untouched =="
-npm run --silent read -- --email alice@example.com
+npm run --silent read -- --email alice@example.com --expect-alice erased
 psql -d events -c "SELECT left(subject_id::text, 8) AS subject, count(*) AS events, sum((data->>'amount')::numeric) AS total_amount FROM events GROUP BY subject_id ORDER BY 1"
 psql -d keys -c "SELECT count(*) AS keys_left FROM subject_keys"
 echo "== restore the pre-erasure events backup into a fresh database events_restored =="
 psql -c "CREATE DATABASE events_restored"
 sh_pg "psql -q -o /dev/null -U postgres -d events_restored < /tmp/events-backup.sql"
 echo "== proof: alice is unreadable in the restored backup too; no one had to edit it =="
-npm run --silent read -- --events events_restored
+npm run --silent read -- --events events_restored --expect-alice erased
 echo "== cautionary proof: restore the keys backup as well, and alice is back =="
 psql -c "CREATE DATABASE keys_restored"
 sh_pg "psql -q -o /dev/null -U postgres -d keys_restored < /tmp/keys-backup.sql"
-npm run --silent read -- --events events_restored --keys keys_restored --email alice@example.com
+npm run --silent read -- --events events_restored --keys keys_restored --email alice@example.com --expect-alice readable
 echo "== the key store's backups must be short-lived (or erasures replayed after restore); dropping the restored copy and the dump =="
 psql -c "DROP DATABASE keys_restored"
 sh_pg "rm /tmp/keys-backup.sql && ls /tmp/*-backup.sql"

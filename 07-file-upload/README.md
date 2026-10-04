@@ -12,6 +12,8 @@ An Express 5 API (`src/server.ts`), a separate process with metadata and content
 
 One shot with proof: `./run-07-file-upload.sh` from the repo root (log in [`../logs/07-file-upload.log`](../logs/07-file-upload.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55450, HTTP 53020 files API):
 
 ```sh
@@ -59,13 +61,13 @@ GET  /v1/files?changed_since=&limit=&cursor=
 A retry and a concurrent duplicate both return the first file:
 
 ```
-   Idempotency-Key 3595be39...
-   POST /v1/files                                                 -> 201 [etag: "1"] {"fileId":"1d414b39","status":"pending","upload_file_url":"http://localhost:53020/v1/files/1d414b39/content"}
-   POST /v1/files (retry, same key and body)                      -> 201 [etag: "1", idempotent-replayed: true] {"fileId":"1d414b39","status":"pending","upload_file_url":"http://localhost:53020/v1/files/1d414b39/content"}
+   Idempotency-Key 99430603...
+   POST /v1/files                                                 -> 201 [etag: "1"] {"fileId":"68ed1a97","status":"pending","upload_file_url":"http://localhost:53020/v1/files/68ed1a97/content"}
+   POST /v1/files (retry, same key and body)                      -> 201 [etag: "1", idempotent-replayed: true] {"fileId":"68ed1a97","status":"pending","upload_file_url":"http://localhost:53020/v1/files/68ed1a97/content"}
    POST /v1/files (same key, different body)                      -> 422 {"status":422,"detail":"this Idempotency-Key was already used with a different body"}
    POST /v1/files (no Idempotency-Key)                            -> 400 {"status":400,"detail":"Idempotency-Key header must be a UUID"}
-   POST /v1/files (concurrent duplicate 1 of 2)                   -> 201 [etag: "1"] {"fileId":"8b5848b6","status":"pending","upload_file_url":"http://localhost:53020/v1/files/8b5848b6/content"}
-   POST /v1/files (concurrent duplicate 2 of 2)                   -> 201 [etag: "1", idempotent-replayed: true] {"fileId":"8b5848b6","status":"pending","upload_file_url":"http://localhost:53020/v1/files/8b5848b6/content"}
+   POST /v1/files (concurrent duplicate 1 of 2)                   -> 201 [etag: "1"] {"fileId":"e4808e6e","status":"pending","upload_file_url":"http://localhost:53020/v1/files/e4808e6e/content"}
+   POST /v1/files (concurrent duplicate 2 of 2)                   -> 201 [etag: "1", idempotent-replayed: true] {"fileId":"e4808e6e","status":"pending","upload_file_url":"http://localhost:53020/v1/files/e4808e6e/content"}
    => 1 fileId for 2 concurrent requests; files rows named report/race/other: 2 (the duplicate waited on the key's primary key, then replayed)
 ```
 
@@ -76,7 +78,7 @@ A retry and a concurrent duplicate both return the first file:
    PUT content If-Match "1", Content-Type: text/plain             -> 415 {"status":415,"detail":"Content-Type must be application/octet-stream"}
    PUT content If-Match "1", 3 bytes (declared 25)                -> 422 {"status":422,"detail":"content is 3 bytes, the file declares 25"}
    PUT content If-Match "1", 25 bytes                             -> 200 [etag: "2"] {"status":"complete"}
-   GET /v1/files/1d414b39                                         -> 200 [etag: "2"] {"fileId":"1d414b39","name":"report.txt","content_type":"text/plain","size":25,"sha256":"659c31985f292f5213809064e25e81ed6944b467193d53357eaac01788c46f6d","status":"complete","version":2,"created_at":"2026-09-29T11:05:45.096Z","updated_at":"2026-09-29T11:05:45.212Z"}
+   GET /v1/files/68ed1a97                                         -> 200 [etag: "2"] {"fileId":"68ed1a97","name":"report.txt","content_type":"text/plain","size":25,"sha256":"659c31985f292f5213809064e25e81ed6944b467193d53357eaac01788c46f6d","status":"complete","version":2,"created_at":"2026-10-04T00:50:00.608Z","updated_at":"2026-10-04T00:50:01.134Z"}
    PUT content If-Match "1" (stale: someone already wrote "2")    -> 412 [etag: "2"] {"status":412,"detail":"If-Match \"1\" does not match the current ETag \"2\""}
    PUT content If-Match W/"2" (weak never matches If-Match)       -> 412 [etag: "2"] {"status":412,"detail":"If-Match W/\"2\" does not match the current ETag \"2\""}
    PUT content If-Match "2" (concurrent writer A)                 -> 200 [etag: "3"] {"status":"complete"}
@@ -87,7 +89,7 @@ A retry and a concurrent duplicate both return the first file:
 `If-None-Match` revalidates without a body:
 
 ```
-   GET /v1/files/1d414b39 If-None-Match "3"                       -> 304 [etag: "3"]
+   GET /v1/files/68ed1a97 If-None-Match "3"                       -> 304 [etag: "3"]
    GET /content If-None-Match "3"                                 -> 304 [etag: "3"]
    GET /content If-None-Match W/"3"                               -> 304 [etag: "3"]
    GET /content If-None-Match "1" (an old version)                -> 200 [etag: "3"] "writer A's version\n"
@@ -122,6 +124,29 @@ Paging the feed, then a late commit: the `updated_at` client loses the rename, t
    poll: updated_at client sees [] <- the rename is lost: it is stamped before b.txt
    poll: feed client sees        ["a-renamed.txt","b.txt"]
    poll: feed client again       [] (nothing new; same sync token)
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: no token or a wrong one is 401 with WWW-Authenticate: Bearer
+   check ok: the owner reads her file (200); another owner gets 404, not 403
+   check ok: a retry with the same key replays the first answer (same fileId, Idempotent-Replayed)
+   check ok: the same key with a different body is 422; no key is 400
+   check ok: two concurrent requests with one key create one file; one row each for report.txt and race.txt
+   check ok: PUT without If-Match is 428, wrong Content-Type 415, wrong size 422; the right PUT is 200 with ETag "2"
+   check ok: a stale If-Match and a weak tag are both 412 (no lost update)
+   check ok: of two concurrent writers on "2", one wins (version 3) and the other gets 412
+   check ok: If-None-Match with the current ETag, strong or weak, is 304 with no body
+   check ok: If-None-Match with an old version is 200 with the content
+   check ok: content before any PUT is 409
+   check ok: ranges are 206 with Content-Range, and the two parts join into the whole file
+   check ok: a range outside the content is 416
+   check ok: after the file changed, If-Range with the old ETag gets the whole new file (200), not a spliced one
+   check ok: the feed pages through the 5 new files in order, 2 per page, each exactly once
+   check ok: the updated_at cursor loses the slow transaction's rename
+   check ok: the changed_xid feed holds b.txt back, then delivers both the rename and b.txt, and nothing twice
+17 checks passed
 ```
 
 ## Origins and further reading

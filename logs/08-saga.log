@@ -1,4 +1,4 @@
-# 08-saga run 2026-09-27T19:50:01Z
+# 08-saga run 2026-10-04T00:50:06Z
 == fresh Postgres with one database per service (docker compose down -v && up) ==
  Container 08-saga-postgres-1 Healthy 
 setup: 4 databases (inventory, payments, shipping, orchestrator), keyboard stock = 10
@@ -16,6 +16,7 @@ note: each '-> HTTP' line is a network call to a separate microservice that owns
       -> HTTP POST shipping-service/shipments/order-A
    [order-A] step 4 createShipment: ok
    [order-A] completed
+   check ok: order-A completed: 2 reserved (stock 8), 84.00 charged, 1 shipment
 
 ## 2. Payment fails
    concept: no distributed rollback exists; the orchestrator undoes completed steps with compensating actions, in reverse
@@ -27,6 +28,8 @@ note: each '-> HTTP' line is a network call to a separate microservice that owns
       -> HTTP DELETE inventory-service/reservations/order-B
    [order-B] compensate reserveInventory: ok
    [order-B] aborted
+   check ok: order-B aborted and its compensation left every balance as it was before it
+   check ok: order-B was never charged
 
 ## 3. Last step fails
    concept: shipping refuses: refund the charge, then release the stock
@@ -44,6 +47,8 @@ note: each '-> HTTP' line is a network call to a separate microservice that owns
       -> HTTP DELETE inventory-service/reservations/order-C
    [order-C] compensate reserveInventory: ok
    [order-C] aborted
+   check ok: order-C aborted and its compensation (refund, then release) left every balance as it was before it
+   check ok: order-C's charge is kept as refunded, not deleted
 
 ## 4. Orchestrator crashes mid-saga
    concept: the charge ran but the log was not updated; the process dies here (resume picks it up)
@@ -53,7 +58,9 @@ note: each '-> HTTP' line is a network call to a separate microservice that owns
       -> HTTP POST payments-service/charges/order-D
    [order-D] step 2 chargePayment: ok
    [order-D] CRASH after chargePayment ran, before the saga log recorded it
-demo exited with 1
+
+5 checks passed
+demo exited with 3 (3 is the simulated crash; 1 would be a failed check)
 == proof: saga log right after the crash (order-D stuck at step 1 although its charge exists) ==
    id    |   state   | step |              error               
 ---------+-----------+------+----------------------------------
@@ -72,6 +79,7 @@ demo exited with 1
 
 ## 5. Recovery
    concept: on restart, the orchestrator reloads unfinished sagas from its log and continues; steps are idempotent (keyed by saga id), so re-running chargePayment does not charge twice
+   check ok: after the crash the saga log says order-D is at step 1, yet its charge exists
    [order-D] found running at step 1, resuming
       -> HTTP POST payments-service/charges/order-D
    [order-D] step 2 chargePayment: ok
@@ -79,6 +87,9 @@ demo exited with 1
       -> HTTP POST shipping-service/shipments/order-D
    [order-D] step 4 createShipment: ok
    [order-D] completed
+   check ok: order-D completed after the restart, charged exactly once although chargePayment ran twice
+
+2 checks passed
 
 == proof: saga log ==
    id    |   state   | step |              error               
@@ -93,44 +104,50 @@ demo exited with 1
 
 ## 6. Durable timer
    concept: a saga that has to wait (here a 30s fraud hold, in real life days) does not keep a process alive; it writes wake_at to the saga log and the process is free to exit
-   19:50:04 starting order-E
+   00:50:21 starting order-E
    [order-E] started {"sku":"keyboard","qty":1,"amount":"42.00","address":"Lille","holdSec":30}
       -> HTTP POST inventory-service/reservations/order-E
    [order-E] step 1 reserveInventory: ok
       -> HTTP POST payments-service/charges/order-E
    [order-E] step 2 chargePayment: ok
-   19:50:04 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 19:50:34; this process stops driving it
-   19:50:04 timer process exits; order-E now exists only as a row
+   00:50:21 [order-E] step 3 fraudHold: sleep 30s -> saga log says waiting, wake_at 00:50:51; this process stops driving it
+   check ok: order-E is parked as a row: waiting at step 3, wake_at 30s from now
+   00:50:21 timer process exits; order-E now exists only as a row
+
+1 check passed
    id    |  state  | step |            wake_at            
 ---------+---------+------+-------------------------------
- order-E | waiting |    3 | 2026-09-27 19:50:34.125534+00
+ order-E | waiting |    3 | 2026-10-04 00:50:51.496316+00
 (1 row)
 
 == waker #1, killed after 10s (the timer is a row, so nothing is lost) ==
 
-## waker (pid 79410)
+## waker (pid 2933)
    concept: a loop polls the saga log every 5s, claims sagas whose wake_at has passed, and drives them on from the step after the timer
-   19:50:04 tick: order-E due in 30s
-   19:50:09 tick: order-E due in 25s
-   19:50:14 waker #1 killed (exit 143)
+   00:50:22 tick: order-E due in 29s
+   00:50:27 tick: order-E due in 24s
+   00:50:32 waker #1 killed (exit 143)
    id    |  state  | step |            wake_at            
 ---------+---------+------+-------------------------------
- order-E | waiting |    3 | 2026-09-27 19:50:34.125534+00
+ order-E | waiting |    3 | 2026-10-04 00:50:51.496316+00
 (1 row)
 
 == waker #2, a new process: picks order-E up when due, runs until no saga is waiting ==
 
-## waker (pid 79440)
+## waker (pid 6784)
    concept: a loop polls the saga log every 5s, claims sagas whose wake_at has passed, and drives them on from the step after the timer
-   19:50:14 tick: order-E due in 20s
-   19:50:19 tick: order-E due in 15s
-   19:50:24 tick: order-E due in 10s
-   19:50:29 tick: order-E due in 5s
-   19:50:34 [order-E] due, claimed (waiting -> running, 0.5s after wake_at because of the poll interval)
+   00:50:33 tick: order-E due in 18s
+   00:50:38 tick: order-E due in 13s
+   00:50:43 tick: order-E due in 8s
+   00:50:48 tick: order-E due in 3s
+   00:50:53 [order-E] due, claimed (waiting -> running, 2.2s after wake_at because of the poll interval)
       -> HTTP POST shipping-service/shipments/order-E
    [order-E] step 4 createShipment: ok
    [order-E] completed
-   19:50:34 no saga waiting, waker exits
+   check ok: this waker claimed order-E once it was due and completed it
+   00:50:53 no saga waiting, waker exits
+
+1 check passed
 
 == proof: saga log after the timer ==
    id    |   state   | step |            wake_at            |              error               
@@ -139,7 +156,7 @@ demo exited with 1
  order-B | aborted   |    0 |                               | card declined for 5000.00
  order-C | aborted   |    0 |                               | address not deliverable: nowhere
  order-D | completed |    4 |                               | 
- order-E | completed |    4 | 2026-09-27 19:50:34.125534+00 | 
+ order-E | completed |    4 | 2026-10-04 00:50:51.496316+00 | 
 (5 rows)
 
 == proof: inventory (10 - 2 for A - 1 for D - 1 for E = 6; B and C released) ==
@@ -172,3 +189,11 @@ demo exited with 1
  order-E | Lille
 (3 rows)
 
+
+## verify: every database agrees with the saga log
+   check ok: saga log: A, D, E completed; B, C aborted after compensating back to step 0
+   check ok: inventory: 10 - 2 (A) - 1 (D) - 1 (E) = 6 left, reservations only for A, D, E
+   check ok: payments: C refunded, D charged once, B never charged
+   check ok: shipping: only the completed sagas A, D, E
+
+4 checks passed

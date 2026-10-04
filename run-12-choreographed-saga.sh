@@ -13,7 +13,10 @@ psql() { docker compose exec -T postgres psql -U postgres "$@"; }
 lag() { docker compose exec -T kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group "$1" 2>/dev/null | awk -v g="$1" -v t="$2" '$1 == "GROUP" || ($1 == g && (t == "" || $2 == t)) { printf "%-17s %-9s %-14s %-14s %s\n", $2, $3, $4, $5, $6 }' | LC_ALL=C sort; }
 npm run --silent setup
 echo "== demo (the inventory consumer is killed in scenario 5) =="
-npm run --silent demo || echo "demo exited with $?"
+code=0
+npm run --silent demo || code=$?
+echo "demo exited with $code (3 is the simulated crash; 1 would be a failed check)"
+[ "$code" = 3 ] || exit 1
 echo
 echo "== proof: no dual write. inventory's reservation, its InventoryReserved outbox row and the processed OrderPlaced committed together =="
 psql -d inventory -c "SELECT * FROM reservations WHERE order_id = 'order-D'" -c "SELECT type, order_id, published_at FROM outbox WHERE order_id = 'order-D'" -c "SELECT type, order_id FROM processed_messages WHERE order_id = 'order-D'"
@@ -40,3 +43,4 @@ echo "== proof: inventory processed OrderPlaced for order-D once, although Kafka
 psql -d inventory -c "SELECT type, order_id FROM processed_messages WHERE order_id = 'order-D'"
 echo "== proof: every outbox drained =="
 for db in orders inventory payments shipping; do psql -d "$db" -tA -c "SELECT '$db: ' || count(*) FILTER (WHERE published_at IS NULL) || ' unpublished of ' || count(*) FROM outbox"; done
+npm run --silent verify

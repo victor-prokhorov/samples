@@ -12,6 +12,8 @@ Proves a rewrite matches the legacy code on real traffic before it serves anyone
 
 One shot with proof: `./run-04-parallel-run.sh` from the repo root (log in [`../logs/04-parallel-run.log`](../logs/04-parallel-run.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (no ports):
 
 ```sh
@@ -59,6 +61,18 @@ After the fix, the rewrite matches, takes over, and legacy becomes the check:
    experiment "shipping-v2": 1000 runs, 0 mismatches (0 candidate exceptions)
    experiment "shipping-cutover": 1000 runs, 0 mismatches (0 candidate exceptions)
    served total 1980900 === legacy total 1980900: true
+```
+
+The self-checks, one line per claim, then one summary per process; any failed check makes the run script exit non-zero:
+
+```
+   check ok: the buggy rewrite disagrees on some orders
+   check ok: callers still got the legacy answer for every order
+   check ok: the mismatches fall into three bugs, each seen at least once
+   check ok: every candidate exception was swallowed and is the empty-cart one
+   check ok: the fixed rewrite matches legacy on all 1000 orders
+   check ok: after the cutover the rewrite serves, legacy as the check finds no mismatch, and revenue is unchanged
+6 checks passed
 ```
 
 ## Origins and further reading

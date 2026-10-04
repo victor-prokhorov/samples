@@ -12,13 +12,15 @@ Change data capture: the app writes to Postgres normally; Debezium tails the WAL
 
 One shot with proof: `./run-10-cdc-debezium.sh` from the repo root (log in [`../logs/10-cdc-debezium.log`](../logs/10-cdc-debezium.log)).
 
+Each claim in the Proof section below is also a `check(label, condition)` in the code. A failed check marks the process failed, so the script exits non-zero; the log ends each process with `N checks passed` or `FAILED: ...`.
+
 By hand, from this folder (ports: Postgres 55435, Kafka 59092, Kafka Connect 58083):
 
 ```sh
 docker compose up -d --wait
 npm i
 npm run setup     # create orders table (REPLICA IDENTITY FULL) + register connector
-npm run consume   # terminal 1: print change events
+npm run consume   # terminal 1: print change events (-- --messages 5: stop after 5 and check them)
 npm run write     # terminal 2: insert, update, tx (update + insert), rolled-back delete, delete
 ```
 
@@ -44,6 +46,8 @@ npm run write     # terminal 2: insert, update, tx (update + insert), rolled-bac
 - **Trade-offs**: events are row diffs, not business intent (`status pending -> paid`, not `OrderPaid`), and they are coupled to your table schema. Schema changes are not decoded (an `ALTER TABLE` never appears as an event) and Debezium skips `TRUNCATE` by default. There are more moving parts (Kafka, Connect, a slot to monitor). Delivery is at-least-once, so consumers must be idempotent.
 
 ## Proof (`logs/10-cdc-debezium.log`)
+
+The committed log was recorded before the self-checks were added (the consumer now stops after the 5 events and checks them, and the writer checks the rollback); the next run adds their lines.
 
 What the writer did:
 

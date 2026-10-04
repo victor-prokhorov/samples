@@ -1,4 +1,4 @@
-# 17-audit-outbox run 2026-09-27T21:02:22Z
+# 17-audit-outbox run 2026-10-04T00:53:58Z
 == fresh Postgres with databases orders, billing, audit (docker compose down -v && up) ==
  Container 17-audit-outbox-postgres-1 Healthy 
 setup: databases orders and billing (each with its own audit_outbox), audit (central, append-only audit_events)
@@ -6,17 +6,22 @@ setup: databases orders and billing (each with its own audit_outbox), audit (cen
 
 ## 1. Business write + audit event in one transaction
    concept: the app knows who acted and why (actor, reason), and writes the audit event into its own outbox in the same transaction as the change
-      audit_outbox <- order 1 create by alice (checkout) event_id=694044a1-26a8-4765-9c19-bd77da57ed9b
-      audit_outbox <- order 1 update by bob (support) (goodwill discount after late delivery) event_id=b106bfce-6cb6-47ee-a7f7-a0dc1da7e289
+      audit_outbox <- order 1 create by alice (checkout) event_id=3092bd9d-e60e-449c-89c6-9c7d6d0bb431
+      audit_outbox <- order 1 update by bob (support) (goodwill discount after late delivery) event_id=39cb9968-72cd-4a0f-9805-f5a17b1a5145
 
 ## 2. Another service, its own outbox
    concept: billing has its own database and its own audit_outbox; no service writes to the central audit store directly
-      audit_outbox <- invoice 1 create by system:billing (order total confirmed) event_id=b0d33f0d-12e2-451e-b85d-becda0a08129
+      audit_outbox <- invoice 1 create by system:billing (order total confirmed) event_id=eb9b4db0-39b5-47f4-9aea-d849b7baa2f2
 
 ## 3. Rollback drops the audit event too
    concept: the change fails -> the whole transaction rolls back -> no audit event for a change that never happened
-      audit_outbox <- order 1 update by mallory (price test) event_id=4e252a83-13c1-440f-accd-32c5c6dbd340
+      audit_outbox <- order 1 update by mallory (price test) event_id=6691be2c-db34-4674-a040-16ce57c640b7
    rejected: discount service down, change to order 1 aborted
+   check ok: orders' outbox holds one audit event per committed change, with the actor
+   check ok: billing's outbox holds its own event
+   check ok: mallory's change rolled back together with its audit event: total still 38.25, no event
+
+3 checks passed
 
 == yolo: a manual UPDATE in psql, outside the app ==
 UPDATE 1
@@ -36,7 +41,7 @@ UPDATE 1
 shipper: orders #1 order 1 create by alice -> stored
 shipper: orders #2 order 1 update by bob (support) -> stored
 shipper: CRASH after sending the orders events, before marking them shipped
-shipper exited with 1
+shipper exited with 3 (3 is the simulated crash)
 == proof: orders rows still unshipped locally (the crashed transaction rolled back), yet already stored centrally ==
  id | shipped_at 
 ----+------------
@@ -49,6 +54,9 @@ shipper exited with 1
                 2
 (1 row)
 
+   check ok: after the crash orders' 2 events are still unshipped locally, yet already stored centrally
+
+1 check passed
 == shipper pass 2: re-sends the orders events (deduped by event_id), then the billing ones ==
 shipper: orders #1 order 1 create by alice -> DUPLICATE, already in the central log, skipped
 shipper: orders #2 order 1 update by bob (support) -> DUPLICATE, already in the central log, skipped
@@ -94,3 +102,10 @@ CONTEXT:  PL/pgSQL function reject_change() line 3 at RAISE
          0 |     1
 (1 row)
 
+   check ok: the central log has one row per event (3) despite the re-send
+   check ok: the timeline spans both services, with no event from mallory's rolled-back change
+   check ok: the central log is append-only: UPDATE, DELETE and TRUNCATE are all rejected
+   check ok: the gap: the psql UPDATE set the total to 0 and left no audit trace (last audited total 38.25)
+   check ok: both local outboxes are drained
+
+5 checks passed

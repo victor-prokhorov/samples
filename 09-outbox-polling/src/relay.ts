@@ -3,6 +3,8 @@ import pg from "pg";
 import { KAFKA_BROKER, PG_URL, TOPIC } from "./config.js";
 
 const crashAfterSend = process.argv.includes("--crash-after-send");
+// The simulated crash exits with its own code, so the run script can tell it from a real failure (exit code 1).
+const CRASH_EXIT_CODE = 3;
 
 type OutboxRow = { id: string; event_id: string; aggregate_id: string; type: string; payload: object };
 
@@ -26,7 +28,7 @@ async function main() {
     console.log(`relay: claimed + sent ${rows.map((r) => `#${r.id} ${r.type}`).join(", ")}`);
     if (crashAfterSend) {
       console.log("relay: CRASH after send, before marking published (transaction never commits)");
-      process.exit(1);
+      process.exit(CRASH_EXIT_CODE);
     }
     await db.query("UPDATE outbox SET published_at = now() WHERE id = ANY($1)", [rows.map((r) => r.id)]);
     await db.query("COMMIT");

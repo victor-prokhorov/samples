@@ -19,20 +19,21 @@ npm run --silent setup | cut -c1-120
 echo "== waiting for connector to open its replication slot =="
 until [ "$(psql -Atc "SELECT count(*) FROM pg_replication_slots WHERE active")" = "1" ]; do sleep 2; done
 curl -s localhost:58083/connectors/orders-connector/status; echo
-echo "== consumer (background) =="
+echo "== consumer (background, stops after 5 events and checks them) =="
 out=$(mktemp)
-npm run --silent consume >"$out" 2>&1 &
+npm run --silent consume -- --messages 5 >"$out" 2>&1 &
 consumer=$!
 until grep -q "subscribed" "$out"; do kill -0 "$consumer" 2>/dev/null || { cat "$out"; echo "consumer died"; exit 1; }; sleep 1; done
 echo "== writer =="
 npm run --silent write
 echo "== waiting for 5 change events to reach the consumer =="
-for _ in $(seq 1 60); do [ "$(grep -c '^consumer: [A-Z]' "$out")" -ge 5 ] && break; sleep 1; done
-kill "$consumer" 2>/dev/null || true
-grep '^consumer:' "$out"
-got=$(grep -c '^consumer: [A-Z]' "$out" || true)
+for _ in $(seq 1 60); do kill -0 "$consumer" 2>/dev/null || break; sleep 1; done
+kill -0 "$consumer" 2>/dev/null && { kill "$consumer"; echo "consumer: still waiting for 5 events after 60s"; }
+code=0
+wait "$consumer" || code=$?
+grep -v "subscribed" "$out" | grep -v '^{"level"' || true
 rm -f "$out"
-[ "$got" -eq 5 ] || { echo "expected 5 consumer events, got $got"; exit 1; }
+[ "$code" = 0 ] || exit 1
 echo
 sleep 3
 echo "== proof: replication slot Debezium reads the WAL through (confirmed_flush_lsn = last position Debezium acknowledged on an offset flush; Postgres may discard WAL before it) =="
