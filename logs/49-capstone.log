@@ -1,4 +1,4 @@
-# 49-capstone run 2026-10-04T06:02:25Z
+# 49-capstone run 2026-10-04T06:07:55Z
 == fresh Postgres for the portal (docker compose down -v && up) and no earlier build ==
  Container 49-capstone-postgres-1 Healthy 
 setup: 3 organisations, 24 members (Acme 12, Globex 8, Initech 4), 144 contributions
@@ -6,56 +6,56 @@ setup: 67 usage events and 17 approved changes over the last four weeks; 1 pendi
 setup: RLS on members, contributions, change_requests, events; 7 policies: change_request_approve, change_request_create, change_request_read, contribution_read, event_create, event_read, member_read
 == unit tests (Vitest): IBAN rules, the authorization policy, the catalogues and Intl formats ==
 
- RUN  v5.0.3 /home/claude/samples/.claude/worktrees/agent-a6b0d53a2475d0ddd/49-capstone
+ RUN  v5.0.3 <repo>/49-capstone
 
- ✓ src/lib/policy.test.ts > can() > a member reads their own contributions only 10ms
+ ✓ src/lib/policy.test.ts > can() > a member reads their own contributions only 3ms
  ✓ src/lib/policy.test.ts > can() > an employer admin reads their organisation's members, not another's 0ms
  ✓ src/lib/policy.test.ts > can() > staff approve a pending change someone else asked for 0ms
  ✓ src/lib/policy.test.ts > can() > four eyes: staff never approve their own request 0ms
  ✓ src/lib/policy.test.ts > can() > an approved change is not approved again 0ms
  ✓ src/lib/policy.test.ts > can() > deny by default: unknown role, missing user, inherited property names 0ms
  ✓ src/lib/policy.test.ts > can() > only staff read the KPIs 1ms
- ✓ src/lib/bank.test.ts > IBAN check digits > accepts FR76 3000 6000 0112 3456 7890 189 4ms
- ✓ src/lib/bank.test.ts > IBAN check digits > accepts DE89 3704 0044 0532 0130 00 1ms
+ ✓ src/lib/bank.test.ts > IBAN check digits > accepts FR76 3000 6000 0112 3456 7890 189 2ms
+ ✓ src/lib/bank.test.ts > IBAN check digits > accepts DE89 3704 0044 0532 0130 00 0ms
  ✓ src/lib/bank.test.ts > IBAN check digits > accepts GB82 WEST 1234 5698 7654 32 0ms
- ✓ src/lib/bank.test.ts > IBAN check digits > accepts nl91abna0417164300 1ms
+ ✓ src/lib/bank.test.ts > IBAN check digits > accepts nl91abna0417164300 0ms
  ✓ src/lib/bank.test.ts > IBAN check digits > refuses one changed digit 1ms
  ✓ src/lib/bank.test.ts > IBAN check digits > computes the check digits of seed data 0ms
  ✓ src/lib/bank.test.ts > validateBank > accepts a valid request 0ms
  ✓ src/lib/bank.test.ts > validateBank > asks for both fields when empty 0ms
- ✓ src/lib/bank.test.ts > validateBank > explains the format before the checksum 3ms
- ✓ src/lib/bank.test.ts > validateBank > catches a typo with the checksum 1ms
+ ✓ src/lib/bank.test.ts > validateBank > explains the format before the checksum 1ms
+ ✓ src/lib/bank.test.ts > validateBank > catches a typo with the checksum 0ms
  ✓ src/lib/bank.test.ts > display > groups by four 0ms
  ✓ src/lib/bank.test.ts > display > masks all but the country and the last four 0ms
- ✓ src/lib/i18n.test.ts > catalogues > French has every English key, with the same ICU arguments 9ms
- ✓ src/lib/i18n.test.ts > formatting > money 17ms
+ ✓ src/lib/i18n.test.ts > catalogues > French has every English key, with the same ICU arguments 13ms
+ ✓ src/lib/i18n.test.ts > formatting > money 18ms
  ✓ src/lib/i18n.test.ts > formatting > months 6ms
  ✓ src/lib/i18n.test.ts > formatting > plurals, including French singular zero 3ms
- ✓ src/lib/i18n.test.ts > formatting > select on the role 1ms
- ✓ src/lib/i18n.test.ts > Accept-Language > fr-FR,fr;q=0.9,en;q=0.8 -> fr 0ms
+ ✓ src/lib/i18n.test.ts > formatting > select on the role 0ms
+ ✓ src/lib/i18n.test.ts > Accept-Language > fr-FR,fr;q=0.9,en;q=0.8 -> fr 1ms
  ✓ src/lib/i18n.test.ts > Accept-Language > de-DE,de;q=0.9 -> en 0ms
  ✓ src/lib/i18n.test.ts > Accept-Language > en-GB;q=0.5, fr-CA -> fr 0ms
  ✓ src/lib/i18n.test.ts > Accept-Language > fr;q=0, * -> en 1ms
 
  Test Files  3 passed (3)
       Tests  28 passed (28)
-   Start at  06:02:31
-   Duration  525ms (transform 63%, import 21%, tests 12%, worker 4%)
+   Start at  06:08:12
+   Duration  583ms (transform 71%, import 16%, tests 11%, worker 2%)
 
 == build: next build. Every page reads the session cookie, so every route is dynamic (ƒ), rendered per request ==
 ▲ Next.js 16.3.8 (Turbopack)
-✓ Running next.config.ts took 28ms
+✓ Running next.config.ts took 43ms
 
   Creating an optimized production build ...
-✓ Compiled successfully in 8.2s
+✓ Compiled successfully in 9.1s
   Running TypeScript ...
-  Finished TypeScript in 4.9s ...
+  Finished TypeScript in 5.0s ...
   Collecting page data using 3 workers ...
   Generating static pages using 3 workers (0/8) ...
   Generating static pages using 3 workers (2/8) 
   Generating static pages using 3 workers (4/8) 
   Generating static pages using 3 workers (6/8) 
-✓ Generating static pages using 3 workers (8/8) in 195ms
+✓ Generating static pages using 3 workers (8/8) in 204ms
   Finalizing page optimization ...
 
 Route (app)
@@ -78,11 +78,11 @@ Route (app)
 
 Running 3 tests using 1 worker
 
-  ✓  1 e2e/journeys.spec.ts:6:1 › 1. a member signs in, sees contributions, fixes a bank form error, sends the change, switches to French (3.8s)
-  ✓  2 e2e/journeys.spec.ts:32:1 › 2. an employer admin sees her organisation's members, and only those (1.7s)
-  ✓  3 e2e/journeys.spec.ts:43:1 › 3. staff approve the member's change, not their own, and read the KPI tiles (2.3s)
+  ✓  1 e2e/journeys.spec.ts:6:1 › 1. a member signs in, sees contributions, fixes a bank form error, sends the change, switches to French (3.6s)
+  ✓  2 e2e/journeys.spec.ts:32:1 › 2. an employer admin sees her organisation's members, and only those (1.5s)
+  ✓  3 e2e/journeys.spec.ts:43:1 › 3. staff approve the member's change, not their own, and read the KPI tiles (2.2s)
 
-  3 passed (12.3s)
+  3 passed (11.7s)
 == fresh data for the demo: setup again ==
 setup: 3 organisations, 24 members (Acme 12, Globex 8, Initech 4), 144 contributions
 setup: 67 usage events and 17 approved changes over the last four weeks; 1 pending change, filed by staff (sam) for Gil Novak
@@ -91,11 +91,11 @@ setup: RLS on members, contributions, change_requests, events; 7 policies: chang
 ▲ Next.js 16.3.8
 - Local:         http://localhost:53059
 - Network:       http://192.0.2.2:53059
-✓ Ready in 213ms
-✓ Running next.config.ts took 71ms
+✓ Ready in 173ms
+✓ Running next.config.ts took 51ms
 oidc-provider WARNING: a quick start development-only in-memory adapter is used, you MUST change it in order to not lose all stateful provider data upon restart and to be able to share these between processes
-   [idp pid 19648] OpenID Provider (oidc-provider) at http://127.0.0.1:53159
-   [portal pid 19649] next start (server-rendered pages, server actions, route handlers) at http://localhost:53059
+   [idp pid 24066] OpenID Provider (oidc-provider) at http://127.0.0.1:53159
+   [portal pid 24069] next start (server-rendered pages, server actions, route handlers) at http://localhost:53059
 
 ## 1. The look comes from 35-design-tokens
    concept: tokens.css (generated from the DTCG tokens) and components.css are copied unchanged; the portal adds a layout file that uses semantic tokens only, so light and dark both come from the tokens
@@ -108,7 +108,7 @@ oidc-provider WARNING: a quick start development-only in-memory adapter is used,
    concept: authorization code flow with PKCE: the portal keeps state, nonce and the code verifier server-side, sends only the S256 challenge, swaps the code for tokens on the back channel, and maps the IdP's groups to a portal role
    axe / (signed out)                         0 violations
    GET http://127.0.0.1:53159/auth ? redirect_uri, scope, state, nonce, code_challenge, code_challenge_method, client_id, response_type
-     code_challenge_method=S256, code_challenge=4cOrjSbYNSfZ..., scope=openid email profile portal
+     code_challenge_method=S256, code_challenge=YeSGl_BXZvtn..., scope=openid email profile portal
    ok: the browser is sent to the IdP with a PKCE S256 challenge, a state and a nonce, and no secret
    axe IdP sign-in page                       0 violations
    back at /dashboard; cookie sid: HttpOnly=true, SameSite=Lax; users row: {"sub":"ana","role":"member","org_id":"acme","member_id":"M0001"}
@@ -168,8 +168,8 @@ oidc-provider WARNING: a quick start development-only in-memory adapter is used,
 
 ## 8. Journey 3: Sam, staff, approves Ana's change, not his own (37-authorization, four eyes)
    concept: the page asks can() for each row: Ana's request gets a button, the one Sam filed for Gil does not; the approval runs under RLS, whose WITH CHECK says requested_by <> the approver; a trigger applies the approved details to the member record
-     Gil Novak Globex Sam Okafor DE89 •••• 3000 3 Oct 2026, 10:03 You asked for this change: another member of staff approves it
-     Ana Martin Acme Ana Martin FR76 •••• 0189 4 Oct 2026, 06:03 Approve the change for Ana Martin
+     Gil Novak Globex Sam Okafor DE89 •••• 3000 3 Oct 2026, 10:08 You asked for this change: another member of staff approves it
+     Ana Martin Acme Ana Martin FR76 •••• 0189 4 Oct 2026, 06:08 Approve the change for Ana Martin
    ok: two pending changes, one Approve button (Ana's); Sam's own request says another approver is needed
    axe /staff/approvals (en)                  0 violations
    Change approved: {"status":"approved","approved_by":"sam","stamped":true}; members M0001 now {"holder":"Ana Martin","iban":"FR7630006000011234567890189"}
@@ -214,7 +214,7 @@ oidc-provider WARNING: a quick start development-only in-memory adapter is used,
    screenshots/signin-portal-fr.png   31 KB
    screenshots/member-bank-errors-fr.png   56 KB
    screenshots/employer-members.png   94 KB
-   screenshots/staff-approvals.png   48 KB
+   screenshots/staff-approvals.png   49 KB
    screenshots/staff-approved.png   47 KB
    screenshots/staff-kpis.png   73 KB
    screenshots/member-dashboard-dark.png   72 KB
@@ -243,10 +243,10 @@ all checks passed
 == proof: sessions hold the sha256 of each cookie, never the cookie; no login transaction left behind ==
   id_hash_prefix  | user_sub | lifetime 
 ------------------+----------+----------
- c279d83a37d4a7b2 | ana      | 08:00:00
- 7581d4c4a63fe09c | ben      | 08:00:00
- 9a26ba540c216c1a | erin     | 08:00:00
- 550efad2eab3aa0b | sam      | 08:00:00
+ 7d1587a482b0d73a | ana      | 08:00:00
+ 753ba5ea3a0d131e | ben      | 08:00:00
+ 149766f786fda141 | erin     | 08:00:00
+ 2e5704086b6cf66e | sam      | 08:00:00
 (4 rows)
 
  login_transactions_left 
@@ -301,8 +301,8 @@ all checks passed
 
 == proof: screenshots (bytes) ==
 96071 screenshots/employer-members.png
-57066 screenshots/member-bank-errors-fr.png
-60505 screenshots/member-bank-errors.png
+57072 screenshots/member-bank-errors-fr.png
+60500 screenshots/member-bank-errors.png
 78904 screenshots/member-bank-sent.png
 73286 screenshots/member-dashboard-dark.png
 81246 screenshots/member-dashboard-fr.png
@@ -311,6 +311,6 @@ all checks passed
 17971 screenshots/signin-idp.png
 32108 screenshots/signin-portal-fr.png
 31207 screenshots/signin-portal.png
-49456 screenshots/staff-approvals.png
-47664 screenshots/staff-approved.png
+49711 screenshots/staff-approvals.png
+47884 screenshots/staff-approved.png
 75174 screenshots/staff-kpis.png

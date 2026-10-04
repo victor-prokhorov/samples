@@ -68,6 +68,9 @@ function spread(results: Timed[]) {
 
 const count = (results: Timed[], what: string) => results.filter((r) => (r.ok ? "ok" : r.error) === what).length;
 const TIMEOUT_200 = "timeout (no reply within 200ms)";
+// With x-deadline-ms both sides stop at ~200ms: usually the caller's timer fires first, but on a busy event loop
+// payments' 504 (its statement_timeout) can land a millisecond earlier. Either way the call timed out.
+const timedOut = (results: Timed[]) => results.filter((r) => !r.ok && (r.error === TIMEOUT_200 || r.error.startsWith("HTTP 504"))).length;
 
 function tally(results: Timed[]) {
   const counts = new Map<string, number>();
@@ -97,7 +100,7 @@ async function timeouts() {
     db.push(dbMs);
     if (label === "no timeout") check("no timeout: every caller waits out the 1500ms of DB work", count(results, "ok") === 10 && results.every((r) => r.ms >= 1500));
     else if (label === "200ms timeout") check("200ms timeout: callers are freed at ~200ms, but payments still runs all 10 queries and answers no one", count(results, TIMEOUT_200) === 10 && results.every((r) => r.ms < 500) && completed === 10 && gone === 10);
-    else check("with x-deadline-ms: payments cancels all 10 queries at the deadline, under a third of the DB time", count(results, TIMEOUT_200) === 10 && completed === 0 && dbMs * 3 < db[0]);
+    else check("with x-deadline-ms: payments cancels all 10 queries at the deadline, under a third of the DB time", timedOut(results) === 10 && completed === 0 && dbMs * 3 < db[0]);
   }
 }
 
@@ -246,7 +249,7 @@ async function breaker(payments: ChildProcess) {
   await sleep(300);
   const reachedWith = (await stats()).arrivals.length;
   console.log(`   with a breaker, 2s degraded: ${tally(degraded)}; payments received ${reachedWith} requests; fast failures took ${spread(degraded.filter((r) => r.error === "breaker-open"))}`);
-  check("without a breaker every call reaches the degraded payments and times out", count(without, TIMEOUT_200) === without.length && reachedWithout === without.length);
+  check("without a breaker every call reaches the degraded payments and times out", timedOut(without) === without.length && reachedWithout === without.length);
   check("with a breaker, under a third of the calls reach payments; the rest fail fast", reachedWith * 3 < reachedWithout && degraded.filter((r) => r.error === "breaker-open").every((r) => r.ms < 20));
   await stopPayments(payments);
   const down = await traffic(1500, 50, guarded);

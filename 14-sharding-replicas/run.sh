@@ -29,8 +29,8 @@ echo "== outage: docker compose stop shard1-primary =="
 docker compose stop shard1-primary 2>&1 | tail -1
 npm run --silent outage
 echo
-echo "== recovery: docker compose start shard1-primary, replicas reconnect on their own =="
-docker compose start --wait shard1-primary 2>&1 | tail -1
+echo "== recovery: docker compose up shard1-primary again, replicas reconnect on their own =="
+docker compose up -d --wait --no-recreate shard1-primary 2>&1 | tail -1
 for _ in $(seq 1 60); do
   n=$(psql shard1-primary -tAc "SELECT count(*) FROM pg_stat_replication WHERE state = 'streaming'")
   [ "$n" = 3 ] && break

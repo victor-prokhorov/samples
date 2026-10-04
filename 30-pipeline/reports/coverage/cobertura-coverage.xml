@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="7" lines-covered="7" line-rate="1" branches-valid="1" branches-covered="1" branch-rate="1" timestamp="1791093131515" complexity="0" version="0.1">
+<coverage lines-valid="7" lines-covered="7" line-rate="1" branches-valid="1" branches-covered="1" branch-rate="1" timestamp="1791094340224" complexity="0" version="0.1">
   <sources>
     <source><repo>/30-pipeline/.gitlab-ci-local/builds/unit</source>
   </sources>

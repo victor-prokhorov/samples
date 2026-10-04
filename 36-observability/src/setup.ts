@@ -39,7 +39,7 @@ await db.query(
    WHERE m.joined < date '2026-10-01'`,
   [MONTHS],
 );
-await db.query("ANALYZE");
+await db.query("VACUUM ANALYZE"); // after a bulk load: statistics, visibility map and hint bits, so autovacuum does not kick in mid-demo
 const counts = await db.query(
   `SELECT e.name, count(DISTINCT m.id)::int AS members, min(m.id) AS first, max(m.id) AS last, count(c.*)::int AS contributions
    FROM employers e JOIN members m ON m.employer_id = e.id LEFT JOIN contributions c ON c.member_id = m.id

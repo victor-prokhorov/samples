@@ -1,4 +1,4 @@
-# 14-sharding-replicas run 2026-10-04T00:52:44Z
+# 14-sharding-replicas run 2026-10-04T06:10:51Z
 == fresh cluster: 2 shard primaries, 2 replicas each (docker compose down -v && up) ==
 running containers: 6
 setup: orders created on shard0-primary, replicated to shard0-replica-1, shard0-replica-2
@@ -67,17 +67,17 @@ running containers: 9
 == proof: each primary streams its WAL to its own replicas ==
  application_name |   state   | replay_lsn 
 ------------------+-----------+------------
- 2bc792ee6b84     | streaming | 0/8000060
- 8ea86326972a     | streaming | 0/8000060
- c6aebaa8fe16     | streaming | 0/8000060
- d3e4c5529292     | streaming | 0/8000060
+ 35b118692da7     | streaming | 0/8000000
+ 84ea33d9b637     | streaming | 0/8000000
+ cbbfcba045ff     | streaming | 0/8000000
+ eff27a012543     | streaming | 0/8000000
 (4 rows)
 
  application_name |   state   | replay_lsn 
 ------------------+-----------+------------
- 682b3756767b     | streaming | 0/6000060
- b78adc4adcfa     | streaming | 0/6000060
- ef161d2e35b2     | streaming | 0/6000060
+ 65157492611c     | streaming | 0/7000000
+ d07407c95be7     | streaming | 0/7000000
+ fa939f1391a9     | streaming | 0/7000000
 (3 rows)
 
 == outage: docker compose stop shard1-primary ==
@@ -99,13 +99,13 @@ running containers: 9
 
 3 checks passed
 
-== recovery: docker compose start shard1-primary, replicas reconnect on their own ==
+== recovery: docker compose up shard1-primary again, replicas reconnect on their own ==
  Container 14-sharding-replicas-shard1-primary-1 Healthy 
  application_name |   state   
 ------------------+-----------
- 682b3756767b     | streaming
- b78adc4adcfa     | streaming
- ef161d2e35b2     | streaming
+ 65157492611c     | streaming
+ d07407c95be7     | streaming
+ fa939f1391a9     | streaming
 (3 rows)
 
 == proof: each shard holds only its own customers; ids are per shard (no global sequence) ==

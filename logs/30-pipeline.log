@@ -1,4 +1,4 @@
-# 30-pipeline run 2026-10-04T05:49:19Z
+# 30-pipeline run 2026-10-04T06:09:35Z
 == fresh state: no pipeline state, cache, artifacts, deployments or downloaded schemas ==
 node v22.22.0, gitlab-ci-local 4.76.0, vitest 5.0.3, shell executor (no Docker images)
 == demo: .gitlab-ci.yml run locally by gitlab-ci-local, one copy of the project per job; the GitHub Actions and Azure Pipelines files compared and validated ==
@@ -27,8 +27,8 @@ node v22.22.0, gitlab-ci-local 4.76.0, vitest 5.0.3, shell executor (no Docker i
    lint      >   13:14  error  Expected '===' and instead saw '=='          eqeqeq
    lint      > ✖ 3 problems (3 errors, 0 warnings)
     FAIL  lint
-   lint      finished in 8.42 s  FAIL 1
-   pipeline finished in 8.95 s
+   lint      finished in 7.2 s  FAIL 1
+   pipeline finished in 7.68 s
 
 ## 4. Untested code fails the coverage gate
    concept: the unit job runs vitest --coverage; vitest.config.ts sets thresholds (lines, statements, functions 90%, branches 85%) and vitest exits non-zero below them, so the job and the pipeline fail. This function passes lint and tsc but has no test
@@ -45,52 +45,52 @@ node v22.22.0, gitlab-ci-local 4.76.0, vitest 5.0.3, shell executor (no Docker i
    unit > ERROR: Coverage for functions (75%) does not meet global threshold (90%)
    unit > ERROR: Coverage for statements (64.7%) does not meet global threshold (90%)
    unit > ERROR: Coverage for branches (33.33%) does not meet global threshold (85%)
-   unit finished in 7.92 s  FAIL 1
+   unit finished in 6.72 s  FAIL 1
    screenshot: screenshots/coverage-gate-failed.png (reports/coverage/statement.ts.html)
 
 ## 5. With its tests, the same pipeline passes
    concept: each job runs in its own copy of the project (shell isolation), restores the npm cache keyed on package-lock.json, and hands its files to later jobs as artifacts (JUnit, coverage, a11y, dist/)
-   lint      > added 198 packages in 5s
+   lint      > added 198 packages in 6s
    lint      $ npm run lint
-   lint      cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 252 ms
-   typecheck imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 385 ms
-   typecheck > added 198 packages in 4s
+   lint      cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 198 ms
+   typecheck imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 153 ms
+   typecheck > added 198 packages in 3s
    typecheck $ npm run typecheck
-   typecheck cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 83 ms
-   a11y      imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 277 ms
-   unit      imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 280 ms
-   a11y      > added 198 packages in 4s
+   typecheck cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 99 ms
+   a11y      imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 189 ms
+   unit      imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 245 ms
+   a11y      > added 198 packages in 5s
    a11y      $ npm run a11y
-   unit      > added 198 packages in 6s
+   unit      > added 198 packages in 5s
    unit      $ npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
-   a11y      > axe-core 4.13.0 on the statement page: 7 rules passed, 0 violated
-   a11y      cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 82 ms
-   a11y      exported artifacts in 69 ms
    unit      >       Tests  8 passed (8)
    unit      > JUNIT report written to .gitlab-ci-local/builds/unit/reports/junit.xml
    unit      > Statements   : 100% ( 11/11 )
    unit      > Branches     : 100% ( 1/1 )
    unit      > Functions    : 100% ( 9/9 )
    unit      > Lines        : 100% ( 7/7 )
-   unit      cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 88 ms
-   unit      exported artifacts in 70 ms
-   audit     imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 179 ms
+   unit      cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 76 ms
+   unit      exported artifacts in 74 ms
+   a11y      > axe-core 4.13.0 on the statement page: 7 rules passed, 0 violated
+   a11y      cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 91 ms
+   a11y      exported artifacts in 66 ms
+   audit     imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 218 ms
    audit     > added 198 packages in 4s
    audit     $ npm run audit
    audit     > found 0 vulnerabilities
-   audit     cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 103 ms
-   build     imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 191 ms
-   build     > added 198 packages in 4s
+   audit     cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 75 ms
+   build     imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 382 ms
+   build     > added 198 packages in 3s
    build     $ npm run build
-   build     cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 95 ms
-   build     exported artifacts in 63 ms
+   build     cache created in '.gitlab-ci-local/cache/0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 87 ms
+   build     exported artifacts in 65 ms
     PASS  lint
     PASS  typecheck
     PASS  unit      100% coverage
     PASS  a11y
     PASS  audit
     PASS  build
-   pipeline finished in 37 s
+   pipeline finished in 34 s
    screenshot: screenshots/coverage-gate-passed.png (reports/coverage/index.html)
 
 ## 6. A scheduled pipeline deploys
@@ -104,7 +104,7 @@ node v22.22.0, gitlab-ci-local 4.76.0, vitest 5.0.3, shell executor (no Docker i
    deploy    > smoke ok
    deploy    $ ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
    deploy    $ echo "deployed $RELEASE to $DEPLOY_DIR/current"
-   deploy    > deployed scheduled-46a2ea52-1002 to .deploy/current
+   deploy    > deployed scheduled-907db30f-1002 to .deploy/current
     PASS  lint
     PASS  typecheck
     PASS  unit      100% coverage
@@ -113,7 +113,7 @@ node v22.22.0, gitlab-ci-local 4.76.0, vitest 5.0.3, shell executor (no Docker i
     PASS  build
     PASS  deploy
    pipeline finished in 57 s
-   .deploy/current -> releases/scheduled-46a2ea52-1002
+   .deploy/current -> releases/scheduled-907db30f-1002
 
 ## 7. A release tag deploys too, and the previous release stays for rollback
    concept: gitlab-ci-local --needs deploy runs deploy and what it depends on (build, which has no needs:, so every earlier stage); rolling back is pointing current at the previous release
@@ -126,8 +126,8 @@ node v22.22.0, gitlab-ci-local 4.76.0, vitest 5.0.3, shell executor (no Docker i
     PASS  audit
     PASS  build
     PASS  deploy
-   pipeline finished in 53 s
-   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"46a2ea5244488e43a7ba4f1980fd7d960823994b","source":"push"}; previous releases/scheduled-46a2ea52-1002 still on disk: true
+   pipeline finished in 56 s
+   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"907db30f513e7fb0e7b98098a6169878e34c5421","source":"push"}; previous releases/scheduled-907db30f-1002 still on disk: true
 
 ## 8. The same pipeline on GitHub Actions and Azure Pipelines
    concept: github-actions/ci.yml and azure-pipelines.yml (neither runs here) have the same jobs, commands in the same order (coverage flag included), runners, deploy triggers and audit rule. GitHub: stages become needs, rules become if and on:. Azure: stages stay stages (each after the previous one), rules become conditions, runner tags become an environment's VM resource
@@ -167,25 +167,25 @@ node v22.22.0, gitlab-ci-local 4.76.0, vitest 5.0.3, shell executor (no Docker i
 
 == proof: the unit job's JUnit artifact (GitLab shows it in the merge request) ==
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="8" failures="0" errors="0" time="0.027491972">
-    <testsuite name="src/page.test.ts" timestamp="2026-10-04T05:52:11.511Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.006242009">
-        <testcase classname="src/page.test.ts" name="statementPage &gt; declares its language" time="0.002806712">
+<testsuites name="vitest tests" tests="8" failures="0" errors="0" time="0.047596006">
+    <testsuite name="src/page.test.ts" timestamp="2026-10-04T06:12:20.212Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.014684447">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; declares its language" time="0.00233453">
         </testcase>
-        <testcase classname="src/page.test.ts" name="statementPage &gt; lists only the requested year" time="0.000352217">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; lists only the requested year" time="0.008460982">
         </testcase>
-        <testcase classname="src/page.test.ts" name="statementPage &gt; escapes member and employer names" time="0.000269441">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; escapes member and employer names" time="0.000208579">
         </testcase>
-        <testcase classname="src/page.test.ts" name="statementPage &gt; shows the year&apos;s total" time="0.000123462">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; shows the year&apos;s total" time="0.000150939">
         </testcase>
     </testsuite>
-    <testsuite name="src/statement.test.ts" timestamp="2026-10-04T05:52:11.512Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.021249963">
-        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; sums only the requested year" time="0.002143796">
+    <testsuite name="src/statement.test.ts" timestamp="2026-10-04T06:12:20.215Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.032911559">
+        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; sums only the requested year" time="0.002262848">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; is zero for a year without contributions" time="0.000545236">
+        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; is zero for a year without contributions" time="0.000216831">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in English" time="0.015525583">
+        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in English" time="0.027734951">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in French" time="0.000406898">
+        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in French" time="0.00037753">
         </testcase>
     </testsuite>
 </testsuites>
@@ -194,7 +194,7 @@ lines-valid="7" lines-covered="7" line-rate="1" branches-valid="1" branches-cove
 name="page.ts" filename="src/page.ts" line-rate="1" branch-rate="1"
 name="statement.ts" filename="src/statement.ts" line-rate="1" branch-rate="1"
 == proof: the coverage thresholds the gate enforces (vitest.config.ts) ==
-14:      thresholds: { lines: 90, statements: 90, functions: 90, branches: 85 },
+15:      thresholds: { lines: 90, statements: 90, functions: 90, branches: 85 },
 == proof: the coverage gate in each pipeline file ==
 .gitlab-ci.yml:46:    - npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
 github-actions/ci.yml:49:      - run: npx vitest run --coverage --reporter=default --reporter=junit --outputFile.junit=reports/junit.xml
@@ -202,15 +202,15 @@ azure-pipelines.yml:65:          - script: npx vitest run --coverage --reporter=
 == proof: deployments (one directory per release, current is a symlink) ==
 .deploy:
 total 4
-lrwxrwxrwx 1 root root   15 Oct  4 05:52 current -> releases/v1.4.0
-drwxr-xr-x 4 root root 4096 Oct  4 05:52 releases
+lrwxrwxrwx 1 root root   15 Oct  4 06:12 current -> releases/v1.4.0
+drwxr-xr-x 4 root root 4096 Oct  4 06:12 releases
 
 .deploy/releases:
 total 8
-drwxr-xr-x 2 root root 4096 Oct  4 05:51 scheduled-46a2ea52-1002
-drwxr-xr-x 2 root root 4096 Oct  4 05:52 v1.4.0
-.deploy/releases/scheduled-46a2ea52-1002: {"release":"scheduled-46a2ea52-1002","commit":"46a2ea5244488e43a7ba4f1980fd7d960823994b","source":"schedule"}
-.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"46a2ea5244488e43a7ba4f1980fd7d960823994b","source":"push"}
+drwxr-xr-x 2 root root 4096 Oct  4 06:11 scheduled-907db30f-1002
+drwxr-xr-x 2 root root 4096 Oct  4 06:12 v1.4.0
+.deploy/releases/scheduled-907db30f-1002: {"release":"scheduled-907db30f-1002","commit":"907db30f513e7fb0e7b98098a6169878e34c5421","source":"schedule"}
+.deploy/releases/v1.4.0: {"release":"v1.4.0","commit":"907db30f513e7fb0e7b98098a6169878e34c5421","source":"push"}
 == proof: the deploy job's own log, as gitlab-ci-local recorded it ==
 $ RELEASE="${CI_COMMIT_TAG:-scheduled-$CI_COMMIT_SHORT_SHA-$CI_PIPELINE_ID}"
 $ mkdir -p "$DEPLOY_DIR/releases/$RELEASE"
@@ -223,5 +223,5 @@ $ ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/cu
 $ echo "deployed $RELEASE to $DEPLOY_DIR/current"
 deployed v1.4.0 to .deploy/current
 == proof: screenshots of the coverage report, failed gate then passed ==
-80613 coverage-gate-failed.png
-32345 coverage-gate-passed.png
+80655 coverage-gate-failed.png
+32743 coverage-gate-passed.png

@@ -9,7 +9,7 @@ const MODE = process.env.REPORT_QUERY === "join" ? "join" : "n+1";
 
 type Line = { id: number; name: string; total: string; months: number; last_period: string | null };
 
-// The bug: one query for the members, then one query per member. Fine with 40 members, slow with 600.
+// The bug: one query for the members, then one query per member. Fine with 40 members, slow with 1500.
 async function reportNPlusOne(employer: number): Promise<Line[]> {
   const members = await pool.query("SELECT id, name FROM members WHERE employer_id = $1 ORDER BY id", [employer]);
   const lines: Line[] = [];

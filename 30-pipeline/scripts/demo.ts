@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 import { compare } from "./compare.js";
 import { AZURE_PATCH, SCHEMAS, type Platform, validate } from "./validate.js";
 
@@ -15,14 +16,17 @@ function check(cond: boolean, what: string) {
 
 const DEPLOY_DIR = resolve(".deploy");
 
-// gitlab-ci-local warns when a predefined variable is overridden and when the repo has no origin/HEAD; neither matters here
+// gitlab-ci-local warns when a predefined variable is overridden, when the repo has no origin/HEAD and when git has no
+// user identity (CI runners); none of that matters here. Colours are stripped so the checks read the same on a terminal and in CI.
 function gcl(args: string[], vars: Record<string, string> = {}) {
   const flags = Object.entries(vars).flatMap(([k, v]) => ["--variable", `${k}=${v}`]);
   const r = spawnSync("npx", ["gitlab-ci-local", "--shell-isolation", ...args, ...flags], {
     encoding: "utf8",
     env: { ...process.env, GCL_IGNORE_PREDEFINED_VARS: "CI_PIPELINE_SOURCE,CI_COMMIT_TAG" },
   });
-  const lines = (r.stdout + r.stderr).split("\n").filter((l) => l.trim() && !/origin\/HEAD|default remote branch|exit code 128/.test(l));
+  const lines = stripVTControlCharacters(r.stdout + r.stderr)
+    .split("\n")
+    .filter((l) => l.trim() && !/origin\/HEAD|default remote branch|exit code 128|Using fallback/.test(l));
   return { status: r.status ?? 1, lines };
 }
 

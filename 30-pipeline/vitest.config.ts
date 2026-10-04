@@ -9,7 +9,8 @@ export default defineConfig({
       provider: "v8",
       include: ["src/**/*.ts"],
       exclude: ["src/**/*.test.ts", "src/server.ts"],
-      reporter: ["text", "cobertura", "html"],
+      // text-summary gives the "Lines : NN%" line GitLab reads; skipFull keeps the table short
+      reporter: [["text", { skipFull: true }], "text-summary", "cobertura", "html"],
       reportsDirectory: "reports/coverage",
       thresholds: { lines: 90, statements: 90, functions: 90, branches: 85 },
     },

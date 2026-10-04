@@ -78,7 +78,7 @@ async function phase(p: Phase) {
   // Warm-up, as a readiness check would do before a load balancer sends traffic: one request per route
   // (the first one pays for module loading, JIT and the first database connection). Then wait two metric
   // export intervals, so their delta points have arrived, and start counting from zero.
-  for (const path of ["/employers/initech/dashboard", "/members/1", "/members/1/statement"]) await (await fetch(`http://localhost:${WEB_PORT}${path}`)).arrayBuffer();
+  for (const path of ["/employers/acme/dashboard", "/members/1", "/members/1/statement"]) await (await fetch(`http://localhost:${WEB_PORT}${path}`)).arrayBuffer();
   await sleep(2200);
   col.clearMetrics();
   const started = Date.now();

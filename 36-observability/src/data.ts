@@ -1,7 +1,7 @@
 // The seed, shared by setup.ts (which writes it) and demo.ts (which sends traffic at it).
-// Members get ids 1..760 in this order; the last three (Initech) joined this month and have no contribution yet.
+// Members get ids 1..1660 in this order; the last three (Initech) joined this month and have no contribution yet.
 export const EMPLOYERS = [
-  { code: "acme", name: "Acme", members: 600 },
+  { code: "acme", name: "Acme", members: 1500 },
   { code: "globex", name: "Globex", members: 120 },
   { code: "initech", name: "Initech", members: 40 },
 ];

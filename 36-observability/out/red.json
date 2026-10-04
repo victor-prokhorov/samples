@@ -6,9 +6,9 @@
       "route": "GET /api/employers/:code/members",
       "requests": 30,
       "errors": 0,
-      "ratePerSec": 3.7087402645568055,
+      "ratePerSec": 2.052545155993432,
       "p50": "50-100 ms",
-      "p95": "500-1000 ms",
+      "p95": "1000-2000 ms",
       "withinSlo": 19
     },
     {
@@ -16,7 +16,7 @@
       "route": "GET /api/members/:id",
       "requests": 60,
       "errors": 0,
-      "ratePerSec": 7.59974667511083,
+      "ratePerSec": 4.240282685512367,
       "p50": "0-5 ms",
       "p95": "5-10 ms",
       "withinSlo": 60
@@ -26,7 +26,7 @@
       "route": "GET /api/members/:id/statement",
       "requests": 40,
       "errors": 2,
-      "ratePerSec": 5.108556832694764,
+      "ratePerSec": 2.8338646829613885,
       "p50": "0-5 ms",
       "p95": "5-10 ms",
       "withinSlo": 40
@@ -36,9 +36,9 @@
       "route": "GET /employers/:code/dashboard",
       "requests": 30,
       "errors": 0,
-      "ratePerSec": 3.7124118302190325,
+      "ratePerSec": 2.053107035313441,
       "p50": "50-100 ms",
-      "p95": "500-1000 ms",
+      "p95": "1000-2000 ms",
       "withinSlo": 19
     },
     {
@@ -46,7 +46,7 @@
       "route": "GET /members/:id",
       "requests": 60,
       "errors": 0,
-      "ratePerSec": 7.600709399543957,
+      "ratePerSec": 4.241181876016117,
       "p50": "0-5 ms",
       "p95": "10-25 ms",
       "withinSlo": 60
@@ -56,9 +56,9 @@
       "route": "GET /members/:id/statement",
       "requests": 40,
       "errors": 2,
-      "ratePerSec": 5.112474437627812,
+      "ratePerSec": 2.8340654669122856,
       "p50": "0-5 ms",
-      "p95": "25-50 ms",
+      "p95": "5-10 ms",
       "withinSlo": 40
     }
   ],
@@ -68,7 +68,7 @@
       "route": "GET /api/employers/:code/members",
       "requests": 30,
       "errors": 0,
-      "ratePerSec": 22.883295194508012,
+      "ratePerSec": 24.875621890547265,
       "p50": "10-25 ms",
       "p95": "50-100 ms",
       "withinSlo": 30
@@ -78,7 +78,7 @@
       "route": "GET /api/members/:id",
       "requests": 60,
       "errors": 0,
-      "ratePerSec": 49.83388704318937,
+      "ratePerSec": 51.06382978723404,
       "p50": "0-5 ms",
       "p95": "5-10 ms",
       "withinSlo": 60
@@ -88,9 +88,9 @@
       "route": "GET /api/members/:id/statement",
       "requests": 40,
       "errors": 2,
-      "ratePerSec": 34.69210754553339,
+      "ratePerSec": 34.99562554680665,
       "p50": "0-5 ms",
-      "p95": "10-25 ms",
+      "p95": "5-10 ms",
       "withinSlo": 40
     },
     {
@@ -98,7 +98,7 @@
       "route": "GET /employers/:code/dashboard",
       "requests": 30,
       "errors": 0,
-      "ratePerSec": 22.970903522205205,
+      "ratePerSec": 24.937655860349125,
       "p50": "10-25 ms",
       "p95": "50-100 ms",
       "withinSlo": 30
@@ -108,9 +108,9 @@
       "route": "GET /members/:id",
       "requests": 60,
       "errors": 0,
-      "ratePerSec": 50.125313283208015,
+      "ratePerSec": 51.15089514066496,
       "p50": "0-5 ms",
-      "p95": "10-25 ms",
+      "p95": "5-10 ms",
       "withinSlo": 60
     },
     {
@@ -118,9 +118,9 @@
       "route": "GET /members/:id/statement",
       "requests": 40,
       "errors": 2,
-      "ratePerSec": 34.93449781659388,
+      "ratePerSec": 35.02626970227671,
       "p50": "0-5 ms",
-      "p95": "10-25 ms",
+      "p95": "5-10 ms",
       "withinSlo": 40
     }
   ]

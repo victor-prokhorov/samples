@@ -1,4 +1,4 @@
-# 35-design-tokens run 2026-10-04T00:40:09Z
+# 35-design-tokens run 2026-10-04T06:05:22Z
 == no infra: tokens build with tsx, Storybook builds to static files, Chromium from PLAYWRIGHT_BROWSERS_PATH ==
 == demo: tokens -> CSS variables -> components -> contrast gate, axe per story, visual regression ==
 
@@ -64,13 +64,14 @@
    ok: axe finds no violation in any story, light or dark
    components-card--member-summary light      color-contrast x1: Element has insufficient color contrast of 4.14 (foreground color: #6b7480, background color: #eef0f3, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1
    gallery--member-account light              color-contrast x2: Element has insufficient color contrast of 4.45 (foreground color: #6b7480, background color: #f7f8fa, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1
-   components-textfield--with-hint light      color-contrast x1: Element has insufficient color contrast of 4.45 (foreground color: #6b7480, background color: #f7f8fa, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1
+   components-textfield--with-hint light      failed before axe ran: Error: frame.evaluate: Error: Axe is already running. Use `await axe.run()` to wait for the previous run to finish before starting a new run.
    components-textfield--with-error light     color-contrast x1: Element has insufficient color contrast of 4.45 (foreground color: #6b7480, background color: #f7f8fa, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1
    components-textfield--optional light       color-contrast x1: Element has insufficient color contrast of 4.45 (foreground color: #6b7480, background color: #f7f8fa, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1
-   ok: with proposal v1 served, axe agrees: 5 light-theme runs fail on color-contrast only, dark runs all pass
+   CHECK FAILED: with proposal v1 served, axe agrees: 5 light-theme runs fail on color-contrast only, dark runs all pass
 
 ## 8. Visual regression catches a token change
    concept: e2e/visual.spec.ts compares every story in both themes with the committed baselines in e2e/__screenshots__/ (toHaveScreenshot). Proposal v2 passes the contrast gate, but it still changes how the product looks, and that needs a human decision
+   RECORD_BASELINES=1: recorded 28 baselines on this machine from the committed tokens
    committed tokens: 28 of 28 screenshots match the baselines
    ok: the committed tokens render exactly like the baselines
    changed: components-button--primary light: 4774 pixels (ratio 0.12 of all image pixels) are different.
@@ -85,7 +86,7 @@
    ok: restored: every screenshot matches the baselines
    wrote screenshots/gallery-light.png, gallery-dark.png, contrast-report.png, contrast-caught.png
 
-all checks passed
+1 check(s) failed
 
 == proof: the token files (DTCG), the alias chain for color.text.muted in each layer ==
   12281 tokens/primitives.tokens.json
