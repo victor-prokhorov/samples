@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1020" height="600" viewBox="0 0 1020 600" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">46. Load test: how much traffic does it hold?</text>
+<rect x="40" y="110" width="260" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="170.0" y="146.0" font-size="16" text-anchor="middle">k6, open model</text><text x="170.0" y="166.0" font-size="16" text-anchor="middle">smoke, gate, ramp, soak</text>
+<rect x="400" y="110" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="520.0" y="146.0" font-size="16" text-anchor="middle">Member API</text><text x="520.0" y="166.0" font-size="16" text-anchor="middle">node:http, pool of 4</text>
+<rect x="740" y="110" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="860.0" y="146.0" font-size="16" text-anchor="middle">Postgres</text><text x="860.0" y="166.0" font-size="16" text-anchor="middle">500,000 members</text>
+<rect x="40" y="270" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="170.0" y="301.0" font-size="16" text-anchor="middle">SLO thresholds</text><text x="170.0" y="321.0" font-size="16" text-anchor="middle">p95 &lt; 300 ms, errors &lt; 1%</text>
+<rect x="40" y="410" width="260" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="170.0" y="441.0" font-size="16" text-anchor="middle">CI gate</text><text x="170.0" y="461.0" font-size="16" text-anchor="middle">k6 exit 99 = fail, 0 = pass</text>
+<rect x="400" y="270" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="520.0" y="296.0" font-size="16" text-anchor="middle">Ramp: Little's law</text><text x="520.0" y="316.0" font-size="16" text-anchor="middle">L = X x W</text><text x="520.0" y="336.0" font-size="16" text-anchor="middle">4 / 0.040 s = 100 req/s</text>
+<rect x="740" y="270" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="860.0" y="301.0" font-size="16" text-anchor="middle">search: full scan</text><text x="860.0" y="321.0" font-size="16" text-anchor="middle">WHERE lower(email) = ...</text>
+<rect x="740" y="410" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="860.0" y="441.0" font-size="16" text-anchor="middle">expression index</text><text x="860.0" y="461.0" font-size="16" text-anchor="middle">on lower(email)</text>
+<polyline points="300,150 400,150" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="332.0" y="139.3" width="36.0" height="21.5" fill="#ffffff"/>
+<text x="350.0" y="155.3" font-size="14" text-anchor="middle">HTTP</text>
+<polyline points="640,150 740,150" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="170,190 170,270" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="170,340 170,410" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="520,190 520,270" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="474.0" y="219.3" width="92.0" height="21.5" fill="#ffffff"/>
+<text x="520.0" y="235.3" font-size="14" text-anchor="middle">saturates at</text>
+<polyline points="860,190 860,270" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="835.0" y="219.3" width="50.0" height="21.5" fill="#ffffff"/>
+<text x="860.0" y="235.3" font-size="14" text-anchor="middle">before</text>
+<polyline points="860,340 860,410" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="814.0" y="364.3" width="92.0" height="21.5" fill="#ffffff"/>
+<text x="860.0" y="380.3" font-size="14" text-anchor="middle">CREATE INDEX</text>
+<text x="40.0" y="536.0" font-size="16" text-anchor="start">The same gate fails on the slow search (exit 99) and passes after the index (exit 0).</text><text x="40.0" y="556.0" font-size="16" text-anchor="start">Past 100 req/s the API serves no more: requests queue for a connection and latency bends up.</text></svg>

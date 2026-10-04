@@ -1,0 +1,133 @@
+# 46-load-test run 2026-10-04T01:02:55Z
+== fresh Postgres with 500,000 members (docker compose down -v && up) ==
+ Container 46-load-test-postgres-1 Healthy 
+setup: employers (3), members (500,000 rows, 61 MB), no index on lower(email); 4717 ms
+== demo: k6 against the member API (a separate process): smoke, SLO gate before and after the fix, ramp, soak ==
+   k6 v2.1.0 (commit/83a87a41e2, go1.26.4, linux/amd64)
+   [server] member API on :53056
+
+## 1. Smoke: does it work at all?
+   concept: one virtual user for 3 s against every endpoint; checks status and content, not speed. Run before any load, so a broken build is not mistaken for a slow one
+   $ k6 run k6/smoke.js
+     requests 51 (16.59/s), failed 0%, dropped iterations 0
+     http_req_duration: med 42.27 ms, p(95) 183.51 ms, p(99) 206.17 ms, max 217.96 ms
+       {name:GET /members/:id/statement}: 17 requests, med 41.95 ms, p(95) 45.74 ms
+       {name:GET /members/:id}: 17 requests, med 1.67 ms, p(95) 23.35 ms
+       {name:GET /members?email}: 17 requests, med 125.92 ms, p(95) 199.10 ms
+     threshold PASS  checks rate==1
+     threshold PASS  http_req_failed rate<0.01
+   k6 exit code 0
+   ok: smoke passes: every check true, no errors
+   already visible at one user: search by email 126 ms median against 1.7 ms for a lookup by id
+
+## 2. SLO gate on the member search, before the fix
+   concept: 60 searches a second for 8 s (an open model: arrivals do not wait for answers), judged by p95 < 300 ms and errors < 1%
+   plan: ->  Parallel Seq Scan on members (actual time=140.194..140.195 rows=0 loops=3)
+   plan: Execution Time: 166.664 ms
+   $ k6 run k6/gate.js
+     (k6) level=warning msg="Insufficient VUs, reached 30 active VUs and cannot initialize more" executor=constant-arrival-rate scenario=search
+     requests 98 (9.80/s), failed 0%, dropped iterations 371
+     http_req_duration: med 2863.23 ms, p(95) 3135.15 ms, p(99) 3173.10 ms, max 3210.45 ms
+     threshold PASS  http_req_failed rate<0.01
+     threshold FAIL  http_req_duration p(95)<300
+     (k6) level=error msg="thresholds on metrics 'http_req_duration' have been crossed"
+   k6 exit code 99 (thresholds crossed: the gate fails the pipeline)
+   ok: the gate FAILS on the slow endpoint (k6 exits 99, p95 over 300 ms)
+   after k6 stopped: 7 queued searches dropped because their client had gone, the rest finished in 0.0 s
+
+## 3. The fix: an index on lower(email)
+   concept: the query compares lower(email), so a plain index on email would not help; an expression index on lower(email) turns the full scan into an index lookup
+   CREATE INDEX members_lower_email ON members (lower(email)) -- 1622 ms
+   plan: Bitmap Heap Scan on members (actual time=0.061..0.061 rows=0 loops=1)
+   plan: ->  Bitmap Index Scan on members_lower_email (actual time=0.058..0.058 rows=0 loops=1)
+   plan: Execution Time: 0.096 ms
+   $ k6 run k6/gate.js
+     requests 481 (60.10/s), failed 0%, dropped iterations 0
+     http_req_duration: med 1.93 ms, p(95) 3.75 ms, p(99) 6.08 ms, max 16.16 ms
+     threshold PASS  http_req_duration p(95)<300
+     threshold PASS  http_req_failed rate<0.01
+   k6 exit code 0
+   ok: the same gate PASSES after the fix (k6 exits 0, p95 under 300 ms)
+   search p95: 3135 ms before, 3.8 ms after
+
+## 4. Ramp: find the saturation point
+   concept: more statements a second at each 4 s step. Little's law (L = X x W): 4 connections, each held 40 ms, serve at most 4 / 0.04 s = 100 a second
+   $ k6 run k6/ramp.js
+     (k6) level=warning msg="Insufficient VUs, reached 60 active VUs and cannot initialize more" executor=constant-arrival-rate scenario=r125
+     requests 2096 (74.84/s), failed 0%, dropped iterations 509
+     http_req_duration: med 148.93 ms, p(95) 631.00 ms, p(99) 643.48 ms, max 648.32 ms
+       {scenario:r175}: 373 requests, med 609.25 ms, p(95) 634.59 ms
+       {scenario:r25}: 99 requests, med 42.56 ms, p(95) 46.57 ms
+       {scenario:r125}: 379 requests, med 322.98 ms, p(95) 566.65 ms
+       {scenario:r100}: 376 requests, med 116.94 ms, p(95) 159.45 ms
+       {scenario:r150}: 374 requests, med 512.03 ms, p(95) 642.98 ms
+       {scenario:r75}: 297 requests, med 42.02 ms, p(95) 45.09 ms
+       {scenario:r50}: 198 requests, med 42.12 ms, p(95) 46.05 ms
+   k6 exit code 0
+    offered  served  p50 ms  p95 ms  dropped   L = X x W  in flight
+         25      25    42.6    46.6        0         1.1        1.0
+         50      50    42.1    46.0        0         2.1        2.1
+         75      74    42.0    45.1        0         3.2        3.1
+        100      94   116.9   159.4        8        10.6       11.9
+        125      95   323.0   566.6       64        30.9       40.5
+        150      94   512.0   643.0      169        42.4       55.5
+        175      93   609.3   634.6      268        45.9       58.5
+   ok: Little's law holds: below saturation, served x mean latency matches the requests the server counted in flight
+   peak served 95/s (Little's law: 100/s); p95 crosses 300 ms at 125/s offered
+   ok: below capacity the API serves what it is offered
+   ok: past capacity throughput stops growing, near the Little's law limit
+   ok: past capacity latency bends up: p95 at the top step over 5x the first step's
+
+## 5. Soak: hold a realistic mix and look for drift
+   concept: 100 requests a second (60% profile, 30% statement, 10% search) for 30 s in three 10 s windows; memory and pool sampled from /metrics every 2 s
+   $ k6 run k6/soak.js
+     requests 3003 (99.99/s), failed 0%, dropped iterations 0
+     http_req_duration: med 1.67 ms, p(95) 42.87 ms, p(99) 47.38 ms, max 66.58 ms
+       {scenario:w2}: 1001 requests, med 1.63 ms, p(95) 42.61 ms
+       {scenario:w3}: 1001 requests, med 1.66 ms, p(95) 43.26 ms
+       {scenario:w1}: 1001 requests, med 1.70 ms, p(95) 42.85 ms
+     threshold PASS  http_req_failed rate<0.01
+     threshold PASS  http_req_duration p(95)<300
+   k6 exit code 0
+   window 1: 1001 requests, p95 42.8 ms
+   window 2: 1001 requests, p95 42.6 ms
+   window 3: 1001 requests, p95 43.3 ms
+   server RSS 103 106 108 109 109 109 109 109 109 109 109 109 109 109 109 109 MB; pool connections 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4; errors 0
+   ok: the soak meets the SLO (k6 exits 0)
+   ok: no latency drift: the last window's p95 is within 2x the first's (+20 ms)
+   ok: no leak: RSS grows less than 50 MB, the pool never exceeds its 4 connections, no 5xx
+
+## 6. Throughput/latency curve
+   concept: out/throughput-latency.svg from the ramp: served against offered, and latency against served; the bend sits at the Little's law capacity
+   wrote out/throughput-latency.svg (8050 bytes)
+   ok: the chart was written
+
+== proof: indexes on members after the fix ==
+      indexname      |                                   indexdef                                    
+---------------------+-------------------------------------------------------------------------------
+ members_lower_email | CREATE INDEX members_lower_email ON public.members USING btree (lower(email))
+ members_pkey        | CREATE UNIQUE INDEX members_pkey ON public.members USING btree (id)
+(2 rows)
+
+== proof: how often Postgres read the whole members table, against the index (pg_stat_user_tables / pg_stat_user_indexes) ==
+ relname | seq_scan | seq_tup_read | idx_scan | n_live_tup 
+---------+----------+--------------+----------+------------
+ members |      346 |     61000000 |     5639 |     500000
+(1 row)
+
+    indexrelname     | idx_scan | idx_tup_read 
+---------------------+----------+--------------
+ members_lower_email |      780 |          779
+ members_pkey        |     4859 |         4859
+(2 rows)
+
+== proof: the k6 summaries the demo read (out/k6/*.json): thresholds per run ==
+out/k6/gate-after.json       http_req_duration p(95)<300 PASS; http_req_failed rate<0.01 PASS
+out/k6/gate-before.json      http_req_failed rate<0.01 PASS; http_req_duration p(95)<300 FAIL
+out/k6/ramp.json             (no SLO thresholds)
+out/k6/smoke.json            checks rate==1 PASS; http_req_failed rate<0.01 PASS
+out/k6/soak.json             http_req_duration p(95)<300 PASS; http_req_failed rate<0.01 PASS
+== proof: out/throughput-latency.svg ==
+8050 out/throughput-latency.svg
+== screenshot: screenshots/throughput-latency.png (the SVG rendered by tools/render.mjs) ==
+52693 screenshots/throughput-latency.png

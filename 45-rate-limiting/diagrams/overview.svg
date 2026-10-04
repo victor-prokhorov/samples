@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1060" height="580" viewBox="0 0 1060 580" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">45. Rate limiting: one tenant must not starve the others</text>
+<rect x="40" y="110" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="160.0" y="141.0" font-size="16" text-anchor="middle">acme-batch</text><text x="160.0" y="161.0" font-size="16" text-anchor="middle">ignores 429, hammers</text>
+<rect x="40" y="210" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="160.0" y="241.0" font-size="16" text-anchor="middle">acme-sync</text><text x="160.0" y="261.0" font-size="16" text-anchor="middle">Retry-After + jitter</text>
+<rect x="40" y="310" width="240" height="70" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="160.0" y="341.0" font-size="16" text-anchor="middle">Globex, Initech portals</text><text x="160.0" y="361.0" font-size="16" text-anchor="middle">20 req/s each</text>
+<rect x="380" y="190" width="260" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="510.0" y="231.0" font-size="16" text-anchor="middle">Limiter</text><text x="510.0" y="251.0" font-size="16" text-anchor="middle">local memory of the last "no"</text><text x="510.0" y="271.0" font-size="16" text-anchor="middle">then take_tokens()</text>
+<rect x="380" y="380" width="260" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="510.0" y="406.0" font-size="16" text-anchor="middle">Postgres: buckets</text><text x="510.0" y="426.0" font-size="16" text-anchor="middle">one row per tenant and key,</text><text x="510.0" y="446.0" font-size="16" text-anchor="middle">locked FOR UPDATE</text>
+<rect x="780" y="190" width="240" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="900.0" y="231.0" font-size="16" text-anchor="middle">Member API</text><text x="900.0" y="251.0" font-size="16" text-anchor="middle">shared pool of 4</text><text x="900.0" y="271.0" font-size="16" text-anchor="middle">(about 200 req/s)</text>
+<rect x="780" y="380" width="240" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="900.0" y="416.0" font-size="16" text-anchor="middle">429 + Retry-After</text><text x="900.0" y="436.0" font-size="16" text-anchor="middle">RateLimit, RateLimit-Policy</text>
+<polyline points="280,179.3 380,207.9" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="280,245 380,245" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="280,310.7 380,282.1" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="510,300 510,380" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)" marker-start="url(#head-start)"/>
+<rect x="485.0" y="329.3" width="50.0" height="21.5" fill="#ffffff"/>
+<text x="510.0" y="345.3" font-size="14" text-anchor="middle">1 call</text>
+<polyline points="640,245 780,245" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="681.5" y="234.3" width="57.0" height="21.5" fill="#ffffff"/>
+<text x="710.0" y="250.3" font-size="14" text-anchor="middle">allowed</text>
+<polyline points="632.6,300 810.9,380" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<rect x="700.2" y="329.3" width="43.0" height="21.5" fill="#ffffff"/>
+<text x="721.7" y="345.3" font-size="14" text-anchor="middle">empty</text>
+<text x="40.0" y="516.0" font-size="16" text-anchor="start">Token bucket per tenant (50/s) and per API key (30/s), taken from both or from neither, in one locked statement.</text><text x="40.0" y="536.0" font-size="16" text-anchor="start">The noisy tenant queues in front of the limiter, not in the pool everyone shares.</text></svg>
