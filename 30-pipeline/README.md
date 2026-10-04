@@ -115,8 +115,8 @@ A function that type-checks but breaks three lint rules, appended to `src/statem
    lint      >   13:14  error  Expected '===' and instead saw '=='          eqeqeq
    lint      > ✖ 3 problems (3 errors, 0 warnings)
     FAIL  lint
-   lint      finished in 8.42 s  FAIL 1
-   pipeline finished in 8.95 s
+   lint      finished in 7.2 s  FAIL 1
+   pipeline finished in 7.68 s
 ```
 
 A function with no test passes lint, tsc and all 8 tests, and the unit job still fails: coverage is below every threshold:
@@ -135,13 +135,13 @@ A function with no test passes lint, tsc and all 8 tests, and the unit job still
    unit > ERROR: Coverage for functions (75%) does not meet global threshold (90%)
    unit > ERROR: Coverage for statements (64.7%) does not meet global threshold (90%)
    unit > ERROR: Coverage for branches (33.33%) does not meet global threshold (85%)
-   unit finished in 7.92 s  FAIL 1
+   unit finished in 6.72 s  FAIL 1
 ```
 
 Without that function, the whole pipeline passes, the gate at 100%; from the second job on, each restores the npm cache the previous jobs saved:
 
 ```
-   typecheck imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 385 ms
+   typecheck imported cache '0_package-lock-b2cce7cbd90c69939344723b0eca0e399085c694' in 153 ms
    unit      >       Tests  8 passed (8)
    unit      > Statements   : 100% ( 11/11 )
    unit      > Branches     : 100% ( 1/1 )
@@ -153,7 +153,7 @@ Without that function, the whole pipeline passes, the gate at 100%; from the sec
     PASS  a11y
     PASS  audit
     PASS  build
-   pipeline finished in 37 s
+   pipeline finished in 34 s
 ```
 
 A scheduled pipeline, then a release tag, each deploy into their own directory, smoke-tested there before `current` is switched to it; `current` points at the last one and the previous one is kept:
@@ -167,9 +167,9 @@ A scheduled pipeline, then a release tag, each deploy into their own directory, 
    deploy    > smoke ok
    deploy    $ ln -sfn "releases/$RELEASE" "$DEPLOY_DIR/current.tmp" && mv -T "$DEPLOY_DIR/current.tmp" "$DEPLOY_DIR/current"
    deploy    $ echo "deployed $RELEASE to $DEPLOY_DIR/current"
-   deploy    > deployed scheduled-46a2ea52-1002 to .deploy/current
-   .deploy/current -> releases/scheduled-46a2ea52-1002
-   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"46a2ea5244488e43a7ba4f1980fd7d960823994b","source":"push"}; previous releases/scheduled-46a2ea52-1002 still on disk: true
+   deploy    > deployed scheduled-907db30f-1002 to .deploy/current
+   .deploy/current -> releases/scheduled-907db30f-1002
+   current -> releases/v1.4.0, release.json {"release":"v1.4.0","commit":"907db30f513e7fb0e7b98098a6169878e34c5421","source":"push"}; previous releases/scheduled-907db30f-1002 still on disk: true
 ```
 
 The three pipeline files run the same commands in the same order (the coverage flag included), on the same kind of runner, deploy on the same triggers and block on the audit for the same ones:

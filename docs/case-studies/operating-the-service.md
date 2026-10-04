@@ -5,7 +5,7 @@
 A small team runs the member portal for Acme, Globex and Initech: releases, monthly loads, a yearly statement campaign, and partner traffic on a shared backend. The samples' logs show how it goes when nothing is measured, gated or rehearsed:
 
 - The health check answered 200 to all **672** probes while a four-hour incident failed **11 of 26** member requests. Over the month, availability is 99.48% against an SLO of 99.5%: 11 failed requests against 10.5 allowed ([29](../../29-kpis/)).
-- Members say the Acme dashboard is slow; three processes each log "slow request" and nothing ties them together. One trace has **602** database queries, 600 of them the same one ([36](../../36-observability/)).
+- Members say the Acme dashboard is slow; three processes each log "slow request" and nothing ties them together. One trace has **1502** database queries, 1500 of them the same one ([36](../../36-observability/)).
 - A function with no test passes lint, types and all 8 tests, and line coverage drops to 70% ([30](../../30-pipeline/)).
 - A naive container cutover fails **268 of 374** requests ([38](../../38-containers/)).
 - Next to Acme's batch export, the quiet tenants' p95 goes from **27 ms to 250 ms** ([45](../../45-rate-limiting/)).
@@ -38,7 +38,7 @@ A small team runs the member portal for Acme, Globex and Initech: releases, mont
 | Risk | Guard, as the logs show it |
 | --- | --- |
 | An outage the probe does not see | Availability counts member requests; the incident burned the budget 84.6x faster than allowed over its four hours. |
-| A slow route with no explanation | The slowest log line leads to its trace: 605 spans, an N+1. One join: the Acme dashboard median goes from 559 ms to 32 ms, and 30 of 30 requests are within 300 ms (19 of 30 before). |
+| A slow route with no explanation | The slowest log line leads to its trace: 1505 spans, an N+1. One join: the Acme dashboard median goes from 1379 ms to 35 ms, and 30 of 30 requests are within 300 ms (19 of 30 before). |
 | Untested or drifting changes reach production | The unit job fails on coverage; a drifted Azure copy that would deploy `v1.4.0-rc1` is caught. |
 | Requests dropped during a deploy | Green takes traffic only when `/readyz` answers 200; blue drains its 9 requests in flight. 354 requests, 0 failed. |
 | A release breaks the member page | The v3 smoke test gets a 500; the rollback runbook brings back v2 and schema 2 as a recorded child run. |
@@ -49,7 +49,7 @@ A small team runs the member portal for Acme, Globex and Initech: releases, mont
 
 ## Proof
 
-![The N+1 trace: one web request, one API call and a comb of 600 identical queries](../../36-observability/screenshots/waterfall-before.png)
+![The N+1 trace: one web request, one API call and a comb of 1500 identical queries](../../36-observability/screenshots/waterfall-before.png)
 
 ![Blue-green cutover request by request: the naive switch fails 268 requests, the safe one none](../../38-containers/screenshots/switch-timeline.png)
 
