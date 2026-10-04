@@ -12,7 +12,7 @@ function panel(title: string, run: Run) {
   const workers = Math.max(...run.samples.map((s) => s.worker)) + 1;
   const x = (ms: number) => 70 + (ms / run.durationMs) * W;
   const top = 34;
-  const h = top + workers * LANE + 34;
+  const h = top + workers * LANE + 50;
   const bars = run.samples
     .map((s) => {
       const y = top + s.worker * LANE + 3;
@@ -28,7 +28,7 @@ function panel(title: string, run: Run) {
     .join("");
   const lanes = Array.from({ length: workers }, (_, i) => `<text class="axis" x="62" y="${top + i * LANE + 12}" text-anchor="end">${i < run.workers ? `w${i + 1}` : `export ${i - run.workers + 1}`}</text>`).join("");
   const marks = run.marks
-    .map((m, i) => `<line class="mark" x1="${x(m.at)}" y1="${top - 6}" x2="${x(m.at)}" y2="${h - 26}"/><text class="note" x="${x(m.at) + 3}" y="${i % 2 ? top - 8 : h - 12}">${esc(m.label)} (${(m.at / 1000).toFixed(1)} s)</text>`)
+    .map((m, i) => `<line class="mark" x1="${x(m.at)}" y1="${top - 6}" x2="${x(m.at)}" y2="${h - 40}"/><text class="note" x="${x(m.at) + 3}" y="${i === 1 ? top - 8 : i === 0 ? h - 26 : h - 10}">${esc(m.label)} (${(m.at / 1000).toFixed(1)} s)</text>`)
     .join("");
   const sum = summarize(run);
   return `<section>

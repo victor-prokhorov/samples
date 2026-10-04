@@ -1,4 +1,4 @@
-# 38-containers run 2026-10-03T19:40:13Z
+# 38-containers run 2026-10-04T00:42:46Z
 == fresh Postgres, no app containers left from an earlier run (docker compose down -v && up) ==
  Container 38-containers-postgres-1 Healthy 
 setup: members table ready (Acme 10, Globex 10, Initech 10)
@@ -13,9 +13,9 @@ secret scanner: ghcr.io/gitleaks/gitleaks:v8.30.1
 ## 1. Build the same app two ways
    concept: the naive Dockerfile is one stage with COPY . . and no ignore file; the real one builds in stages (deps, build, prod-deps, runtime) and copies only the compiled JS and production node_modules into the last one
    $ docker build -f Dockerfile.naive --build-arg NPM_TOKEN=npm_***(masked)*** -t 38-containers-naive:1.0.0 .
-   $ docker build --secret id=npm_ca,src=/root/.ccr/ca-bundle.crt --secret id=npmrc,src=/tmp/38-npmrc-15653 --build-arg APP_VERSION=1.0.0 -t 38-containers-app:1.0.0 .
-   $ docker build --secret id=npm_ca,src=/root/.ccr/ca-bundle.crt --secret id=npmrc,src=/tmp/38-npmrc-15653 --build-arg APP_VERSION=1.1.0 -t 38-containers-app:1.1.0 .
-   build context, naive (ignores nothing): 39.6 MB in 461 files: .dockerignore .env .gitignore .npm-ca.crt Dockerfile Dockerfile.naive Dockerfile.naive.dockerignore base diagrams docker-compose.yml node_modules out package-lock.json package.json screenshots src tsconfig.build.json tsconfig.json
+   $ docker build --secret id=npm_ca,src=/root/.ccr/ca-bundle.crt --secret id=npmrc,src=/tmp/38-npmrc-19161 --build-arg APP_VERSION=1.0.0 -t 38-containers-app:1.0.0 .
+   $ docker build --secret id=npm_ca,src=/root/.ccr/ca-bundle.crt --secret id=npmrc,src=/tmp/38-npmrc-19161 --build-arg APP_VERSION=1.1.0 -t 38-containers-app:1.1.0 .
+   build context, naive (ignores nothing): 39.6 MB in 462 files: .dockerignore .env .gitignore .npm-ca.crt Dockerfile Dockerfile.naive Dockerfile.naive.dockerignore README.md base diagrams docker-compose.yml node_modules out package-lock.json package.json screenshots src tsconfig.build.json tsconfig.json
    build context, with .dockerignore:      75.3 kB in 13 files: .dockerignore package-lock.json package.json src tsconfig.build.json tsconfig.json
    image                               added to base  uncompressed  compressed
    base (node:22-slim)                          0 MB        247 MB       80 MB
@@ -28,7 +28,7 @@ secret scanner: ghcr.io/gitleaks/gitleaks:v8.30.1
 ## 2. Look inside: user, files, dev dependencies
    concept: the runtime stage runs as uid 1000 and holds dist/, production node_modules and package.json; no source, no TypeScript, no .env, no npm
    38-containers-naive:1.0.0: uid=0 packages=20 typescript=yes npm=yes
-      /app: .dockerignore .env .gitignore .npm-ca.crt Dockerfile Dockerfile.naive Dockerfile.naive.dockerignore base diagrams dist docker-compose.yml node_modules out package-lock.json package.json screenshots src tsconfig.build.json tsconfig.json
+      /app: .dockerignore .env .gitignore .npm-ca.crt Dockerfile Dockerfile.naive Dockerfile.naive.dockerignore README.md base diagrams dist docker-compose.yml node_modules out package-lock.json package.json screenshots src tsconfig.build.json tsconfig.json
    38-containers-app:1.0.0: uid=1000 packages=16 typescript=no npm=no
       /app: dist node_modules package.json
    38-containers-app:1.0.0: User=1000:1000 Healthcheck=["CMD","node","-e","fetch('http://127.0.0.1:8080/healthz').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
@@ -69,34 +69,34 @@ secret scanner: ghcr.io/gitleaks/gitleaks:v8.30.1
    database stopped: /readyz 503 {"ready":false,"reason":"database: getaddrinfo ENOTFOUND postgres"}, /healthz 200, docker health=healthy
    ok: with the database down the app is not ready (no traffic) but still alive (no restart loop)
    $ docker compose start postgres
-   ready again 127 ms after the database came back
-   2026-10-03T19:41:12.611Z [proxy] listening on :53048, active upstream blue (:53148)
+   ready again 321 ms after the database came back
+   2026-10-04T00:44:11.176Z [proxy] listening on :53048, active upstream blue (:53148)
 
 ## 6. The naive cutover
    concept: flip the proxy to green as soon as its container starts, then kill blue (SIGKILL, what a plain process kill or an impatient script does)
    $ docker run -d --name 38-containers-green --network 38-containers_default -p 53248:8080 -e COLOR=green -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres -e WARMUP_MS=1500 --stop-timeout 15 38-containers-app:1.1.0
-   2026-10-03T19:41:14.309Z [proxy] switched blue -> green (naive, without asking)
+   2026-10-04T00:44:12.735Z [proxy] switched blue -> green (naive, without asking)
    $ docker kill --signal KILL 38-containers-blue
-   402 requests through :53048; failed 286; served by blue=64, green=338
-   failures: 502 blue upstream blue: ECONNRESET=7, 502 green upstream green: ECONNRESET=30, 503 green warming up=249
-   blue log: 2026-10-03T19:41:00.470Z [blue 1.0.0] listening on :8080, node v22.23.3, uid 1000, warming up for 1500 ms
+   374 requests through :53048; failed 268; served by blue=47, green=327
+   failures: 502 blue upstream blue: ECONNRESET=4, 502 green upstream green: ECONNRESET=36, 503 green warming up=228
+   blue log: 2026-10-04T00:43:58.314Z [blue 1.0.0] listening on :8080, node v22.23.3, uid 1000, warming up for 1500 ms
    blue: exit code 137 (137 = killed, nothing drained)
    ok: the naive cutover failed requests: in-flight ones on blue and early ones on a green that was not ready
    $ docker run -d --name 38-containers-blue --network 38-containers_default -p 53148:8080 -e COLOR=blue -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres -e WARMUP_MS=1500 --stop-timeout 15 38-containers-app:1.0.0
-   2026-10-03T19:41:20.877Z [proxy] switched green -> blue (safe, blue answered /readyz 200 after 17 ms and 1 polls)
+   2026-10-04T00:44:19.868Z [proxy] switched green -> blue (safe, blue answered /readyz 200 after 20 ms and 1 polls)
 
 ## 7. The safe cutover
    concept: start green, let the proxy poll green's /readyz and flip only on 200, then stop blue with SIGTERM: it fails readiness, closes its listener and finishes what it was serving
    $ docker run -d --name 38-containers-green --network 38-containers_default -p 53248:8080 -e COLOR=green -e DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres -e WARMUP_MS=1500 --stop-timeout 15 38-containers-app:1.1.0
-   2026-10-03T19:41:22.186Z [proxy] green /readyz no answer (other side closed): keep sending traffic to blue
-   2026-10-03T19:41:22.398Z [proxy] green /readyz 503 (warming up): keep sending traffic to blue
-   2026-10-03T19:41:24.161Z [proxy] switched blue -> green (safe, green answered /readyz 200 after 1984 ms and 18 polls)
+   2026-10-04T00:44:21.464Z [proxy] green /readyz no answer (read ECONNRESET): keep sending traffic to blue
+   2026-10-04T00:44:21.575Z [proxy] green /readyz 503 (warming up): keep sending traffic to blue
+   2026-10-04T00:44:23.209Z [proxy] switched blue -> green (safe, green answered /readyz 200 after 1748 ms and 17 polls)
    $ docker stop 38-containers-blue    (SIGTERM, then SIGKILL after --stop-timeout 15 s)
-   the proxy waited 1984 ms (18 polls) for green to be ready; docker stop took 6038 ms
+   the proxy waited 1748 ms (17 polls) for green to be ready; docker stop took 6009 ms
    354 requests through :53048; failed 0; served by blue=114, green=240
    failures: none
-   blue log: 2026-10-03T19:41:24.221Z [blue 1.0.0] SIGTERM: draining, 9 request(s) in flight, /readyz now 503, no new connections
-   blue log: 2026-10-03T19:41:29.920Z [blue 1.0.0] drained in 5699 ms, pool closed, exit 0
+   blue log: 2026-10-04T00:44:23.268Z [blue 1.0.0] SIGTERM: draining, 9 request(s) in flight, /readyz now 503, no new connections
+   blue log: 2026-10-04T00:44:28.925Z [blue 1.0.0] drained in 5657 ms, pool closed, exit 0
    blue requests that finished after the switch: 9; blue exit code 0
    ok: zero failed requests during the safe cutover
    ok: both colours served traffic during the run
@@ -112,9 +112,9 @@ secret scanner: ghcr.io/gitleaks/gitleaks:v8.30.1
 
 == proof: the images (docker image ls; DISK USAGE counts shared base layers once per image) ==
 REPOSITORY:TAG                               IMAGE ID       SIZE
-38-containers-naive:1.0.0                    ad5b4ab96d54   382MB
-38-containers-app:1.1.0                      9c7a90f3e398   327MB
-38-containers-app:1.0.0                      1a8a2cdaf159   327MB
+38-containers-naive:1.0.0                    b68f6371c5b8   382MB
+38-containers-app:1.1.0                      960e78dc2b8b   327MB
+38-containers-app:1.0.0                      a20b22e11ae5   327MB
 node:22-slim                                 43ac6c60b8f8   329MB
 node:22-alpine                               0a7108bf6c7b   238MB
 gcr.io/distroless/nodejs22-debian12:latest   8a3e96fe3345   204MB
@@ -138,13 +138,13 @@ gcr.io/distroless/nodejs22-debian12:latest   8a3e96fe3345   204MB
 name=/38-containers-green image=38-containers-app:1.1.0 user=1000:1000 status=running health=healthy failing_streak=0
 name=/38-containers-blue status=exited exit=0 oom=false
 == proof: green's log ==
-2026-10-03T19:41:22.361Z [green 1.1.0] listening on :8080, node v22.23.3, uid 1000, warming up for 1500 ms
-2026-10-03T19:41:23.880Z [green 1.1.0] warm: caches loaded, /readyz can answer 200
+2026-10-04T00:44:21.559Z [green 1.1.0] listening on :8080, node v22.23.3, uid 1000, warming up for 1500 ms
+2026-10-04T00:44:23.062Z [green 1.1.0] warm: caches loaded, /readyz can answer 200
 == proof: trivy, CRITICAL findings left in the final image (all from the Debian base) ==
 38-containers-app:1.0.0 (debian 12.15): CVE-2026-13221 perl-base 5.36.0-7+deb12u3 fixed=none status=affected
 38-containers-app:1.0.0 (debian 12.15): CVE-2026-42496 perl-base 5.36.0-7+deb12u3 fixed=none status=fix_deferred
 38-containers-app:1.0.0 (debian 12.15): CVE-2026-8376 perl-base 5.36.0-7+deb12u3 fixed=none status=affected
 38-containers-app:1.0.0 (debian 12.15): CVE-2023-45853 zlib1g 1:1.2.13.dfsg-1 fixed=none status=will_not_fix
 == proof: screenshot of out/switch.html ==
-134940 screenshots/switch-timeline.png
+133515 screenshots/switch-timeline.png
 removed the blue and green containers

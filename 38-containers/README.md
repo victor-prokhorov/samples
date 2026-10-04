@@ -2,7 +2,7 @@
 
 ![Overview](diagrams/overview.svg)
 
-**Pain: works on my machine.** The app runs on a laptop with whatever Node, `node_modules` and `.env` happen to be there, and a deploy is "copy, restart, hope". Packaged naively, the image carries 44.9 MB of build leftovers on top of the base (the host's `node_modules`, TypeScript, the source, a developer's `.env`), runs as root, and keeps the registry token passed as a build argument in its history for anyone who pulls it. Deployed naively (flip traffic as soon as the new container starts, kill the old one), 286 of 402 requests failed during one cutover: 7 in-flight requests cut off on the old version, 30 refused by a new one that was not listening yet, 249 answered 503 while it warmed up.
+**Pain: works on my machine.** The app runs on a laptop with whatever Node, `node_modules` and `.env` happen to be there, and a deploy is "copy, restart, hope". Packaged naively, the image carries 44.9 MB of build leftovers on top of the base (the host's `node_modules`, TypeScript, the source, a developer's `.env`), runs as root, and keeps the registry token passed as a build argument in its history for anyone who pulls it. Deployed naively (flip traffic as soon as the new container starts, kill the old one), 268 of 374 requests failed during one cutover: 4 in-flight requests cut off on the old version, 36 refused by a new one that was not listening yet, 228 answered 503 while it warmed up.
 
 **Reach for it when** the same build must run on a laptop, in CI and in production; when a deploy must not drop requests; when a security review asks what is in the image, who it runs as, and whether a secret is in a layer.
 
@@ -54,11 +54,11 @@ The `Dockerfile` is written for `node:22-slim`, pinned by digest, and that is wh
 
 - **Multi-stage build**: several `FROM` stages in one Dockerfile; only the last becomes the image. `deps` installs everything (TypeScript included) and `build` compiles; `prod-deps` installs with `--omit=dev`; `runtime` copies `dist/` and the production `node_modules` from them. The compiler, the dev dependencies and the source never reach the image: 1.1 MB on top of the base instead of 44.9 MB.
 - **Layer caching**: `COPY package.json package-lock.json` comes before `COPY src`, so `npm ci` is reused until the lockfile changes; a code change rebuilds only the last layers.
-- **Build context and `.dockerignore`**: `docker build .` first sends the folder to the builder. Without an ignore file that is 39.6 MB and 461 files (host `node_modules`, `.env`, the CA file, outputs); with it, 75.3 kB and 13 files. What is not in the context cannot be copied by accident.
+- **Build context and `.dockerignore`**: `docker build .` first sends the folder to the builder. Without an ignore file that is 39.6 MB and 462 files (host `node_modules`, `.env`, the CA file, outputs); with it, 75.3 kB and 13 files. What is not in the context cannot be copied by accident.
 - **Pinned base digest**: a tag like `node:22-slim` moves with every Node patch and Debian fix; `node:22-slim@sha256:...` names one exact image, so a rebuild gives the same bytes and a base change is a reviewed pull request (Renovate or Dependabot bump the digest; CI rebuilds and rescans).
 - **Non-root user**: `USER 1000:1000` (the base image's `node` user, numeric so Kubernetes `runAsNonRoot` can verify it). The app files stay owned by root, so the process can read its code but not change it.
 - **HEALTHCHECK and liveness**: Docker runs `node -e fetch('/healthz')` every 2 s and marks the container healthy or unhealthy. It asks only "does the process answer?". With Postgres stopped the container stayed `healthy` while `/readyz` said 503: restarting the app would not fix the database, it would only add a restart loop.
-- **Readiness**: `/readyz` is what the proxy (or a load balancer, or a Kubernetes readiness probe) asks before sending traffic: warmed up, not draining, and the database answers. Green answered 503 "warming up" for about 2 s; the safe switch waited for its first 200 (18 polls, 1984 ms).
+- **Readiness**: `/readyz` is what the proxy (or a load balancer, or a Kubernetes readiness probe) asks before sending traffic: warmed up, not draining, and the database answers. Green answered 503 "warming up" for about 2 s; the safe switch waited for its first 200 (17 polls, 1748 ms).
 - **Graceful shutdown**: on SIGTERM the app turns `/readyz` to 503, `server.close()` stops accepting connections, idle keep-alive sockets close, in-flight requests finish (`Connection: close`), the pool ends, the process exits 0. A timer forces exit 1 after 10 s so a stuck request cannot block forever; `docker stop` waits `--stop-timeout 15` s before SIGKILL. Blue drained 9 in-flight requests in 5.7 s and exited 0.
 - **Exec-form CMD**: `CMD ["node", "dist/app.js"]` makes node PID 1, so it gets the SIGTERM. The shell form (`CMD node dist/app.js`, or the naive `CMD npm start`) puts a shell or npm in front, which may not forward it; `docker stop` then waits out its timeout and kills.
 - **Blue-green deployment**: two full copies, one live. The new one starts beside the old, the switch happens only when it is ready, the old one drains and stops. Rollback is switching back while blue still exists. The cost: two copies running during the deploy, and a schema both versions can use (see `02-expand-contract`).
@@ -70,7 +70,7 @@ The `Dockerfile` is written for `node:22-slim`, pinned by digest, and that is wh
 The build context and the image sizes, before and after:
 
 ```
-   build context, naive (ignores nothing): 39.6 MB in 461 files: .dockerignore .env .gitignore .npm-ca.crt Dockerfile ...
+   build context, naive (ignores nothing): 39.6 MB in 462 files: .dockerignore .env .gitignore .npm-ca.crt Dockerfile ...
    build context, with .dockerignore:      75.3 kB in 13 files: .dockerignore package-lock.json package.json src tsconfig.build.json tsconfig.json
    image                               added to base  uncompressed  compressed
    base (node:22-slim)                          0 MB        247 MB       80 MB
@@ -106,13 +106,13 @@ Liveness and readiness disagree on purpose when the database is down:
 The naive cutover fails requests; the safe one fails none, and blue drains what it was serving:
 
 ```
-   402 requests through :53048; failed 286; served by blue=64, green=338
-   failures: 502 blue upstream blue: ECONNRESET=7, 502 green upstream green: ECONNRESET=30, 503 green warming up=249
+   374 requests through :53048; failed 268; served by blue=47, green=327
+   failures: 502 blue upstream blue: ECONNRESET=4, 502 green upstream green: ECONNRESET=36, 503 green warming up=228
    ...
-   [proxy] switched blue -> green (safe, green answered /readyz 200 after 1984 ms and 18 polls)
+   [proxy] switched blue -> green (safe, green answered /readyz 200 after 1748 ms and 17 polls)
    354 requests through :53048; failed 0; served by blue=114, green=240
    blue log: ... SIGTERM: draining, 9 request(s) in flight, /readyz now 503, no new connections
-   blue log: ... drained in 5699 ms, pool closed, exit 0
+   blue log: ... drained in 5657 ms, pool closed, exit 0
 ```
 
 ## Screenshots
