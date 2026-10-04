@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/playwright.config.ts",
-    "rootDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
+    "configFile": "<repo>/22-playwright/playwright.config.ts",
+    "rootDir": "<repo>/22-playwright/e2e",
     "forbidOnly": false,
     "fullyParallel": true,
     "globalSetup": null,
@@ -40,7 +40,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-slow",
+        "outputDir": "<repo>/22-playwright/test-results/waiting-slow",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -48,7 +48,7 @@
         },
         "id": "setup",
         "name": "setup",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
+        "testDir": "<repo>/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/auth\\.setup\\.ts/"
@@ -56,7 +56,7 @@
         "timeout": 10000
       },
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-slow",
+        "outputDir": "<repo>/22-playwright/test-results/waiting-slow",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -64,7 +64,7 @@
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
+        "testDir": "<repo>/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/\\.spec\\.ts/"
@@ -102,16 +102,16 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 703,
+                  "duration": 872,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 0] database portal_w0, app on http://localhost:33703\n"
+                      "text": "   [worker 0] database portal_w0, app on http://localhost:32811\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:41.241Z",
+                  "startTime": "2026-10-04T05:55:12.043Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -148,12 +148,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "failed",
-                  "duration": 1155,
+                  "duration": 1247,
                   "error": {
                     "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m",
-                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m\n    at /home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts:7:56",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m\n    at <repo>/22-playwright/e2e/waiting.spec.ts:7:56",
                     "location": {
-                      "file": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts",
+                      "file": "<repo>/22-playwright/e2e/waiting.spec.ts",
                       "column": 56,
                       "line": 7
                     },
@@ -162,36 +162,36 @@
                   "errors": [
                     {
                       "location": {
-                        "file": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts",
+                        "file": "<repo>/22-playwright/e2e/waiting.spec.ts",
                         "column": 56,
                         "line": 7
                       },
-                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m\n\n   5 |   await page.goto(\"/contributions\");\n   6 |   await page.waitForTimeout(500);\n>  7 |   expect(await page.getByRole(\"status\").textContent()).toBe(\"Total: 1,350.00\");\n     |                                                        ^\n   8 | });\n   9 |\n  10 | test(\"total with a web-first assertion\", async ({ page }) => {\n    at /home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts:7:56"
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m\"Total: 1,350.00\"\u001b[39m\nReceived: \u001b[31m\"Loading total...\"\u001b[39m\n\n   5 |   await page.goto(\"/contributions\");\n   6 |   await page.waitForTimeout(500);\n>  7 |   expect(await page.getByRole(\"status\").textContent()).toBe(\"Total: 1,350.00\");\n     |                                                        ^\n   8 | });\n   9 |\n  10 | test(\"total with a web-first assertion\", async ({ page }) => {\n    at <repo>/22-playwright/e2e/waiting.spec.ts:7:56"
                     }
                   ],
                   "stdout": [
                     {
-                      "text": "   [worker 1] database portal_w1, app on http://localhost:43063\n"
+                      "text": "   [worker 1] database portal_w1, app on http://localhost:33885\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:44.656Z",
+                  "startTime": "2026-10-04T05:55:15.716Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "error-context",
                       "contentType": "text/markdown",
-                      "path": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/error-context.md"
+                      "path": "<repo>/22-playwright/test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/error-context.md"
                     },
                     {
                       "name": "trace",
                       "contentType": "application/zip",
-                      "path": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip"
+                      "path": "<repo>/22-playwright/test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip"
                     }
                   ],
                   "errorLocation": {
-                    "file": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/waiting.spec.ts",
+                    "file": "<repo>/22-playwright/e2e/waiting.spec.ts",
                     "column": 56,
                     "line": 7
                   }
@@ -221,16 +221,16 @@
                   "workerIndex": 2,
                   "parallelIndex": 1,
                   "status": "passed",
-                  "duration": 2473,
+                  "duration": 2728,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 2] database portal_w2, app on http://localhost:34015\n"
+                      "text": "   [worker 2] database portal_w2, app on http://localhost:34713\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:44.635Z",
+                  "startTime": "2026-10-04T05:55:15.830Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -248,8 +248,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-04T05:41:40.207Z",
-    "duration": 7215.012,
+    "startTime": "2026-10-04T05:55:10.427Z",
+    "duration": 8575.119,
     "expected": 2,
     "skipped": 0,
     "unexpected": 1,

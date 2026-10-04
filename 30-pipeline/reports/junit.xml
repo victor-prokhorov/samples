@@ -1,23 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="8" failures="0" errors="0" time="0.082133307">
-    <testsuite name="src/page.test.ts" timestamp="2026-10-04T00:51:04.646Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.005274256">
-        <testcase classname="src/page.test.ts" name="statementPage &gt; declares its language" time="0.002326375">
+<testsuites name="vitest tests" tests="8" failures="0" errors="0" time="0.027491972">
+    <testsuite name="src/page.test.ts" timestamp="2026-10-04T05:52:11.511Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.006242009">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; declares its language" time="0.002806712">
         </testcase>
-        <testcase classname="src/page.test.ts" name="statementPage &gt; lists only the requested year" time="0.000358511">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; lists only the requested year" time="0.000352217">
         </testcase>
-        <testcase classname="src/page.test.ts" name="statementPage &gt; escapes member and employer names" time="0.000168007">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; escapes member and employer names" time="0.000269441">
         </testcase>
-        <testcase classname="src/page.test.ts" name="statementPage &gt; shows the year&apos;s total" time="0.000121717">
+        <testcase classname="src/page.test.ts" name="statementPage &gt; shows the year&apos;s total" time="0.000123462">
         </testcase>
     </testsuite>
-    <testsuite name="src/statement.test.ts" timestamp="2026-10-04T00:51:04.648Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.076859051">
-        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; sums only the requested year" time="0.003516485">
+    <testsuite name="src/statement.test.ts" timestamp="2026-10-04T05:52:11.512Z" hostname="vm" tests="4" failures="0" errors="0" skipped="0" time="0.021249963">
+        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; sums only the requested year" time="0.002143796">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; is zero for a year without contributions" time="0.00021799">
+        <testcase classname="src/statement.test.ts" name="annualTotalCents &gt; is zero for a year without contributions" time="0.000545236">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in English" time="0.061108475">
+        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in English" time="0.015525583">
         </testcase>
-        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in French" time="0.004362642">
+        <testcase classname="src/statement.test.ts" name="formatEuros &gt; formats in French" time="0.000406898">
         </testcase>
     </testsuite>
 </testsuites>

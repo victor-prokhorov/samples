@@ -1,4 +1,4 @@
-# 37-authorization run 2026-10-03T14:59:46Z
+# 37-authorization run 2026-10-04T05:54:01Z
 == fresh Postgres (docker compose down -v && up) ==
  Container 37-authorization-postgres-1 Healthy 
 setup: 8 users, 4 members (Acme, Globex, Initech), 2 contributions and 1 audit entry each
@@ -94,9 +94,9 @@ setup: RLS on members, contributions, change_requests, audit_log; 8 policies: au
 
 == tests: the matrix against hand-written expectations, code against RLS on every cell (vitest) ==
 
- RUN  v5.0.3 /home/claude/samples/.claude/worktrees/agent-af5f18703e2efc44a/37-authorization
+ RUN  v5.0.3 <repo>/37-authorization
 
- ✓ test/matrix.test.ts > permission matrix > has one expectation per generated cell, and no more 11ms
+ ✓ test/matrix.test.ts > permission matrix > has one expectation per generated cell, and no more 7ms
  ✓ test/matrix.test.ts > permission matrix > member | member:read | own record -> allow 0ms
  ✓ test/matrix.test.ts > permission matrix > member | member:read | same organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > member | member:read | other organisation -> deny 0ms
@@ -104,11 +104,11 @@ setup: RLS on members, contributions, change_requests, audit_log; 8 policies: au
  ✓ test/matrix.test.ts > permission matrix > member | member:update | same organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > member | member:update | other organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > member | contribution:read | own record -> allow 0ms
- ✓ test/matrix.test.ts > permission matrix > member | contribution:read | same organisation -> deny 1ms
+ ✓ test/matrix.test.ts > permission matrix > member | contribution:read | same organisation -> deny 5ms
  ✓ test/matrix.test.ts > permission matrix > member | contribution:read | other organisation -> deny 0ms
- ✓ test/matrix.test.ts > permission matrix > member | contribution:create | own record -> deny 0ms
+ ✓ test/matrix.test.ts > permission matrix > member | contribution:create | own record -> deny 2ms
  ✓ test/matrix.test.ts > permission matrix > member | contribution:create | same organisation -> deny 0ms
- ✓ test/matrix.test.ts > permission matrix > member | contribution:create | other organisation -> deny 4ms
+ ✓ test/matrix.test.ts > permission matrix > member | contribution:create | other organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > member | change_request:create | own record -> allow 0ms
  ✓ test/matrix.test.ts > permission matrix > member | change_request:create | same organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > member | change_request:create | other organisation -> deny 0ms
@@ -123,8 +123,8 @@ setup: RLS on members, contributions, change_requests, audit_log; 8 policies: au
  ✓ test/matrix.test.ts > permission matrix > member | change_request:approve (requested by me) | other organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > member | audit_log:read | own record -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > member | audit_log:read | same organisation -> deny 0ms
- ✓ test/matrix.test.ts > permission matrix > member | audit_log:read | other organisation -> deny 0ms
- ✓ test/matrix.test.ts > permission matrix > employer_admin | member:read | own record -> n/a 0ms
+ ✓ test/matrix.test.ts > permission matrix > member | audit_log:read | other organisation -> deny 6ms
+ ✓ test/matrix.test.ts > permission matrix > employer_admin | member:read | own record -> n/a 1ms
  ✓ test/matrix.test.ts > permission matrix > employer_admin | member:read | same organisation -> allow 0ms
  ✓ test/matrix.test.ts > permission matrix > employer_admin | member:read | other organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > employer_admin | member:update | own record -> n/a 0ms
@@ -142,7 +142,7 @@ setup: RLS on members, contributions, change_requests, audit_log; 8 policies: au
  ✓ test/matrix.test.ts > permission matrix > employer_admin | change_request:read | own record -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > employer_admin | change_request:read | same organisation -> allow 0ms
  ✓ test/matrix.test.ts > permission matrix > employer_admin | change_request:read | other organisation -> deny 0ms
- ✓ test/matrix.test.ts > permission matrix > employer_admin | change_request:approve (requested by someone else) | own record -> n/a 0ms
+ ✓ test/matrix.test.ts > permission matrix > employer_admin | change_request:approve (requested by someone else) | own record -> n/a 4ms
  ✓ test/matrix.test.ts > permission matrix > employer_admin | change_request:approve (requested by someone else) | same organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > employer_admin | change_request:approve (requested by someone else) | other organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > employer_admin | change_request:approve (requested by me) | own record -> n/a 0ms
@@ -169,7 +169,7 @@ setup: RLS on members, contributions, change_requests, audit_log; 8 policies: au
  ✓ test/matrix.test.ts > permission matrix > staff | change_request:read | own record -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > staff | change_request:read | same organisation -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > staff | change_request:read | other organisation -> allow 0ms
- ✓ test/matrix.test.ts > permission matrix > staff | change_request:approve (requested by someone else) | own record -> n/a 7ms
+ ✓ test/matrix.test.ts > permission matrix > staff | change_request:approve (requested by someone else) | own record -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > staff | change_request:approve (requested by someone else) | same organisation -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > staff | change_request:approve (requested by someone else) | other organisation -> allow 0ms
  ✓ test/matrix.test.ts > permission matrix > staff | change_request:approve (requested by me) | own record -> n/a 0ms
@@ -189,9 +189,9 @@ setup: RLS on members, contributions, change_requests, audit_log; 8 policies: au
  ✓ test/matrix.test.ts > permission matrix > auditor | contribution:read | other organisation -> allow 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | contribution:create | own record -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | contribution:create | same organisation -> n/a 0ms
- ✓ test/matrix.test.ts > permission matrix > auditor | contribution:create | other organisation -> deny 0ms
+ ✓ test/matrix.test.ts > permission matrix > auditor | contribution:create | other organisation -> deny 1ms
  ✓ test/matrix.test.ts > permission matrix > auditor | change_request:create | own record -> n/a 0ms
- ✓ test/matrix.test.ts > permission matrix > auditor | change_request:create | same organisation -> n/a 1ms
+ ✓ test/matrix.test.ts > permission matrix > auditor | change_request:create | same organisation -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | change_request:create | other organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | change_request:read | own record -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | change_request:read | same organisation -> n/a 0ms
@@ -199,86 +199,86 @@ setup: RLS on members, contributions, change_requests, audit_log; 8 policies: au
  ✓ test/matrix.test.ts > permission matrix > auditor | change_request:approve (requested by someone else) | own record -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | change_request:approve (requested by someone else) | same organisation -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | change_request:approve (requested by someone else) | other organisation -> deny 0ms
- ✓ test/matrix.test.ts > permission matrix > auditor | change_request:approve (requested by me) | own record -> n/a 41ms
+ ✓ test/matrix.test.ts > permission matrix > auditor | change_request:approve (requested by me) | own record -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | change_request:approve (requested by me) | same organisation -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | change_request:approve (requested by me) | other organisation -> deny 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | audit_log:read | own record -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | audit_log:read | same organisation -> n/a 0ms
  ✓ test/matrix.test.ts > permission matrix > auditor | audit_log:read | other organisation -> allow 0ms
- ✓ test/matrix.test.ts > deny by default > denies a role the policy does not know 0ms
+ ✓ test/matrix.test.ts > deny by default > denies a role the policy does not know 1ms
  ✓ test/matrix.test.ts > deny by default > denies an action nobody was granted 0ms
  ✓ test/matrix.test.ts > deny by default > denies without a user 0ms
  ✓ test/matrix.test.ts > deny by default > denies an action aimed at another kind of resource 0ms
- ✓ test/matrix.test.ts > deny by default > does not treat inherited object keys as rules 0ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:read | own record 84ms
+ ✓ test/matrix.test.ts > deny by default > does not treat inherited object keys as rules 4ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:read | own record 96ms
  ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:read | same organisation 19ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:read | other organisation 8ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:update | own record 26ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:update | same organisation 6ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:update | other organisation 157ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:read | own record 14ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:read | same organisation 8ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:read | other organisation 18ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:create | own record 4ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:create | same organisation 16ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:create | other organisation 6ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:create | own record 8ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:create | same organisation 15ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:create | other organisation 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:read | own record 11ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:read | same organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:read | other organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by someone else) | own record 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by someone else) | same organisation 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by someone else) | other organisation 2ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:read | other organisation 21ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:update | own record 38ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:update | same organisation 5ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | member:update | other organisation 8ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:read | own record 15ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:read | same organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:read | other organisation 9ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:create | own record 6ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:create | same organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | contribution:create | other organisation 4ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:create | own record 55ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:create | same organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:create | other organisation 6ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:read | own record 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:read | same organisation 35ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:read | other organisation 4ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by someone else) | own record 20ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by someone else) | same organisation 8ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by someone else) | other organisation 3ms
  ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by me) | own record 4ms
  ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by me) | same organisation 4ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by me) | other organisation 28ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | audit_log:read | own record 5ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | audit_log:read | same organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | audit_log:read | other organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | member:read | same organisation 5ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | member:read | other organisation 8ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | member:update | same organisation 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | member:update | other organisation 2ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | change_request:approve (requested by me) | other organisation 50ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | audit_log:read | own record 18ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | audit_log:read | same organisation 68ms
+ ✓ test/rls.test.ts > code and database agree on every cell > ana (member) | audit_log:read | other organisation 2ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | member:read | same organisation 4ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | member:read | other organisation 2ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | member:update | same organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | member:update | other organisation 1ms
  ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | contribution:read | same organisation 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | contribution:read | other organisation 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | contribution:create | same organisation 4ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | contribution:create | other organisation 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:create | same organisation 2ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | contribution:read | other organisation 5ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | contribution:create | same organisation 13ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | contribution:create | other organisation 4ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:create | same organisation 7ms
  ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:create | other organisation 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:read | same organisation 8ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:read | same organisation 4ms
  ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:read | other organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:approve (requested by someone else) | same organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:approve (requested by someone else) | other organisation 4ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:approve (requested by me) | same organisation 10ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:approve (requested by me) | other organisation 5ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | audit_log:read | same organisation 15ms
- ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | audit_log:read | other organisation 24ms
- ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | member:read | other organisation 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | member:update | other organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | contribution:read | other organisation 5ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:approve (requested by someone else) | same organisation 9ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:approve (requested by someone else) | other organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:approve (requested by me) | same organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | change_request:approve (requested by me) | other organisation 26ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | audit_log:read | same organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > erin (employer_admin) | audit_log:read | other organisation 19ms
+ ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | member:read | other organisation 4ms
+ ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | member:update | other organisation 5ms
+ ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | contribution:read | other organisation 4ms
  ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | contribution:create | other organisation 2ms
  ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | change_request:create | other organisation 2ms
  ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | change_request:read | other organisation 2ms
- ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | change_request:approve (requested by someone else) | other organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | change_request:approve (requested by me) | other organisation 8ms
- ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | audit_log:read | other organisation 8ms
- ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | member:read | other organisation 7ms
- ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | member:update | other organisation 11ms
- ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | contribution:read | other organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | contribution:create | other organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | change_request:create | other organisation 8ms
- ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | change_request:read | other organisation 6ms
- ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | change_request:approve (requested by someone else) | other organisation 3ms
- ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | change_request:approve (requested by me) | other organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | change_request:approve (requested by someone else) | other organisation 2ms
+ ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | change_request:approve (requested by me) | other organisation 4ms
+ ✓ test/rls.test.ts > code and database agree on every cell > sam (staff) | audit_log:read | other organisation 20ms
+ ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | member:read | other organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | member:update | other organisation 6ms
+ ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | contribution:read | other organisation 2ms
+ ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | contribution:create | other organisation 2ms
+ ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | change_request:create | other organisation 7ms
+ ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | change_request:read | other organisation 3ms
+ ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | change_request:approve (requested by someone else) | other organisation 2ms
+ ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | change_request:approve (requested by me) | other organisation 2ms
  ✓ test/rls.test.ts > code and database agree on every cell > aud (auditor) | audit_log:read | other organisation 2ms
- ✓ test/rls.test.ts > a bug only RLS catches > the buggy loader makes the code allow a self-approval that the database refuses 12ms
+ ✓ test/rls.test.ts > a bug only RLS catches > the buggy loader makes the code allow a self-approval that the database refuses 11ms
 
  Test Files  2 passed (2)
       Tests  178 passed (178)
-   Start at  14:59:59
-   Duration  1.77s (tests 43%, transform 40%, import 16%, worker 1%)
+   Start at  05:54:15
+   Duration  1.55s (tests 47%, transform 35%, import 17%, worker 1%)
 
 == screenshot: out/matrix.html ==
 228380 screenshots/matrix.png

@@ -1,4 +1,4 @@
-# 22-playwright run 2026-10-04T05:41:03Z
+# 22-playwright run 2026-10-04T05:54:26Z
 == fresh Postgres and no earlier reports, traces or saved sessions (docker compose down -v && up) ==
  Container 22-playwright-postgres-1 Healthy 
 setup: template database portal_template (employers, members, contributions, change_requests; alice and bob), and portal cloned from it for the hand-run server
@@ -20,8 +20,8 @@ setup: template database portal_template (employers, members, contributions, cha
 
  Test Files  1 passed (1)
       Tests  7 passed (7)
-   Start at  05:41:10
-   Duration  278ms (transform 67%, import 18%, tests 9%, worker 5%)
+   Start at  05:54:35
+   Duration  341ms (transform 62%, import 26%, tests 8%, worker 4%)
 
    -> exit 0
 
@@ -31,29 +31,29 @@ setup: template database portal_template (employers, members, contributions, cha
 
 Running 6 tests using 2 workers
 
-   [worker 0] database portal_w0, app on http://localhost:42995
-  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (685ms)
-   [worker 1] database portal_w1, app on http://localhost:44493
-   [worker 2] database portal_w2, app on http://localhost:35071
-  ✓  2 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (774ms)
-  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (1.1s)
-  ✓  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (489ms)
-  ✓  6 [chromium] › e2e/journeys.spec.ts:51:3 › signed out › a signed-out visitor is sent to the sign-in page (226ms)
-  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (781ms)
+   [worker 0] database portal_w0, app on http://localhost:46075
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (726ms)
+   [worker 2] database portal_w2, app on http://localhost:35573
+   [worker 1] database portal_w1, app on http://localhost:33677
+  ✓  2 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (1.1s)
+  ✓  3 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (979ms)
+  ✓  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (487ms)
+  ✓  6 [chromium] › e2e/journeys.spec.ts:51:3 › signed out › a signed-out visitor is sent to the sign-in page (383ms)
+  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (1.1s)
 
-  6 passed (5.8s)
+  6 passed (6.8s)
 
 To open last HTML report run:
 
   npx playwright show-report reports/html/journeys
 
    -> exit 0
-   passed  [setup] sign in once as alice and save the session                   worker 0, 685 ms
-   passed  [chromium] view contributions                                           worker 1, 774 ms
-   passed  [chromium] request an email change and see it pending                   worker 2, 1086 ms
-   passed  [chromium] request an address change and see it pending                 worker 1, 489 ms
-   passed  [chromium] a second pending change of the same kind is refused          worker 2, 781 ms
-   passed  [chromium] signed out > a signed-out visitor is sent to the sign-in page worker 1, 226 ms
+   passed  [setup] sign in once as alice and save the session                   worker 0, 726 ms
+   passed  [chromium] view contributions                                           worker 1, 979 ms
+   passed  [chromium] request an email change and see it pending                   worker 2, 1096 ms
+   passed  [chromium] request an address change and see it pending                 worker 2, 487 ms
+   passed  [chromium] a second pending change of the same kind is refused          worker 1, 1143 ms
+   passed  [chromium] signed out > a signed-out visitor is sent to the sign-in page worker 2, 383 ms
    storageState .auth/alice.json: cookie sid=1.DyFqWL... httpOnly=true sameSite=Lax; journeys ran on workers 1, 2
 
 ## 3. The same journeys without the per-test reset, on one worker
@@ -62,15 +62,15 @@ To open last HTML report run:
 
 Running 6 tests using 1 worker
 
-   [worker 0] database portal_w0, app on http://localhost:33153
-  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (768ms)
-   [worker 1] database portal_w1, app on http://localhost:41637
-  ✓  2 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (770ms)
-  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (531ms)
-  ✘  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (5.3s)
-   [worker 2] database portal_w2, app on http://localhost:46577
-  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (771ms)
-  ✓  6 [chromium] › e2e/journeys.spec.ts:51:3 › signed out › a signed-out visitor is sent to the sign-in page (138ms)
+   [worker 0] database portal_w0, app on http://localhost:34439
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (869ms)
+   [worker 1] database portal_w1, app on http://localhost:43191
+  ✓  2 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (905ms)
+  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (558ms)
+  ✘  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (5.4s)
+   [worker 2] database portal_w2, app on http://localhost:32953
+  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (1.3s)
+  ✓  6 [chromium] › e2e/journeys.spec.ts:51:3 › signed out › a signed-out visitor is sent to the sign-in page (192ms)
 
 
   1) [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending ─────────
@@ -110,19 +110,19 @@ Running 6 tests using 1 worker
 
   1 failed
     [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending ──────────
-  5 passed (12.5s)
+  5 passed (14.4s)
 
 To open last HTML report run:
 
   npx playwright show-report reports/html/leaky
 
    -> exit 1
-   passed  [setup] sign in once as alice and save the session                   worker 0, 768 ms
-   passed  [chromium] view contributions                                           worker 1, 770 ms
-   passed  [chromium] request an email change and see it pending                   worker 1, 531 ms
-   failed  [chromium] request an address change and see it pending                 worker 1, 5342 ms
-   passed  [chromium] a second pending change of the same kind is refused          worker 2, 771 ms
-   passed  [chromium] signed out > a signed-out visitor is sent to the sign-in page worker 2, 138 ms
+   passed  [setup] sign in once as alice and save the session                   worker 0, 869 ms
+   passed  [chromium] view contributions                                           worker 1, 905 ms
+   passed  [chromium] request an email change and see it pending                   worker 1, 558 ms
+   failed  [chromium] request an address change and see it pending                 worker 1, 5400 ms
+   passed  [chromium] a second pending change of the same kind is refused          worker 2, 1317 ms
+   passed  [chromium] signed out > a signed-out visitor is sent to the sign-in page worker 2, 192 ms
    failed: ["request an address change and see it pending"]
 
 ## 4. A fixed sleep against an auto-waiting assertion, fast API (100 ms)
@@ -131,23 +131,23 @@ To open last HTML report run:
 
 Running 3 tests using 2 workers
 
-   [worker 0] database portal_w0, app on http://localhost:40073
-  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (661ms)
-   [worker 1] database portal_w1, app on http://localhost:33669
-   [worker 2] database portal_w2, app on http://localhost:40499
-  ✓  3 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (588ms)
-  ✓  2 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (1.0s)
+   [worker 0] database portal_w0, app on http://localhost:44587
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (852ms)
+   [worker 2] database portal_w2, app on http://localhost:41069
+   [worker 1] database portal_w1, app on http://localhost:42689
+  ✓  2 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (927ms)
+  ✓  3 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (1.2s)
 
-  3 passed (4.3s)
+  3 passed (5.9s)
 
 To open last HTML report run:
 
   npx playwright show-report reports/html/waiting-fast
 
    -> exit 0
-   passed  [setup] sign in once as alice and save the session                   worker 0, 661 ms
-   passed  [chromium] total after a fixed 500 ms sleep                             worker 1, 1023 ms
-   passed  [chromium] total with a web-first assertion                             worker 2, 588 ms
+   passed  [setup] sign in once as alice and save the session                   worker 0, 852 ms
+   passed  [chromium] total after a fixed 500 ms sleep                             worker 1, 1186 ms
+   passed  [chromium] total with a web-first assertion                             worker 2, 927 ms
 
 ## 5. The same two tests, slow API (1500 ms): the flake made deterministic
    concept: a slow CI runner or a loaded database is all it takes: the fixed sleep reads 'Loading total...' and fails, the web-first assertion waits and passes. trace: retain-on-failure keeps a trace (DOM snapshots, network, console, each action) only for the failure
@@ -155,12 +155,12 @@ To open last HTML report run:
 
 Running 3 tests using 2 workers
 
-   [worker 0] database portal_w0, app on http://localhost:33703
-  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (703ms)
-   [worker 2] database portal_w2, app on http://localhost:34015
-   [worker 1] database portal_w1, app on http://localhost:43063
-  ✘  3 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (1.2s)
-  ✓  2 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (2.5s)
+   [worker 0] database portal_w0, app on http://localhost:32811
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (872ms)
+   [worker 1] database portal_w1, app on http://localhost:33885
+   [worker 2] database portal_w2, app on http://localhost:34713
+  ✘  2 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (1.2s)
+  ✓  3 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (2.7s)
 
 
   1) [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep ───────────────────────
@@ -191,16 +191,16 @@ Running 3 tests using 2 workers
 
   1 failed
     [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep ────────────────────────
-  2 passed (7.2s)
+  2 passed (8.6s)
 
 To open last HTML report run:
 
   npx playwright show-report reports/html/waiting-slow
 
    -> exit 1
-   passed  [setup] sign in once as alice and save the session                   worker 0, 703 ms
-   failed  [chromium] total after a fixed 500 ms sleep                             worker 1, 1155 ms
-   passed  [chromium] total with a web-first assertion                             worker 2, 2473 ms
+   passed  [setup] sign in once as alice and save the session                   worker 0, 872 ms
+   failed  [chromium] total after a fixed 500 ms sleep                             worker 1, 1247 ms
+   passed  [chromium] total with a web-first assertion                             worker 2, 2728 ms
    trace of the failed test: test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trace.zip
 
 ## 6. CSS selectors against role and label locators, after a markup refactor (MARKUP=v2)
@@ -209,33 +209,33 @@ To open last HTML report run:
 
 Running 3 tests using 2 workers
 
-   [worker 0] database portal_w0, app on http://localhost:38895
-  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (625ms)
-   [worker 2] database portal_w2, app on http://localhost:43971
-   [worker 1] database portal_w1, app on http://localhost:34803
-  ✓  2 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (732ms)
-  ✓  3 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (843ms)
+   [worker 0] database portal_w0, app on http://localhost:41631
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (804ms)
+   [worker 1] database portal_w1, app on http://localhost:45235
+   [worker 2] database portal_w2, app on http://localhost:44749
+  ✓  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (938ms)
+  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (1.2s)
 
-  3 passed (4.7s)
+  3 passed (5.6s)
 
 To open last HTML report run:
 
   npx playwright show-report reports/html/locators-v1
 
    -> exit 0
-   passed  [setup] sign in once as alice and save the session                   worker 0, 625 ms
-   passed  [chromium] sign in with CSS selectors                                   worker 1, 843 ms
-   passed  [chromium] sign in with role and label locators                         worker 2, 732 ms
+   passed  [setup] sign in once as alice and save the session                   worker 0, 804 ms
+   passed  [chromium] sign in with CSS selectors                                   worker 1, 938 ms
+   passed  [chromium] sign in with role and label locators                         worker 2, 1245 ms
    $ MARKUP=v2 REPORT=reports/locators-v2.json npx playwright test e2e/locators.spec.ts --output=test-results/locators-v2
 
 Running 3 tests using 2 workers
 
-   [worker 0] database portal_w0, app on http://localhost:41139
-  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (845ms)
-   [worker 2] database portal_w2, app on http://localhost:33055
-   [worker 1] database portal_w1, app on http://localhost:36009
-  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (848ms)
-  ✘  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (5.5s)
+   [worker 0] database portal_w0, app on http://localhost:39211
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (855ms)
+   [worker 1] database portal_w1, app on http://localhost:43251
+   [worker 2] database portal_w2, app on http://localhost:35517
+  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (1.2s)
+  ✘  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (5.9s)
 
 
   1) [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors ────────────────────────────
@@ -266,16 +266,16 @@ Running 3 tests using 2 workers
 
   1 failed
     [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors ─────────────────────────────
-  2 passed (9.7s)
+  2 passed (10.8s)
 
 To open last HTML report run:
 
   npx playwright show-report reports/html/locators-v2
 
    -> exit 1
-   passed  [setup] sign in once as alice and save the session                   worker 0, 845 ms
-   failed  [chromium] sign in with CSS selectors                                   worker 1, 5543 ms
-   passed  [chromium] sign in with role and label locators                         worker 2, 848 ms
+   passed  [setup] sign in once as alice and save the session                   worker 0, 855 ms
+   failed  [chromium] sign in with CSS selectors                                   worker 1, 5901 ms
+   passed  [chromium] sign in with role and label locators                         worker 2, 1212 ms
 
 == proof: the saved session every journey reuses (.auth/alice.json, cookie value cut) ==
 {
@@ -291,9 +291,9 @@ reports/journeys.json: expected=6 unexpected=0
   passed [setup] sign in once as alice and save the session worker=0 retry=0
   passed [chromium] view contributions worker=1 retry=0
   passed [chromium] request an email change and see it pending worker=2 retry=0
-  passed [chromium] request an address change and see it pending worker=1 retry=0
-  passed [chromium] a second pending change of the same kind is refused worker=2 retry=0
-  passed [chromium] a signed-out visitor is sent to the sign-in page worker=1 retry=0
+  passed [chromium] request an address change and see it pending worker=2 retry=0
+  passed [chromium] a second pending change of the same kind is refused worker=1 retry=0
+  passed [chromium] a signed-out visitor is sent to the sign-in page worker=2 retry=0
 reports/leaky.json: expected=5 unexpected=1
   passed [setup] sign in once as alice and save the session worker=0 retry=0
   passed [chromium] view contributions worker=1 retry=0
@@ -331,7 +331,7 @@ test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trac
   step: Expect "toBe"
   step: Close context
   step: Attach "error-context"
-  GET /contributions -> 200 in 55 ms
+  GET /contributions -> 200 in 123 ms
   GET /api/contributions/total -> no response yet when the test ended
 == proof: databases. The per-worker clones were dropped when their worker finished ==
      datname     
@@ -355,6 +355,6 @@ locators-v1
 locators-v2
 waiting-fast
 waiting-slow
-screenshots/report-journeys.png 73336 bytes
+screenshots/report-journeys.png 73136 bytes
 screenshots/report-waiting-slow-failure.png 68645 bytes
-screenshots/report-waiting-slow.png 45341 bytes
+screenshots/report-waiting-slow.png 45486 bytes

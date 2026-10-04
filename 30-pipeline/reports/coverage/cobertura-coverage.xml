@@ -1,8 +1,8 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="7" lines-covered="7" line-rate="1" branches-valid="1" branches-covered="1" branch-rate="1" timestamp="1791075064651" complexity="0" version="0.1">
+<coverage lines-valid="7" lines-covered="7" line-rate="1" branches-valid="1" branches-covered="1" branch-rate="1" timestamp="1791093131515" complexity="0" version="0.1">
   <sources>
-    <source>/home/claude/samples/.claude/worktrees/agent-aacb351389331fc2a/30-pipeline/.gitlab-ci-local/builds/unit</source>
+    <source><repo>/30-pipeline/.gitlab-ci-local/builds/unit</source>
   </sources>
   <packages>
     <package name="main" line-rate="1" branch-rate="1">

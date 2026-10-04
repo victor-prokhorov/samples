@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/playwright.config.ts",
-    "rootDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
+    "configFile": "<repo>/22-playwright/playwright.config.ts",
+    "rootDir": "<repo>/22-playwright/e2e",
     "forbidOnly": false,
     "fullyParallel": true,
     "globalSetup": null,
@@ -40,7 +40,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/journeys",
+        "outputDir": "<repo>/22-playwright/test-results/journeys",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -48,7 +48,7 @@
         },
         "id": "setup",
         "name": "setup",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
+        "testDir": "<repo>/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/auth\\.setup\\.ts/"
@@ -56,7 +56,7 @@
         "timeout": 10000
       },
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/journeys",
+        "outputDir": "<repo>/22-playwright/test-results/journeys",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -64,7 +64,7 @@
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
+        "testDir": "<repo>/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/\\.spec\\.ts/"
@@ -102,16 +102,16 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 685,
+                  "duration": 726,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 0] database portal_w0, app on http://localhost:42995\n"
+                      "text": "   [worker 0] database portal_w0, app on http://localhost:46075\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:13.864Z",
+                  "startTime": "2026-10-04T05:54:38.871Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -148,16 +148,16 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 774,
+                  "duration": 979,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 1] database portal_w1, app on http://localhost:44493\n"
+                      "text": "   [worker 1] database portal_w1, app on http://localhost:33677\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:16.233Z",
+                  "startTime": "2026-10-04T05:54:41.643Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -186,16 +186,16 @@
                   "workerIndex": 2,
                   "parallelIndex": 1,
                   "status": "passed",
-                  "duration": 1086,
+                  "duration": 1096,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 2] database portal_w2, app on http://localhost:35071\n"
+                      "text": "   [worker 2] database portal_w2, app on http://localhost:35573\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:16.327Z",
+                  "startTime": "2026-10-04T05:54:41.556Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -221,15 +221,15 @@
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": 1,
-                  "parallelIndex": 0,
+                  "workerIndex": 2,
+                  "parallelIndex": 1,
                   "status": "passed",
-                  "duration": 489,
+                  "duration": 487,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:17.151Z",
+                  "startTime": "2026-10-04T05:54:42.800Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -255,15 +255,15 @@
               "projectName": "chromium",
               "results": [
                 {
-                  "workerIndex": 2,
-                  "parallelIndex": 1,
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 781,
+                  "duration": 1143,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:17.586Z",
+                  "startTime": "2026-10-04T05:54:42.834Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -297,15 +297,15 @@
                   "projectName": "chromium",
                   "results": [
                     {
-                      "workerIndex": 1,
-                      "parallelIndex": 0,
+                      "workerIndex": 2,
+                      "parallelIndex": 1,
                       "status": "passed",
-                      "duration": 226,
+                      "duration": 383,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-04T05:41:17.660Z",
+                      "startTime": "2026-10-04T05:54:43.302Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -325,8 +325,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-04T05:41:12.724Z",
-    "duration": 5838.793,
+    "startTime": "2026-10-04T05:54:37.510Z",
+    "duration": 6795.197,
     "expected": 6,
     "skipped": 0,
     "unexpected": 0,

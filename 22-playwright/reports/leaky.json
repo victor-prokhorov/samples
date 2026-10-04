@@ -1,7 +1,7 @@
 {
   "config": {
-    "configFile": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/playwright.config.ts",
-    "rootDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
+    "configFile": "<repo>/22-playwright/playwright.config.ts",
+    "rootDir": "<repo>/22-playwright/e2e",
     "forbidOnly": false,
     "fullyParallel": true,
     "globalSetup": null,
@@ -40,7 +40,7 @@
     "quiet": false,
     "projects": [
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/leaky",
+        "outputDir": "<repo>/22-playwright/test-results/leaky",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -48,7 +48,7 @@
         },
         "id": "setup",
         "name": "setup",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
+        "testDir": "<repo>/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/auth\\.setup\\.ts/"
@@ -56,7 +56,7 @@
         "timeout": 10000
       },
       {
-        "outputDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/leaky",
+        "outputDir": "<repo>/22-playwright/test-results/leaky",
         "repeatEach": 1,
         "retries": 0,
         "metadata": {
@@ -64,7 +64,7 @@
         },
         "id": "chromium",
         "name": "chromium",
-        "testDir": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e",
+        "testDir": "<repo>/22-playwright/e2e",
         "testIgnore": [],
         "testMatch": [
           "/\\.spec\\.ts/"
@@ -102,16 +102,16 @@
                   "workerIndex": 0,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 768,
+                  "duration": 869,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 0] database portal_w0, app on http://localhost:33153\n"
+                      "text": "   [worker 0] database portal_w0, app on http://localhost:34439\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:21.402Z",
+                  "startTime": "2026-10-04T05:54:47.696Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -148,16 +148,16 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 770,
+                  "duration": 905,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 1] database portal_w1, app on http://localhost:41637\n"
+                      "text": "   [worker 1] database portal_w1, app on http://localhost:43191\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:23.571Z",
+                  "startTime": "2026-10-04T05:54:50.381Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -186,12 +186,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 531,
+                  "duration": 558,
                   "errors": [],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:24.446Z",
+                  "startTime": "2026-10-04T05:54:51.443Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -220,12 +220,12 @@
                   "workerIndex": 1,
                   "parallelIndex": 0,
                   "status": "failed",
-                  "duration": 5342,
+                  "duration": 5400,
                   "error": {
                     "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('table', { name: 'Change requests' }).getByRole('row')\nExpected: \u001b[32m2\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('table', { name: 'Change requests' }).getByRole('row')\u001b[22m\n\u001b[2m    9 × locator resolved to 3 elements\u001b[22m\n\u001b[2m      - unexpected value \"3\"\u001b[22m\n",
-                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('table', { name: 'Change requests' }).getByRole('row')\nExpected: \u001b[32m2\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('table', { name: 'Change requests' }).getByRole('row')\u001b[22m\n\u001b[2m    9 × locator resolved to 3 elements\u001b[22m\n\u001b[2m      - unexpected value \"3\"\u001b[22m\n\n    at /home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/journeys.spec.ts:32:22",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('table', { name: 'Change requests' }).getByRole('row')\nExpected: \u001b[32m2\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('table', { name: 'Change requests' }).getByRole('row')\u001b[22m\n\u001b[2m    9 × locator resolved to 3 elements\u001b[22m\n\u001b[2m      - unexpected value \"3\"\u001b[22m\n\n    at <repo>/22-playwright/e2e/journeys.spec.ts:32:22",
                     "location": {
-                      "file": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/journeys.spec.ts",
+                      "file": "<repo>/22-playwright/e2e/journeys.spec.ts",
                       "column": 22,
                       "line": 32
                     },
@@ -234,32 +234,32 @@
                   "errors": [
                     {
                       "location": {
-                        "file": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/journeys.spec.ts",
+                        "file": "<repo>/22-playwright/e2e/journeys.spec.ts",
                         "column": 22,
                         "line": 32
                       },
-                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('table', { name: 'Change requests' }).getByRole('row')\nExpected: \u001b[32m2\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('table', { name: 'Change requests' }).getByRole('row')\u001b[22m\n\u001b[2m    9 × locator resolved to 3 elements\u001b[22m\n\u001b[2m      - unexpected value \"3\"\u001b[22m\n\n\n  30 |   await page.getByRole(\"button\", { name: \"Submit request\" }).click();\n  31 |   const rows = page.getByRole(\"table\", { name: \"Change requests\" }).getByRole(\"row\");\n> 32 |   await expect(rows).toHaveCount(2);\n     |                      ^\n  33 |   await expect(rows.nth(1).getByRole(\"cell\").last()).toHaveText(\"Pending\");\n  34 | });\n  35 |\n    at /home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/journeys.spec.ts:32:22"
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mlocator\u001b[39m\u001b[2m).\u001b[22mtoHaveCount\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m failed\n\nLocator:  getByRole('table', { name: 'Change requests' }).getByRole('row')\nExpected: \u001b[32m2\u001b[39m\nReceived: \u001b[31m3\u001b[39m\nTimeout:  5000ms\n\nCall log:\n\u001b[2m  - Expect \"toHaveCount\" with timeout 5000ms\u001b[22m\n\u001b[2m  - waiting for getByRole('table', { name: 'Change requests' }).getByRole('row')\u001b[22m\n\u001b[2m    9 × locator resolved to 3 elements\u001b[22m\n\u001b[2m      - unexpected value \"3\"\u001b[22m\n\n\n  30 |   await page.getByRole(\"button\", { name: \"Submit request\" }).click();\n  31 |   const rows = page.getByRole(\"table\", { name: \"Change requests\" }).getByRole(\"row\");\n> 32 |   await expect(rows).toHaveCount(2);\n     |                      ^\n  33 |   await expect(rows.nth(1).getByRole(\"cell\").last()).toHaveText(\"Pending\");\n  34 | });\n  35 |\n    at <repo>/22-playwright/e2e/journeys.spec.ts:32:22"
                     }
                   ],
                   "stdout": [],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:24.997Z",
+                  "startTime": "2026-10-04T05:54:52.017Z",
                   "annotations": [],
                   "attachments": [
                     {
                       "name": "error-context",
                       "contentType": "text/markdown",
-                      "path": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/leaky/journeys-request-an-address-change-and-see-it-pending-chromium/error-context.md"
+                      "path": "<repo>/22-playwright/test-results/leaky/journeys-request-an-address-change-and-see-it-pending-chromium/error-context.md"
                     },
                     {
                       "name": "trace",
                       "contentType": "application/zip",
-                      "path": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/test-results/leaky/journeys-request-an-address-change-and-see-it-pending-chromium/trace.zip"
+                      "path": "<repo>/22-playwright/test-results/leaky/journeys-request-an-address-change-and-see-it-pending-chromium/trace.zip"
                     }
                   ],
                   "errorLocation": {
-                    "file": "/home/claude/samples/.claude/worktrees/agent-aca03d7354dce94a0/22-playwright/e2e/journeys.spec.ts",
+                    "file": "<repo>/22-playwright/e2e/journeys.spec.ts",
                     "column": 22,
                     "line": 32
                   }
@@ -289,16 +289,16 @@
                   "workerIndex": 2,
                   "parallelIndex": 0,
                   "status": "passed",
-                  "duration": 771,
+                  "duration": 1317,
                   "errors": [],
                   "stdout": [
                     {
-                      "text": "   [worker 2] database portal_w2, app on http://localhost:46577\n"
+                      "text": "   [worker 2] database portal_w2, app on http://localhost:32953\n"
                     }
                   ],
                   "stderr": [],
                   "retry": 0,
-                  "startTime": "2026-10-04T05:41:31.465Z",
+                  "startTime": "2026-10-04T05:54:58.886Z",
                   "annotations": [],
                   "attachments": []
                 }
@@ -335,12 +335,12 @@
                       "workerIndex": 2,
                       "parallelIndex": 0,
                       "status": "passed",
-                      "duration": 138,
+                      "duration": 192,
                       "errors": [],
                       "stdout": [],
                       "stderr": [],
                       "retry": 0,
-                      "startTime": "2026-10-04T05:41:32.404Z",
+                      "startTime": "2026-10-04T05:55:00.383Z",
                       "annotations": [],
                       "attachments": []
                     }
@@ -360,8 +360,8 @@
   ],
   "errors": [],
   "stats": {
-    "startTime": "2026-10-04T05:41:20.206Z",
-    "duration": 12488.765000000001,
+    "startTime": "2026-10-04T05:54:46.348Z",
+    "duration": 14381.586,
     "expected": 5,
     "skipped": 0,
     "unexpected": 1,
