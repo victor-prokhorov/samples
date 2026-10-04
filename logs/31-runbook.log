@@ -1,5 +1,5 @@
-# 31-runbook run 2026-10-02T17:19:08Z
-== fresh Postgres, no release recorded, no service running (docker compose down -v && up) ==
+# 31-runbook run 2026-10-04T00:45:51Z
+== fresh Postgres with WAL archiving, no release recorded, no service running, no restore container (docker compose down -v && up) ==
  Container 31-runbook-postgres-1 Healthy 
 == demo: runbooks in Markdown, executed by src/runner.ts, against Postgres and the member service on :53041 ==
 
@@ -15,14 +15,14 @@
    fixtures/broken-docs/docs/adr/0004-use-a-message-queue.md: no '## Status' section
    fixtures/broken-docs/docs/adr/0004-use-a-message-queue.md: no '## Consequences' section
    fixtures/broken-docs/docs/onboarding.md: missing: every team needs an onboarding checklist
-   real docs: runbooks/monthly-data-update.md, runbooks/rollback.md, runbooks/scheduled-release.md, runbooks/user-request.md, docs/adr/0001-record-architecture-decisions.md, docs/adr/0002-executable-runbooks.md, docs/adr/0003-scheduled-releases-with-down-migrations.md, docs/onboarding.md: 0 problem(s)
+   real docs: runbooks/backup-restore-drill.md, runbooks/monthly-data-update.md, runbooks/rollback.md, runbooks/scheduled-release.md, runbooks/user-request.md, docs/adr/0001-record-architecture-decisions.md, docs/adr/0002-executable-runbooks.md, docs/adr/0003-scheduled-releases-with-down-migrations.md, docs/onboarding.md: 0 problem(s)
 
 ## 2. First scheduled release: v1
    concept: the runner parses the Markdown and runs Preconditions, Steps and Verification in order; every step and its outcome is stored in ops.runs / ops.steps
 runbook #1: Scheduled release (runbooks/scheduled-release.md) VERSION=v1 MIGRATION=1, operator alice
   preconditions
     1. The database is reachable
-      [ok] 0.2s
+      [ok] 0.5s
     2. The release has its migration
       | migrations/001_members.down.sql
       | migrations/001_members.up.sql
@@ -35,27 +35,27 @@ runbook #1: Scheduled release (runbooks/scheduled-release.md) VERSION=v1 MIGRATI
       | MIGRATION=0
       [ok] 0.0s
     2. Back up the database
-      | 5143 .run/backup-before-v1.sql
-      [ok] 0.3s
+      | 5142 .run/backup-before-v1.sql
+      [ok] 0.4s
     3. Migrate the schema
       | migrate up 001_members
       | schema version 1
-      [ok] 1.0s
+      [ok] 2.4s
     4. Restart the service on the new version
       | not running
-      | started v1 (pid 5215)
-      [ok] 0.5s
+      | started v1 (pid 14538)
+      [ok] 0.7s
     5. Smoke test
       | GET /health -> {"status":"ok","version":"v1"}
       | GET /members/1 -> {"id":1,"name":"alice","email":"alice@old.example"} 200
-      [ok] 0.1s
+      [ok] 0.2s
     6. Record the new release
       [ok] 0.0s
   verification
     1. The service reports the new version
       [ok] 0.0s
     2. The schema is at the release's migration
-      [ok] 0.3s
+      [ok] 0.7s
 runbook #1: succeeded
    => exit 0
 
@@ -64,7 +64,7 @@ runbook #1: succeeded
 runbook #2: Scheduled release (runbooks/scheduled-release.md) VERSION=v2 MIGRATION=2, operator alice
   preconditions
     1. The database is reachable
-      [ok] 0.3s
+      [ok] 0.4s
     2. The release has its migration
       | migrations/002_preferred_name.down.sql
       | migrations/002_preferred_name.up.sql
@@ -75,18 +75,18 @@ runbook #2: Scheduled release (runbooks/scheduled-release.md) VERSION=v2 MIGRATI
     1. Record the running release, so rollback knows where to return
       | VERSION=v1
       | MIGRATION=1
-      [ok] 0.0s
+      [ok] 0.1s
     2. Back up the database
       | 14061 .run/backup-before-v2.sql
-      [ok] 0.6s
+      [ok] 0.8s
     3. Migrate the schema
       | migrate up 002_preferred_name
       | schema version 2
-      [ok] 1.6s
+      [ok] 1.8s
     4. Restart the service on the new version
-      | stopped pid 5215
-      | started v2 (pid 6495)
-      [ok] 2.5s
+      | stopped pid 14538
+      | started v2 (pid 17475)
+      [ok] 2.0s
     5. Smoke test
       | GET /health -> {"status":"ok","version":"v2"}
       | GET /members/1 -> {"id":1,"name":"alice","email":"alice@old.example","preferred_name":null} 200
@@ -107,39 +107,39 @@ runbook #3: Monthly data update (runbooks/monthly-data-update.md) FILE=data/cont
   preconditions
     1. The file is there and has not been loaded before
       | sha256 92e7a1ad1c61, batches already loaded from this file: 0
-      [ok] 0.2s
+      [ok] 0.4s
     2. Every row is for the period being loaded
       [ok] 0.0s
     3. No batch is loaded for this period yet
       | already loaded for 2026-09: none
-      [ok] 0.3s
+      [ok] 0.7s
   steps
     1. Load the file into staging
       | 3 rows staged
-      [ok] 0.8s
+      [ok] 1.5s
     2. Check every member exists
       | unknown members: 0
-      [ok] 0.3s
+      [ok] 0.4s
     3. Apply in one transaction and record the batch
-      [ok] 0.3s
+      [ok] 0.4s
   verification
     1. Control total: this batch matches the file
       | file 3 rows, total 1102.75; batch 3 rows, total 1102.75
-      [ok] 0.4s
+      [ok] 0.7s
 runbook #3: succeeded
    => exit 0
 runbook #4: Monthly data update (runbooks/monthly-data-update.md) FILE=data/contributions-2026-09.csv PERIOD=2026-09, operator alice
   preconditions
     1. The file is there and has not been loaded before
       | sha256 92e7a1ad1c61, batches already loaded from this file: 1
-      [FAILED (exit 1)] 0.3s
+      [FAILED (exit 1)] 0.6s
 runbook #4: precondition failed: nothing was changed
    => exit 2
 runbook #5: Monthly data update (runbooks/monthly-data-update.md) FILE=data/contributions-2026-09-corrected.csv PERIOD=2026-09, operator alice
   preconditions
     1. The file is there and has not been loaded before
       | sha256 5fecaf39d954, batches already loaded from this file: 0
-      [ok] 0.7s
+      [ok] 0.4s
     2. Every row is for the period being loaded
       [ok] 0.0s
     3. No batch is loaded for this period yet
@@ -155,7 +155,7 @@ runbook #6: Handle a member's change request (runbooks/user-request.md) MEMBER_I
   preconditions
     1. The member exists
       | 1 alice alice@old.example
-      [ok] 0.3s
+      [ok] 0.5s
   steps
     1. Verify the member's identity
       | MANUAL: Call the member back on the phone number their employer holds (not the one in the email) and confirm the request.
@@ -171,20 +171,20 @@ runbook #7: Handle a member's change request (runbooks/user-request.md) MEMBER_I
   preconditions
     1. The member exists
       | 1 alice alice@old.example
-      [ok] 0.3s
+      [ok] 1.2s
   steps
     1. Verify the member's identity
       | MANUAL: Call the member back on the phone number their employer holds (not the one in the email) and confirm the request.
       [ok] 0.0s
     2. Change the email, keeping the old value
-      [ok] 0.3s
+      [ok] 0.4s
     3. Reply to the member
       | MANUAL: Reply on the ticket: the change is done, and the next statement will go to the new address.
       [ok] 0.0s
   verification
     1. The new email is stored and audited
       | stored alice@new.example, changes on SUP-1042: 1
-      [ok] 0.5s
+      [ok] 1.0s
 runbook #7: succeeded
    => exit 0
    parameters reach SQL as psql variables, so a quote in an address is data, not SQL:
@@ -192,20 +192,20 @@ runbook #8: Handle a member's change request (runbooks/user-request.md) MEMBER_I
   preconditions
     1. The member exists
       | 2 bob bob@example.org
-      [ok] 0.3s
+      [ok] 0.4s
   steps
     1. Verify the member's identity
       | MANUAL: Call the member back on the phone number their employer holds (not the one in the email) and confirm the request.
       [ok] 0.0s
     2. Change the email, keeping the old value
-      [ok] 0.3s
+      [ok] 0.5s
     3. Reply to the member
       | MANUAL: Reply on the ticket: the change is done, and the next statement will go to the new address.
       [ok] 0.0s
   verification
     1. The new email is stored and audited
       | stored bob.o'brien@example.org, changes on SUP-1043: 1
-      [ok] 0.6s
+      [ok] 0.8s
 runbook #8: succeeded
    => exit 0
    member 2: {"email":"bob.o'brien@example.org","old_value":"bob@example.org","new_value":"bob.o'brien@example.org"}
@@ -215,7 +215,7 @@ runbook #8: succeeded
 runbook #9: Scheduled release (runbooks/scheduled-release.md) VERSION=v3 MIGRATION=3, operator alice
   preconditions
     1. The database is reachable
-      [ok] 0.3s
+      [ok] 0.9s
     2. The release has its migration
       | migrations/003_statement_preference.down.sql
       | migrations/003_statement_preference.up.sql
@@ -228,21 +228,21 @@ runbook #9: Scheduled release (runbooks/scheduled-release.md) VERSION=v3 MIGRATI
       | MIGRATION=2
       [ok] 0.0s
     2. Back up the database
-      | 19206 .run/backup-before-v3.sql
-      [ok] 0.4s
+      | 19207 .run/backup-before-v3.sql
+      [ok] 1.0s
     3. Migrate the schema
       | migrate up 003_statement_preference
       | schema version 3
-      [ok] 1.1s
+      [ok] 2.0s
     4. Restart the service on the new version
-      | stopped pid 6495
-      | started v3 (pid 10592)
-      [ok] 1.9s
+      | stopped pid 17475
+      | started v3 (pid 28856)
+      [ok] 2.8s
     5. Smoke test
       | GET /health -> {"status":"ok","version":"v3"}
       | GET /members/1 -> {"error":"column \"statement_pref\" does not exist"} 500
       | member page is broken
-      [FAILED (exit 1)] 0.1s
+      [FAILED (exit 1)] 0.2s
   stopped at "5. Smoke test". Rollback (runbooks/scheduled-release.md):
     1. Roll back to the recorded release
       $ npx tsx src/runner.ts runbooks/rollback.md --operator "$RUNBOOK_OPERATOR" --parent "$RUNBOOK_RUN_ID"
@@ -256,43 +256,157 @@ runbook #9: Scheduled release (runbooks/scheduled-release.md) VERSION=v3 MIGRATI
       |       [ok] 0.0s
       |   steps
       |     1. Stop the service
-      |       | stopped pid 10592
+      |       | stopped pid 28856
       |       [ok] 1.4s
       |     2. Migrate the schema down to the previous release
       |       | migrate down 003_statement_preference
       |       | schema version 2
-      |       [ok] 1.0s
+      |       [ok] 2.3s
       |     3. Start the previous version
-      |       | started v2 (pid 11399)
-      |       [ok] 0.6s
+      |       | started v2 (pid 30989)
+      |       [ok] 1.5s
       |     4. Smoke test
       |       | GET /health -> {"status":"ok","version":"v2"}
       |       | GET /members/1 -> {"id":1,"name":"alice","email":"alice@new.example","preferred_name":null} 200
       |       [ok] 0.1s
       |   verification
       |     1. The service and schema match the previous release
-      |       [ok] 0.4s
+      |       [ok] 0.7s
       | runbook #10: succeeded
-      [ok] 4.6s
+      [ok] 7.8s
 runbook #9: failed, rolled back
    => exit 1
    after the rollback: service v2, schema version 2
-stopped pid 11399
+stopped pid 30989
 
-== proof: ops.runs, one row per runbook run (run 10 is the rollback that release run 9 started) ==
- id |             runbook             |                                      params                                      | operator | parent |                  outcome                  | seconds 
-----+---------------------------------+----------------------------------------------------------------------------------+----------+--------+-------------------------------------------+---------
-  1 | runbooks/scheduled-release.md   | {"VERSION": "v1", "MIGRATION": "1"}                                              | alice    |        | succeeded                                 |     2.6
-  2 | runbooks/scheduled-release.md   | {"VERSION": "v2", "MIGRATION": "2"}                                              | alice    |        | succeeded                                 |     5.4
-  3 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}                  | alice    |        | succeeded                                 |     2.2
-  4 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}                  | alice    |        | precondition failed: nothing was changed  |     0.3
-  5 | runbooks/monthly-data-update.md | {"FILE": "data/contributions-2026-09-corrected.csv", "PERIOD": "2026-09"}        | alice    |        | precondition failed: nothing was changed  |     1.1
-  6 | runbooks/user-request.md        | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"}       | alice    |        | failed, rollback printed for the operator |     0.3
-  7 | runbooks/user-request.md        | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"}       | alice    |        | succeeded                                 |     1.1
-  8 | runbooks/user-request.md        | {"TICKET": "SUP-1043", "MEMBER_ID": "2", "NEW_EMAIL": "bob.o'brien@example.org"} | alice    |        | succeeded                                 |     1.1
-  9 | runbooks/scheduled-release.md   | {"VERSION": "v3", "MIGRATION": "3"}                                              | alice    |        | failed, rolled back                       |     8.4
- 10 | runbooks/rollback.md            | {}                                                                               | alice    |      9 | succeeded                                 |     3.6
-(10 rows)
+## 7. Backup and restore drill
+   concept: a base backup (pg_basebackup) plus the WAL archive restores to any point after it: the drill keeps writing after the backup, deletes every contribution, finds the DELETE's transaction with pg_waldump, restores a fresh container to just before it, compares row counts and checksums, puts the rows back, and measures RPO and RTO against their targets
+runbook #11: Backup and restore drill (runbooks/backup-restore-drill.md) RPO_TARGET=60 RTO_TARGET=300, operator alice
+  preconditions
+    1. WAL archiving is on and has never failed
+      | archive_mode on, segments archived 1, failed 0
+      [ok] 1.2s
+    2. No restore container is left from an earlier drill
+      [ok] 0.1s
+  steps
+    1. Take a base backup
+      | base backup 39M, WAL from 0/3000028
+      | contributions 3 rows md5 d25894ab18ca73abdba30a7509453562
+      | import_batches 1 rows md5 265e9cd468cc0d748f74966a130dd5b7
+      | member_changes 2 rows md5 d4c71c66e17b65062efedee0fd981d20
+      | members 3 rows md5 fdd53bb8c4a92f7c2b69157e5c1cf3c9
+      [ok] 3.5s
+    2. Keep working: the monthly load and a member request run after the backup
+      | runbook #12: Monthly data update (runbooks/monthly-data-update.md) FILE=data/contributions-2026-10.csv PERIOD=2026-10, operator alice
+      |   preconditions
+      |     1. The file is there and has not been loaded before
+      |       | sha256 f9214d81a19b, batches already loaded from this file: 0
+      |       [ok] 0.5s
+      |     2. Every row is for the period being loaded
+      |       [ok] 0.0s
+      |     3. No batch is loaded for this period yet
+      |       | already loaded for 2026-10: none
+      |       [ok] 0.4s
+      |   steps
+      |     1. Load the file into staging
+      |       | 3 rows staged
+      |       [ok] 1.3s
+      |     2. Check every member exists
+      |       | unknown members: 0
+      |       [ok] 0.4s
+      |     3. Apply in one transaction and record the batch
+      |       [ok] 0.3s
+      |   verification
+      |     1. Control total: this batch matches the file
+      |       | file 3 rows, total 1130.00; batch 3 rows, total 1130.00
+      |       [ok] 0.8s
+      | runbook #12: succeeded
+      | runbook #13: Handle a member's change request (runbooks/user-request.md) MEMBER_ID=3 NEW_EMAIL=carol@initech.example TICKET=SUP-1050, operator alice
+      |   preconditions
+      |     1. The member exists
+      |       | 3 carol carol@example.org
+      |       [ok] 0.4s
+      |   steps
+      |     1. Verify the member's identity
+      |       | MANUAL: Call the member back on the phone number their employer holds (not the one in the email) and confirm the request.
+      |       [ok] 0.0s
+      |     2. Change the email, keeping the old value
+      |       [ok] 0.2s
+      |     3. Reply to the member
+      |       | MANUAL: Reply on the ticket: the change is done, and the next statement will go to the new address.
+      |       [ok] 0.0s
+      |   verification
+      |     1. The new email is stored and audited
+      |       | stored carol@initech.example, changes on SUP-1050: 1
+      |       [ok] 0.5s
+      | runbook #13: succeeded
+      [ok] 7.9s
+    3. Record the state the restore must give back
+      | contributions 6 rows md5 6f763189eb96c90922bc76be499ed4aa
+      | import_batches 2 rows md5 032634d8430aefab4514f47d5af5ec45
+      | member_changes 3 rows md5 663c4c0b92f473c095327316a54d15bd
+      | members 3 rows md5 503f67bc91fe0888777ac3fdc4a640fd
+      [ok] 0.4s
+    4. Lose data: a DELETE without its WHERE clause
+      | 6 contributions before
+      | 0 contributions after
+      [ok] 1.3s
+    5. Find the transaction that lost the data
+      | 6 DELETE records on contributions in transaction 860
+      | COMMIT 2026-10-04 00:47:08.596818 UTC
+      [ok] 1.7s
+    6. Restore a copy to just before that transaction, in a fresh container
+      |  Container 31-runbook-restore-1 Started 
+      | starting point-in-time recovery to XID 860
+      | recovery stopping before commit of transaction 860, time 2026-10-04 00:47:08.596818+00
+      | redo done at 0/4009790
+      | selected new timeline ID: 2
+      | database system is ready to accept connections
+      [ok] 2.3s
+    7. Check the copy before trusting it
+      | contributions 6 rows md5 6f763189eb96c90922bc76be499ed4aa
+      | import_batches 2 rows md5 032634d8430aefab4514f47d5af5ec45
+      | member_changes 3 rows md5 663c4c0b92f473c095327316a54d15bd
+      | members 3 rows md5 503f67bc91fe0888777ac3fdc4a640fd
+      | the restored copy matches the state before the loss, table by table
+      [ok] 0.3s
+    8. Put the lost rows back
+      | 6 rows put back
+      [ok] 0.7s
+    9. Remove the restore container
+      |  Container 31-runbook-restore-1 Removed 
+      [ok] 0.8s
+  verification
+    1. The live database matches the state before the loss
+      | live database matches, table by table: contributions 6 rows, import_batches 2 rows, member_changes 3 rows, members 3 rows
+      [ok] 0.3s
+    2. RPO and RTO are within their targets
+      | RPO 0.7 s (target 60 s): restored to 0.7 s before the DELETE committed, 0 of 4 tables differ from the state before the loss
+      | RTO 6.2 s (target 300 s): from finding the transaction to the rows being back
+      | the base backup alone would reach back 9.6 s and miss what was written since: contributions 3 of 6 rows, import_batches 1 of 2 rows, member_changes 2 of 3 rows, members changed (same 3 rows)
+      [ok] 0.1s
+runbook #11: succeeded
+   => exit 0
+   contributions: 3 before the drill, 6 after it (3 loaded after the backup, deleted, then put back)
+   measured: RPO 0.7 s, RTO 6.2 s
+
+== proof: ops.runs, one row per runbook run (run 10 is the rollback that release run 9 started; 12 and 13 ran inside drill 11) ==
+ id |             runbook              |                                      params                                      | operator | parent |                  outcome                  | seconds 
+----+----------------------------------+----------------------------------------------------------------------------------+----------+--------+-------------------------------------------+---------
+  1 | runbooks/scheduled-release.md    | {"VERSION": "v1", "MIGRATION": "1"}                                              | alice    |        | succeeded                                 |     5.2
+  2 | runbooks/scheduled-release.md    | {"VERSION": "v2", "MIGRATION": "2"}                                              | alice    |        | succeeded                                 |     5.7
+  3 | runbooks/monthly-data-update.md  | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}                  | alice    |        | succeeded                                 |     4.2
+  4 | runbooks/monthly-data-update.md  | {"FILE": "data/contributions-2026-09.csv", "PERIOD": "2026-09"}                  | alice    |        | precondition failed: nothing was changed  |     0.6
+  5 | runbooks/monthly-data-update.md  | {"FILE": "data/contributions-2026-09-corrected.csv", "PERIOD": "2026-09"}        | alice    |        | precondition failed: nothing was changed  |     0.7
+  6 | runbooks/user-request.md         | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"}       | alice    |        | failed, rollback printed for the operator |     0.5
+  7 | runbooks/user-request.md         | {"TICKET": "SUP-1042", "MEMBER_ID": "1", "NEW_EMAIL": "alice@new.example"}       | alice    |        | succeeded                                 |     2.9
+  8 | runbooks/user-request.md         | {"TICKET": "SUP-1043", "MEMBER_ID": "2", "NEW_EMAIL": "bob.o'brien@example.org"} | alice    |        | succeeded                                 |     1.8
+  9 | runbooks/scheduled-release.md    | {"VERSION": "v3", "MIGRATION": "3"}                                              | alice    |        | failed, rolled back                       |    15.1
+ 10 | runbooks/rollback.md             | {}                                                                               | alice    |      9 | succeeded                                 |     6.3
+ 11 | runbooks/backup-restore-drill.md | {"RPO_TARGET": "60", "RTO_TARGET": "300"}                                        | alice    |        | succeeded                                 |    20.7
+ 12 | runbooks/monthly-data-update.md  | {"FILE": "data/contributions-2026-10.csv", "PERIOD": "2026-10"}                  | alice    |     11 | succeeded                                 |     3.8
+ 13 | runbooks/user-request.md         | {"TICKET": "SUP-1050", "MEMBER_ID": "3", "NEW_EMAIL": "carol@initech.example"}   | alice    |     11 | succeeded                                 |     1.2
+(13 rows)
 
 == proof: ops.steps that did not succeed, with the tail of their output ==
  run_id |    section    |                        step                         |     status      | exit_code |                                      output                                      
@@ -306,28 +420,69 @@ stopped pid 11399
 == proof: schema_migrations (003 applied by run 9, removed by run 10) ==
  version |        name        | applied_at 
 ---------+--------------------+------------
-       1 | 001_members        | 17:19:18
-       2 | 002_preferred_name | 17:19:23
+       1 | 001_members        | 00:46:05
+       2 | 002_preferred_name | 00:46:13
 (2 rows)
 
-== proof: import_batches and member_changes (one batch despite three runs; each change carries ticket and operator, o'brien stored as typed) ==
+== proof: import_batches and member_changes (one batch for 2026-09 despite three runs, 2026-10 loaded inside the drill; each change carries ticket and operator, o'brien stored as typed) ==
  id | period  |              file              |    sha256    | rows |  total  
 ----+---------+--------------------------------+--------------+------+---------
   1 | 2026-09 | data/contributions-2026-09.csv | 92e7a1ad1c61 |    3 | 1102.75
-(1 row)
+  2 | 2026-10 | data/contributions-2026-10.csv | f9214d81a19b |    3 | 1130.00
+(2 rows)
 
  member_id | field |     old_value     |        new_value        |  ticket  | operator 
 -----------+-------+-------------------+-------------------------+----------+----------
          1 | email | alice@old.example | alice@new.example       | SUP-1042 | alice
          2 | email | bob@example.org   | bob.o'brien@example.org | SUP-1043 | alice
+         3 | email | carol@example.org | carol@initech.example   | SUP-1050 | alice
+(3 rows)
+
+== proof: the drill, step by step (seconds per step; the RTO clock runs from step 5 to the end of verification) ==
+    section    |                                    step                                     | status | seconds 
+---------------+-----------------------------------------------------------------------------+--------+---------
+ Preconditions | 1. WAL archiving is on and has never failed                                 | ok     |    1.16
+ Preconditions | 2. No restore container is left from an earlier drill                       | ok     |    0.14
+ Steps         | 1. Take a base backup                                                       | ok     |    3.55
+ Steps         | 2. Keep working: the monthly load and a member request run after the backup | ok     |    7.87
+ Steps         | 3. Record the state the restore must give back                              | ok     |    0.36
+ Steps         | 4. Lose data: a DELETE without its WHERE clause                             | ok     |    1.34
+ Steps         | 5. Find the transaction that lost the data                                  | ok     |    1.73
+ Steps         | 6. Restore a copy to just before that transaction, in a fresh container     | ok     |    2.33
+ Steps         | 7. Check the copy before trusting it                                        | ok     |    0.27
+ Steps         | 8. Put the lost rows back                                                   | ok     |    0.72
+ Steps         | 9. Remove the restore container                                             | ok     |    0.79
+ Verification  | 1. The live database matches the state before the loss                      | ok     |    0.31
+ Verification  | 2. RPO and RTO are within their targets                                     | ok     |    0.09
+(13 rows)
+
+== proof: contributions after the drill, per period and batch (2026-10 was loaded after the base backup) ==
+ period  | batch_id | rows |  total  
+---------+----------+------+---------
+ 2026-09 |        1 |    3 | 1102.75
+ 2026-10 |        2 |    3 | 1130.00
 (2 rows)
 
+== proof: the WAL archive the restore replayed, and the archiver's counters ==
+16777216 000000010000000000000001
+16777216 000000010000000000000002
+16777216 000000010000000000000003
+338 000000010000000000000003.00000028.backup
+16777216 000000010000000000000004
+ archived_count |    last_archived_wal     | failed_count 
+----------------+--------------------------+--------------
+              5 | 000000010000000000000004 |            0
+(1 row)
+
+== proof: no restore container left ==
+restore containers: 0
 == proof: what the release left on disk ==
 app.log
 backup-before-v1.sql
 backup-before-v2.sql
 backup-before-v3.sql
 current
+drill
 previous
 VERSION=v2
 MIGRATION=2

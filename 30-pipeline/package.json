@@ -15,12 +15,16 @@
     "build": "tsc -p tsconfig.build.json",
     "pipeline": "gitlab-ci-local --shell-isolation",
     "compare": "tsx scripts/compare.ts",
+    "validate": "tsx scripts/validate.ts",
     "demo": "tsx scripts/demo.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
     "@types/jsdom": "^21.1.0",
     "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^5.0.3",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
     "axe-core": "^4.13.0",
     "eslint": "^10.0.0",
     "gitlab-ci-local": "^4.76.0",
