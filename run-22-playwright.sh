@@ -13,6 +13,8 @@ npm install --silent --no-audit --no-fund
 psql() { docker compose exec -T postgres psql -U postgres "$@"; }
 npm run --silent setup
 echo "== demo: Vitest for the rule, then @playwright/test runs (each a separate process) against an app server per worker =="
+# Playwright 1.56 hands ESM source maps from its loader thread without waiting; now and then a test was reported at its compiled line, not the line in the .ts file.
+export PLAYWRIGHT_WAIT_FOR_SOURCE_MAPS=1
 npm run --silent demo
 echo
 echo "== proof: the saved session every journey reuses (.auth/alice.json, cookie value cut) =="
@@ -32,3 +34,9 @@ echo "== proof: databases. The per-worker clones were dropped when their worker 
 psql -c "SELECT datname FROM pg_database WHERE datname NOT IN ('template0', 'template1') ORDER BY datname"
 echo "== proof: the template every worker clones (seed data) =="
 psql -d portal_template -c "SELECT m.username, e.name AS employer, count(c.*) AS months, sum(c.amount) AS total FROM members m JOIN employers e ON e.id = m.employer_id JOIN contributions c ON c.member_id = m.id GROUP BY 1, 2 ORDER BY 1"
+echo "== screenshots: the HTML reports (reports/html/<run>, kept out of git) in Chromium =="
+ls reports/html
+(cd ../tools && npm install --silent --no-audit --no-fund)
+rm -f screenshots/*.png
+node screenshots/take.mjs
+for f in screenshots/*.png; do echo "$f $(wc -c < "$f") bytes"; done

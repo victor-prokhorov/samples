@@ -30,6 +30,7 @@ npm run demo     # starts the server itself (stop the one above first), runs the
 - `src/server.tsx` GET and POST for `/bad` and `/good`; 422 with the errors, 303 on success.
 - `src/demo.ts` the axe scans (WCAG 2.0, 2.1 and 2.2 A and AA rules), the keyboard journeys, the accessibility tree reads through the Chrome DevTools Protocol, and the findings table with the closest RGAA criterion.
 - `out/` the outputs of the last run, committed: `axe-*.json` (the raw axe results of each page state) and `bad-errors.html`, `good-errors.html` (each form as served after a failed submit).
+- `screenshots/take.mjs` renders `out/bad-errors.html` and `out/good-errors.html` in Chromium, and draws the four `out/axe-*.json` results as one table.
 
 ## Concepts
 
@@ -95,6 +96,22 @@ The findings, and how each was found:
    radios not grouped         WCAG 1.3.1         RGAA 11.5, 11.6 found by markup query
    no autocomplete tokens     WCAG 1.3.5         RGAA 11.13      found by markup query
 ```
+
+## Screenshots
+
+Taken in Chromium by `screenshots/take.mjs` at the end of `run-21-accessibility.sh`, from the files the run saves in `out/`.
+
+The inaccessible form after a failed submit: placeholders instead of labels, red borders and no message, low-contrast text.
+
+![bad-errors](screenshots/bad-errors.png)
+
+The accessible form after the same submit: an error summary that takes focus and links to each field, a message under every label, the fields grouped in fieldsets.
+
+![good-errors](screenshots/good-errors.png)
+
+What axe-core found on both forms, before and after the submit.
+
+![axe-results](screenshots/axe-results.png)
 
 ## Origins and further reading
 

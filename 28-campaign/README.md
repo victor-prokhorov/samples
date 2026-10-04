@@ -37,6 +37,7 @@ npm run demo                      # the whole scenario, with its own sink (stop 
 - `src/sink.ts` the SMTP sink with scripted faults; `src/naive.ts` the loop that shows the pain.
 - `src/demo.ts` the 8 steps and their checks; `src/setup.ts` the tables and seed.
 - `out/` the dry-run sample PDFs from the last run.
+- `screenshots/statement-2025-M0003.png` the first page of one generated statement, rendered by `run-28-campaign.sh` with `tools/render.mjs`.
 
 ## Concepts
 
@@ -91,9 +92,9 @@ Worker A crashes after SMTP accepted M0007, before recording it; M0007 is left `
 ```
    [worker A] started: 10 msg/s, lease 2000 ms, max 4 attempts, will crash after sending M0007
    [worker A] M0001 alice@acme.example   attempt 1: sent <statement-2025-M0001@portal.example>
-   [worker A] M0002 bob@acme.example     attempt 1: 451 4.7.1 greylisted, try again later -> retry in 137 ms
+   [worker A] M0002 bob@acme.example     attempt 1: 451 4.7.1 greylisted, try again later -> retry in 191 ms
    [worker A] M0003 carol@acme.example   attempt 1: 550 5.1.1 mailbox unknown -> dead letter (permanent)
-   [worker A] M0004 dan@acme.example     attempt 1: 451 4.3.0 mailbox temporarily unavailable -> retry in 149 ms
+   [worker A] M0004 dan@acme.example     attempt 1: 451 4.3.0 mailbox temporarily unavailable -> retry in 225 ms
    [worker A] M0005 erin@acme.example    attempt 1: sent <statement-2025-M0005@portal.example>
    [worker A] M0006 frank@acme.example   attempt 1: sent <statement-2025-M0006@portal.example>
    [worker A] M0007 grace@globex.example attempt 1: 250 accepted by SMTP, now crashing (SIGKILL) before recording it
@@ -109,28 +110,28 @@ Worker A crashes after SMTP accepted M0007, before recording it; M0007 is left `
 Two workers resume in parallel: nothing already sent is sent again, M0007 is taken over once the lease expires and resent with the same Message-ID, bob gets his after two 451s, dan becomes a dead letter after 4 attempts, and the throttle holds:
 
 ```
-   [worker B] started: 5 msg/s, lease 2000 ms, max 4 attempts
    [worker C] started: 5 msg/s, lease 2000 ms, max 4 attempts
-   [worker B] M0008 heidi@globex.example attempt 1: sent <statement-2025-M0008@portal.example>
-   [worker C] M0009 ivan@globex.example  attempt 1: sent <statement-2025-M0009@portal.example>
-   [worker B] M0010 judy@globex.example  attempt 1: sent <statement-2025-M0010@portal.example>
+   [worker B] started: 5 msg/s, lease 2000 ms, max 4 attempts
+   [worker B] M0007 attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
+   [worker B] M0007 grace@globex.example attempt 2: sent <statement-2025-M0007@portal.example>
+   [worker C] M0008 heidi@globex.example attempt 1: sent <statement-2025-M0008@portal.example>
+   [worker C] M0010 judy@globex.example  attempt 1: sent <statement-2025-M0010@portal.example>
+   [worker B] M0009 ivan@globex.example  attempt 1: sent <statement-2025-M0009@portal.example>
    [worker C] M0011 ken@globex.example   attempt 1: sent <statement-2025-M0011@portal.example>
    [worker B] M0012 lena@initech.example attempt 1: sent <statement-2025-M0012@portal.example>
    [worker C] M0013 mike@initech.example attempt 1: sent <statement-2025-M0013@portal.example>
    [worker B] M0014 nina@initech.example attempt 1: sent <statement-2025-M0014@portal.example>
    [worker C] M0015 oscar@initech.example attempt 1: sent <statement-2025-M0015@portal.example>
-   [worker C] M0002 bob@acme.example     attempt 2: 451 4.7.1 greylisted, try again later -> retry in 409 ms
    [worker B] M0016 paula@initech.example attempt 1: sent <statement-2025-M0016@portal.example>
-   [worker B] M0007 attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
-   [worker C] M0004 dan@acme.example     attempt 2: 451 4.3.0 mailbox temporarily unavailable -> retry in 446 ms
-   [worker B] M0007 grace@globex.example attempt 2: sent <statement-2025-M0007@portal.example>
-   [worker B] M0002 bob@acme.example     attempt 3: sent <statement-2025-M0002@portal.example>
-   [worker B] M0004 dan@acme.example     attempt 3: 451 4.3.0 mailbox temporarily unavailable -> retry in 756 ms
+   [worker C] M0002 bob@acme.example     attempt 2: 451 4.7.1 greylisted, try again later -> retry in 499 ms
+   [worker B] M0004 dan@acme.example     attempt 2: 451 4.3.0 mailbox temporarily unavailable -> retry in 322 ms
+   [worker B] M0004 dan@acme.example     attempt 3: 451 4.3.0 mailbox temporarily unavailable -> retry in 982 ms
+   [worker C] M0002 bob@acme.example     attempt 3: sent <statement-2025-M0002@portal.example>
    [worker C] M0004 dan@acme.example     attempt 4: 451 4.3.0 mailbox temporarily unavailable -> dead letter (4 attempts used)
-   [worker C] done: 4 sent, 2 retries scheduled, 1 dead letters
-   [worker B] done: 7 sent, 1 retries scheduled, 0 dead letters
+   [worker C] done: 6 sent, 1 retries scheduled, 1 dead letters
+   [worker B] done: 5 sent, 2 retries scheduled, 0 dead letters
    workers B -> exit 0, C -> exit 0
-   SMTP sink received 15 messages: alice x1, erin x1, frank x1, grace x2, heidi x1, ivan x1, judy x1, ken x1, lena x1, mike x1, nina x1, oscar x1, paula x1, bob x1
+   SMTP sink received 15 messages: alice x1, erin x1, frank x1, grace x2, heidi x1, judy x1, ivan x1, ken x1, lena x1, mike x1, nina x1, oscar x1, paula x1, bob x1
    grace: 2 copies, Message-IDs ["<statement-2025-M0007@portal.example>"]
    busiest 1-second window of SMTP attempts while resuming: 10 (limit 10/s); messages received before the resume: 4
 ```
@@ -160,17 +161,25 @@ Every attempt, by worker, for the members with a story (from the `statement_atte
  id | member_no | attempt | worker | outcome  |                                                           detail                                                            
 ----+-----------+---------+--------+----------+-----------------------------------------------------------------------------------------------------------------------------
   2 | M0002     |       1 | A      | retry    | 451 4.7.1 greylisted, try again later
- 15 | M0002     |       2 | C      | retry    | 451 4.7.1 greylisted, try again later
- 20 | M0002     |       3 | B      | sent     | 250 OK: message queued
+ 18 | M0002     |       2 | C      | retry    | 451 4.7.1 greylisted, try again later
+ 21 | M0002     |       3 | C      | sent     | 250 OK: message queued
   3 | M0003     |       1 | A      | dead     | 550 5.1.1 mailbox unknown
  23 | M0003     |       1 | D      | sent     | 250 OK: message queued
   4 | M0004     |       1 | A      | retry    | 451 4.3.0 mailbox temporarily unavailable
- 18 | M0004     |       2 | C      | retry    | 451 4.3.0 mailbox temporarily unavailable
- 21 | M0004     |       3 | B      | retry    | 451 4.3.0 mailbox temporarily unavailable
+ 19 | M0004     |       2 | B      | retry    | 451 4.3.0 mailbox temporarily unavailable
+ 20 | M0004     |       3 | B      | retry    | 451 4.3.0 mailbox temporarily unavailable
  22 | M0004     |       4 | C      | dead     | 451 4.3.0 mailbox temporarily unavailable
- 17 | M0007     |       1 | B      | in_doubt | attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
- 19 | M0007     |       2 | B      | sent     | 250 OK: message queued
+  7 | M0007     |       1 | B      | in_doubt | attempt 1 by worker A has no outcome (lease expired): the mail may or may not have gone; resending with the same Message-ID
+  8 | M0007     |       2 | B      | sent     | 250 OK: message queued
 ```
+
+## Screenshots
+
+Rendered from `out/statement-2025-M0003.pdf` by `run-28-campaign.sh` (`node ../tools/render.mjs pdf`). The emails are plain text in the sink, so there is nothing to render for them.
+
+The first page of carol's 2025 statement: twelve months of contributions and the total.
+
+![statement-2025-M0003](screenshots/statement-2025-M0003.png)
 
 ## Origins and further reading
 

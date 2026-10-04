@@ -25,3 +25,8 @@ psql -c "SELECT status, count(*) AS requests, count(*) FILTER (WHERE resolved_at
 echo "== proof: out/dashboard.html (static, no script) =="
 ls -l out/dashboard.html | awk '{print $5, $9}'
 paste -d' ' <(grep -o 'class="name">[^<]*' out/dashboard.html | cut -d'>' -f2) <(grep -o '</span> [^<]*' out/dashboard.html | cut -c9- | sed 's/&lt;/</; s/&gt;/>/')
+echo "== screenshots: out/dashboard.html in Chromium =="
+(cd ../tools && npm install --silent --no-audit --no-fund)
+rm -f screenshots/*.png
+node screenshots/take.mjs
+for f in screenshots/*.png; do echo "$f $(wc -c < "$f") bytes"; done

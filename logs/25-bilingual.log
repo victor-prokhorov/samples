@@ -1,4 +1,4 @@
-# 25-bilingual run 2026-10-02T17:04:51Z
+# 25-bilingual run 2026-10-03T19:52:14Z
 == the member page server (node:http on :53035), in the background ==
 server: member page on http://localhost:53035 (/, /naive; ?lang=en|fr|en-XA; ?member=alice|bob|carol)
 == demo: a client fetching the same page with different Accept-Language headers ==
@@ -133,3 +133,8 @@ Transfer-Encoding: chunked
   <p id="total">Total: €4111.06</p>
   <button type="button" style="width:18ch;overflow:hidden;white-space:nowrap" data-maxch="18">Demander une modification</button>
 </main>
+== screenshots: the member page in English, French, en-XA and the naive page in French, in Chromium ==
+screenshots/en.png 32825 bytes
+screenshots/fr.png 35984 bytes
+screenshots/naive-fr.png 22187 bytes
+screenshots/pseudo-en-XA.png 43106 bytes

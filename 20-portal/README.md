@@ -34,6 +34,7 @@ npm run demo      # starts next start itself (stop the one above first), runs th
 - `src/lib/session.ts` the signed cookie and `requireMember()`; `src/lib/members.ts` every query, each filtered on the member id; `src/lib/address.ts` the zod schema; `src/lib/db.ts` the pool.
 - `src/setup.ts` schema and seed, including the partial unique index that allows one pending change per member.
 - `src/demo.ts` the JS-off client and its checks.
+- `screenshots/take.mjs` signs in as alice in Chromium and takes the pages below; `run-20-portal.sh` runs it against `next start` on 53030.
 
 ## Concepts
 
@@ -86,7 +87,7 @@ A valid one redirects to the new request (Post/Redirect/Get); the forged `member
 
 ```
    POST /address (valid, plus member_id=2)      -> 303 Location: /requests/1
-   GET /requests/1 -> 200: Address change request 1 | Status: Pending | New address: 1 High Street, Springfield, AB1 2CD, from 2026-10-09. Requested 2026-10-02 17:10. |
+   GET /requests/1 -> 200: Address change request 1 | Status: Pending | New address: 1 High Street, Springfield, AB1 2CD, from 2026-10-10. Requested 2026-10-03 19:49. |
 ```
 
 Scoping: bob cannot see alice's request (nor an id too large for the column), a cookie with a borrowed signature is no session, and Next refuses an action posted from another origin, here for carol, who has no pending request, so a write would have shown:
@@ -105,8 +106,32 @@ One row survives four address submissions (invalid, valid, duplicate, cross-orig
 ```
  id | member_id |  kind   |                                 payload                                  | effective_from | status
 ----+-----------+---------+--------------------------------------------------------------------------+----------------+---------
-  1 |         1 | address | {"city": "Springfield", "line1": "1 High Street", "postcode": "AB1 2CD"} | 2026-10-09     | pending
+  1 |         1 | address | {"city": "Springfield", "line1": "1 High Street", "postcode": "AB1 2CD"} | 2026-10-10     | pending
 ```
+
+## Screenshots
+
+Taken in Chromium by `screenshots/take.mjs` at the end of `run-20-portal.sh`, signed in as alice (the portal is English only).
+
+The sign-in page.
+
+![login](screenshots/login.png)
+
+Her profile, with the pending address change the run made linked under it.
+
+![profile](screenshots/profile.png)
+
+Her contributions, the whole page.
+
+![contributions](screenshots/contributions.png)
+
+The address form after a submit with a blank first line, a postcode that is not one and a date in the past: each message sits between its label and its field, which is marked too.
+
+![address-errors](screenshots/address-errors.png)
+
+The request she made, still pending.
+
+![request](screenshots/request.png)
 
 ## Origins and further reading
 

@@ -31,13 +31,14 @@ npm run demo       # the runs the log shows: green, leaking, flaky, brittle
 - `src/app.ts` the portal: sign-in, contributions (the total arrives through a delayed `fetch`), request a change, list requests. `MARKUP=v2` serves a refactored sign-in form; `API_DELAY_MS` delays the total.
 - `src/rules.ts` and `src/rules.test.ts` the change-request rule and its unit tests.
 - `src/session.ts` a signed session cookie, valid on every worker's server; `src/db.ts` template cloning; `src/setup.ts` the template, with a partial unique index that enforces one pending change per kind under concurrent submits; `src/server.ts` the hand-run server.
-- `playwright.config.ts` workers, `trace: "retain-on-failure"`, the `setup` project and `storageState`.
+- `playwright.config.ts` workers, `trace: "retain-on-failure"`, the `setup` project and `storageState`, and the reporters: list, JSON and HTML.
 - `e2e/fixtures.ts` the worker-scoped database and server, and the per-test reset.
 - `e2e/auth.setup.ts` signs in once and saves `.auth/alice.json`.
 - `e2e/journeys.spec.ts` the journeys, with role and label locators.
 - `e2e/waiting.spec.ts` a fixed sleep next to a web-first assertion; `e2e/locators.spec.ts` CSS selectors next to role and label locators.
 - `src/demo.ts` runs the suites in the configurations the log shows and checks each outcome.
-- `reports/*.json` the Playwright JSON report of each run in the log, committed. `test-results/` (the traces of the failing runs) and `.auth/` (the saved session) stay local: both carry the session cookie.
+- `reports/*.json` the Playwright JSON report of each run in the log, committed. `reports/html/<run>/` (the HTML report of each run), `test-results/` (the traces of the failing runs) and `.auth/` (the saved session) stay local: all three carry the session cookie.
+- `screenshots/take.mjs` opens two of the HTML reports from disk in Chromium; `run-22-playwright.sh` runs it after the demo.
 
 ## Concepts
 
@@ -48,7 +49,7 @@ npm run demo       # the runs the log shows: green, leaking, flaky, brittle
 - **Reset without a transaction**: wrapping each test in a transaction that rolls back does not work for browser tests: the app serves the browser's requests on its own connections, which cannot see an uncommitted transaction. An automatic test-scoped fixture truncates the tables tests write instead. Without it (`NO_RESET=1`) the address test counts the email test's leftover row and fails, but only in that order: an order-dependent failure is the signature of a leaking fixture.
 - **Login once, `storageState`**: a `setup` project signs in through the real form once and saves the cookies to `.auth/alice.json`; the `chromium` project depends on it and starts every test with that state. The session is a signed cookie any worker's server can verify. Tests about signing in override it with an empty state.
 - **Traces on failure**: `trace: "retain-on-failure"` records every action, a DOM snapshot before and after it, network, console and source, and keeps the file only when the test fails. `npx playwright show-trace` replays it; the log lists its actions and shows the total's request had no response yet when the assertion ran.
-- **Reports**: the list reporter for the console and a JSON reporter per run, which the demo reads to check which tests failed and on which worker. Playwright replaces a worker after a failure, which is why the leaky run's next test passes on a fresh database.
+- **Reports**: the list reporter for the console, a JSON reporter per run, which the demo reads to check which tests failed and on which worker, and an HTML report per run (`npx playwright show-report reports/html/<run>`) for people: filters by status, the error with its source line, and the trace one click away. Playwright replaces a worker after a failure, which is why the leaky run's next test passes on a fresh database.
 - **Trade-offs**: one database per worker multiplies setup time and connections; the template must be rebuilt when the schema changes. Truncating is simple but must list every table tests write. The app runs inside the test worker here, so tests can reach its pool; against a deployed environment you seed through an API or a test-only endpoint instead. Retries (`retries: 2`) hide flakes rather than fix them: Playwright reports a test that passes on retry as "flaky", and those reports are worth reading.
 
 ## Proof (`logs/22-playwright.log`)
@@ -56,13 +57,13 @@ npm run demo       # the runs the log shows: green, leaking, flaky, brittle
 Six tests (setup plus five journeys) on two workers, each worker with its own database and app server; the setup signs in once and the journeys start from the saved state:
 
 ```
-   [worker 0] database portal_w0, app on http://localhost:45189
-  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (732ms)
-   [worker 2] database portal_w2, app on http://localhost:34271
-   [worker 1] database portal_w1, app on http://localhost:44073
-  ✓  3 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (744ms)
-  ✓  2 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (954ms)
-  ✓  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (355ms)
+   [worker 0] database portal_w0, app on http://localhost:42995
+  ✓  1 [setup] › e2e/auth.setup.ts:3:1 › sign in once as alice and save the session (685ms)
+   [worker 1] database portal_w1, app on http://localhost:44493
+   [worker 2] database portal_w2, app on http://localhost:35071
+  ✓  2 [chromium] › e2e/journeys.spec.ts:3:1 › view contributions (774ms)
+  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (531ms)
+  ✓  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (489ms)
 ...
    storageState .auth/alice.json: cookie sid=1.DyFqWL... httpOnly=true sameSite=Lax; journeys ran on workers 1, 2
 ```
@@ -70,10 +71,10 @@ Six tests (setup plus five journeys) on two workers, each worker with its own da
 Without the reset, on one worker, the second writer sees the first one's row; the worker that replaces it starts clean:
 
 ```
-  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (425ms)
+  ✓  3 [chromium] › e2e/journeys.spec.ts:13:1 › request an email change and see it pending (531ms)
   ✘  4 [chromium] › e2e/journeys.spec.ts:26:1 › request an address change and see it pending (5.3s)
-   [worker 2] database portal_w2, app on http://localhost:42589
-  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (682ms)
+   [worker 2] database portal_w2, app on http://localhost:46577
+  ✓  5 [chromium] › e2e/journeys.spec.ts:36:1 › a second pending change of the same kind is refused (771ms)
 ...
     Error: expect(locator).toHaveCount(expected) failed
 
@@ -85,8 +86,8 @@ Without the reset, on one worker, the second writer sees the first one's row; th
 The fixed sleep fails once the API takes 1500 ms; the web-first assertion waits and passes:
 
 ```
-  ✘  2 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (1.1s)
-  ✓  3 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (2.3s)
+  ✘  3 [chromium] › e2e/waiting.spec.ts:4:1 › total after a fixed 500 ms sleep (1.2s)
+  ✓  2 [chromium] › e2e/waiting.spec.ts:10:1 › total with a web-first assertion (2.5s)
 ...
     Expected: "Total: 1,350.00"
     Received: "Loading total..."
@@ -95,8 +96,8 @@ The fixed sleep fails once the API takes 1500 ms; the web-first assertion waits 
 After the markup refactor, the CSS test cannot find its input; the role and label test still passes:
 
 ```
-  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (769ms)
-  ✘  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (5.4s)
+  ✓  3 [chromium] › e2e/locators.spec.ts:13:1 › sign in with role and label locators (848ms)
+  ✘  2 [chromium] › e2e/locators.spec.ts:5:1 › sign in with CSS selectors (5.5s)
     TimeoutError: locator.fill: Timeout 5000ms exceeded.
     Call log:
       - waiting for locator('#login-form > div:nth-child(1) > input')
@@ -114,7 +115,7 @@ test-results/waiting-slow/waiting-total-after-a-fixed-500-ms-sleep-chromium/trac
   step: Get text content getByRole('status')
   step: Expect "toBe"
 ...
-  GET /contributions -> 200 in 42 ms
+  GET /contributions -> 200 in 55 ms
   GET /api/contributions/total -> no response yet when the test ended
 ```
 
@@ -127,6 +128,22 @@ The per-worker databases are gone after the runs; only the template and the hand
  portal_template
  postgres
 ```
+
+## Screenshots
+
+Taken in Chromium by `screenshots/take.mjs` at the end of `run-22-playwright.sh`. The HTML reports themselves (`reports/html/<run>/`) stay local: the failing runs' reports embed their traces, which record the session cookie.
+
+The green run: setup plus five journeys, all passed.
+
+![report-journeys](screenshots/report-journeys.png)
+
+The slow-API run: the fixed sleep failed, with its trace one click away; the web-first assertion passed.
+
+![report-waiting-slow](screenshots/report-waiting-slow.png)
+
+The failed test opened: the text it read, "Loading total...", against the one it expected, and the line that read it.
+
+![report-waiting-slow-failure](screenshots/report-waiting-slow-failure.png)
 
 ## Origins and further reading
 

@@ -21,3 +21,8 @@ echo "== proof: the inaccessible form after a failed submit (out/bad-errors.html
 html out/bad-errors.html
 echo "== proof: the accessible form after a failed submit (out/good-errors.html): summary, labels, aria-describedby, aria-invalid, autocomplete =="
 html out/good-errors.html
+echo "== screenshots: both forms after a failed submit (out/*-errors.html) and the axe results (out/axe-*.json), in Chromium =="
+(cd ../tools && npm install --silent --no-audit --no-fund)
+rm -f screenshots/*.png
+node screenshots/take.mjs
+for f in screenshots/*.png; do echo "$f $(wc -c < "$f") bytes"; done

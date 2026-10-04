@@ -18,8 +18,8 @@
 <polyline points="900,230 960,230" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
 <polyline points="1090,260 1090,320" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
 <rect x="40" y="460" width="540" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
-<text x="310.0" y="501.0" font-size="16" text-anchor="middle">Before: 712 logins this month, mean latency 51 ms,</text><text x="310.0" y="521.0" font-size="16" text-anchor="middle">/health answering 200 all through the outage</text>
+<text x="310.0" y="501.0" font-size="16" text-anchor="middle">Before: 712 logins this month, mean latency 52 ms,</text><text x="310.0" y="521.0" font-size="16" text-anchor="middle">/health answering 200 all through the outage</text>
 <rect x="640" y="460" width="580" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
-<text x="930.0" y="491.0" font-size="16" text-anchor="middle">After: adoption by employer (Initech 22%), p95 of the</text><text x="930.0" y="511.0" font-size="16" text-anchor="middle">slowest member route (356 ms), availability against</text><text x="930.0" y="531.0" font-size="16" text-anchor="middle">the 99.5% SLO: the error budget gone in one morning</text>
+<text x="930.0" y="491.0" font-size="16" text-anchor="middle">After: adoption by employer (Initech 22%), p95 of the</text><text x="930.0" y="511.0" font-size="16" text-anchor="middle">slowest member route (357 ms), availability against</text><text x="930.0" y="531.0" font-size="16" text-anchor="middle">the 99.5% SLO: the error budget gone in one morning</text>
 <polyline points="580,505 640,505" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
 <text x="40.0" y="596.0" font-size="16" text-anchor="start">Product KPIs read the usage events, service KPIs the request log. The report, the dashboard and the checks</text><text x="40.0" y="616.0" font-size="16" text-anchor="start">read the same definitions, so "adoption" cannot mean two things.</text></svg>

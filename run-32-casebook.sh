@@ -33,4 +33,5 @@ psql -c "SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint WHERE conr
 psql -c "SELECT c.relname AS table, c.relrowsecurity AS rls, p.policyname, p.qual FROM pg_class c LEFT JOIN pg_policies p ON p.tablename = c.relname WHERE c.relkind = 'r' AND c.relnamespace = 'public'::regnamespace ORDER BY 1"
 psql -c "SELECT sequencename, has_sequence_privilege('portal_app', sequencename, 'USAGE') AS portal_app_usage FROM pg_sequences ORDER BY 1"
 echo "== proof: the committed SVGs =="
-for f in diagrams/*.svg; do printf '%-44s %7d bytes  %s\n' "$f" "$(wc -c < "$f")" "$(grep -o 'aria-roledescription="[^"]*"' "$f" | head -1)"; done
+# The Mermaid renders are numbered after their chapter; diagrams/overview.svg is the hand-built overview, not a Mermaid render.
+for f in diagrams/[0-9]*.svg; do printf '%-44s %7d bytes  %s\n' "$f" "$(wc -c < "$f")" "$(grep -o 'aria-roledescription="[^"]*"' "$f" | head -1)"; done

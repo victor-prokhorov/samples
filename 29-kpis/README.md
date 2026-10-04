@@ -2,7 +2,7 @@
 
 ![Overview](diagrams/overview.svg)
 
-**Pain: numbers that look good while members fail.** "712 logins this month" says nothing about the 58 eligible members who never came. A mean latency of 51 ms hides the long-serving members who wait 356 ms for their contribution history. A health check answers 200 all through an outage that failed member requests for four hours. Each team counts "active" or "resolved" its own way, nobody owns the number, and nobody knows what it should be.
+**Pain: numbers that look good while members fail.** "712 logins this month" says nothing about the 58 eligible members who never came. A mean latency of 52 ms hides the long-serving members who wait 357 ms for their contribution history. A health check answers 200 all through an outage that failed member requests for four hours. Each team counts "active" or "resolved" its own way, nobody owns the number, and nobody knows what it should be.
 
 **Reach for it when** a service needs to show whether it is used, whether members get their task done, and whether it is reliable enough: a product review, a service level agreed with partner organisations, a monthly report to whoever funds the team.
 
@@ -34,6 +34,7 @@ npm run report   # recompute the KPI table and the dashboard from what is in the
 - `src/dashboard.ts` renders `out/dashboard.html`: tiles, inline SVG bars, the definitions table. No script, no external library.
 - `src/demo.ts` the eight steps and their checks.
 - `out/dashboard.html` the dashboard from the last run.
+- `screenshots/take.mjs` takes `out/dashboard.html` in Chromium; `run-29-kpis.sh` runs it after the proofs.
 
 ## Concepts
 
@@ -60,13 +61,13 @@ The app emitted 712 logins, but only 52 of 110 eligible members logged in at all
    Initech  4/18 eligible members active (22%)
 ```
 
-The contributions page has a 51 ms mean and a 356 ms p95; all routes together have a p95 of 20 ms, which is why the KPI takes the slowest route:
+The contributions page has a 52 ms mean and a 357 ms p95; all routes together have a p95 of 22 ms, which is why the KPI takes the slowest route:
 
 ```
-   GET /contributions       397 requests  mean   51 ms  p95  356 ms
-   GET /profile             639 requests  mean    6 ms  p95   17 ms
-   POST /changes            179 requests  mean    7 ms  p95   16 ms
-   all member routes together: mean 14 ms, p95 20 ms (the fast pages drown the slow one, so the KPI takes the slowest route)
+   GET /contributions       397 requests  mean   52 ms  p95  357 ms
+   POST /changes            179 requests  mean    9 ms  p95   23 ms
+   GET /profile             639 requests  mean    7 ms  p95   19 ms
+   all member routes together: mean 15 ms, p95 22 ms (the fast pages drown the slow one, so the KPI takes the slowest route)
 ```
 
 The health probe saw no outage; member requests did, and the incident spent the whole error budget, burning it 28x faster than allowed over the day and about 85x during the four hours:
@@ -111,11 +112,23 @@ The report, every row from a definition's SQL:
    Change request task success                   85.1%  >= 85.0%   met     product owner  149 of 175 tasks
    Change request completion time (median)       169 s  <= 240 s   met     UX lead        p90 398 s
    Form error rate                               13.4%  <= 10.0%   MISSED  UX lead        23 of 172 submissions
-   Latency p95, slowest route                   356 ms  <= 300 ms  MISSED  tech lead      GET /contributions, all routes together 20 ms
+   Latency p95, slowest route                   357 ms  <= 300 ms  MISSED  tech lead      GET /contributions, all routes together 22 ms
    Availability                                 99.48%  >= 99.50%  MISSED  service owner  11 of 2102 requests failed
    Error budget remaining                        -4.7%  >= 0.0%    MISSED  service owner  11 failed of 10.5 allowed
    Requests resolved within 3 days               86.9%  >= 90.0%   MISSED  support lead   113 of 130 due
 ```
+
+## Screenshots
+
+Taken in Chromium by `screenshots/take.mjs` at the end of `run-29-kpis.sh`.
+
+The top of the dashboard: each KPI against its target and owner, the change-request funnel and the failed requests per day, with the incident on 09-17.
+
+![dashboard-top](screenshots/dashboard-top.png)
+
+The whole dashboard.
+
+![dashboard](screenshots/dashboard.png)
 
 ## Origins and further reading
 

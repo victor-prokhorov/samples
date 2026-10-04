@@ -34,6 +34,7 @@ npm run check    # the catalogue check alone, exits 1 on any problem (for CI)
 - `src/pages.ts` the page (`lang`, a language switcher marked with its own `lang`, `translate="no"` on data) and the naive page.
 - `src/scan.ts` a minimal HTML text-node scanner for the checks.
 - `fixtures/fr.broken.json` a French catalogue with seven typical translation mistakes.
+- `screenshots/take.mjs` takes the member page for bob in each locale in Chromium; `run-25-bilingual.sh` runs it while the server is up.
 
 ## Concepts
 
@@ -102,6 +103,26 @@ Pseudo-localisation finds what skipped the catalogue on the naive page, and the 
    /?lang=en-XA: 0 hard-coded strings, 0 overflow
      sample: ⟦Ýóúŕ mémƀéŕ áççóúñţ········⟧  ⟦0 péñðíñğ ŕéqúéšţš·······⟧  ⟦Ţóţáļ: €4,111.06···⟧
 ```
+
+## Screenshots
+
+Taken in Chromium by `screenshots/take.mjs` at the end of `run-25-bilingual.sh`: bob's member page, the same server and data in each locale.
+
+English.
+
+![en](screenshots/en.png)
+
+French: dates, amounts and the plural come from the locale, not from the template.
+
+![fr](screenshots/fr.png)
+
+The pseudo-locale: every string from the catalogue is bracketed, accented and padded about 40% longer, so a string that bypasses the catalogue or a layout that cannot grow shows up.
+
+![pseudo-en-XA](screenshots/pseudo-en-XA.png)
+
+The naive page asked for French: hard-coded English, a JavaScript date and a button label cut off.
+
+![naive-fr](screenshots/naive-fr.png)
 
 ## Origins and further reading
 
