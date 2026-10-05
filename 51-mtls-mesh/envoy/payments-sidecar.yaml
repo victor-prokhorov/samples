@@ -1,0 +1,69 @@
+# payments' sidecar: inbound only. Terminates mTLS on :15443, refuses clients without a certificate from the mesh CA,
+# allows Charge only for orders' SPIFFE id (RBAC), tells the app who called (x-forwarded-client-cert),
+# and forwards plaintext to the app on 127.0.0.1:50051 in the same network namespace.
+admin:
+  # On the network so the demo can read the counters through orders; keep it on 127.0.0.1 in a real deployment.
+  address: { socket_address: { address: 0.0.0.0, port_value: 9901 } }
+
+static_resources:
+  listeners:
+    - name: inbound
+      address: { socket_address: { address: 0.0.0.0, port_value: 15443 } }
+      filter_chains:
+        - transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.DownstreamTlsContext
+              require_client_certificate: true
+              common_tls_context:
+                tls_params: { tls_minimum_protocol_version: TLSv1_3, tls_maximum_protocol_version: TLSv1_3 }
+                alpn_protocols: ["h2"]
+                tls_certificates:
+                  - certificate_chain: { filename: /certs/payments.crt }
+                    private_key: { filename: /certs/payments.key }
+                validation_context:
+                  trusted_ca: { filename: /certs/ca.crt }
+          filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: inbound
+                codec_type: HTTP2
+                # replace any x-forwarded-client-cert the caller sent with the identity Envoy verified
+                forward_client_cert_details: SANITIZE_SET
+                set_current_client_cert_details: { uri: true }
+                route_config:
+                  virtual_hosts:
+                    - name: local_payments
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/" }
+                          route: { cluster: local_payments, timeout: 5s }
+                http_filters:
+                  - name: envoy.filters.http.rbac
+                    typed_config:
+                      "@type": type.googleapis.com/envoy.extensions.filters.http.rbac.v3.RBAC
+                      rules:
+                        action: ALLOW
+                        policies:
+                          orders-may-charge:
+                            permissions:
+                              - url_path: { path: { exact: "/payments.Payments/Charge" } }
+                            principals:
+                              - authenticated: { principal_name: { exact: "spiffe://mesh.local/ns/shop/sa/orders" } }
+                  - name: envoy.filters.http.router
+                    typed_config: { "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router }
+
+  clusters:
+    - name: local_payments
+      type: STATIC
+      connect_timeout: 1s
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config: { http2_protocol_options: {} }
+      load_assignment:
+        cluster_name: local_payments
+        endpoints:
+          - lb_endpoints:
+              - endpoint: { address: { socket_address: { address: 127.0.0.1, port_value: 50051 } } }

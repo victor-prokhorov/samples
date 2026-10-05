@@ -1,0 +1,147 @@
+# 51-mtls-mesh run 2026-10-05T17:10:15Z
+== deps on the host; the app containers mount this folder and run the same node_modules ==
+== a fresh private CA and workload certificates in certs/ (gitignored; the sidecars mount them) ==
+certs: wrote <repo>/51-mtls-mesh/certs/
+== fresh mesh: orders and payments apps, an Envoy sidecar in each one's network namespace, a tap between (docker compose down -v && up) ==
+ Container 51-mtls-mesh-orders-app-1 Healthy 
+sidecars: Envoy 1.35.3
+== demo: the same Charge call in plaintext, with server TLS, with mTLS in the app, then through the sidecars ==
+
+## 1. A private CA and one identity per workload
+   concept: the platform's CA signs a short-lived certificate per service; the identity is a SPIFFE URI in the SAN, not an IP or a hostname
+   ca              issuer=Mesh Root CA  until=2027-10-05T17:10Z signed-by-mesh-CA=yes (no SAN)
+   payments        issuer=Mesh Root CA  until=2026-10-06T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/payments, DNS:payments, DNS:localhost
+   orders          issuer=Mesh Root CA  until=2026-10-06T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/orders
+   reports         issuer=Mesh Root CA  until=2026-10-06T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/reports
+   rogue-orders    issuer=Rogue CA      until=2026-10-06T17:10Z signed-by-mesh-CA=no  URI:spiffe://mesh.local/ns/shop/sa/orders
+   rogue-payments  issuer=Rogue CA      until=2026-10-06T17:10Z signed-by-mesh-CA=no  URI:spiffe://mesh.local/ns/shop/sa/payments, DNS:payments, DNS:localhost
+   expired-orders  issuer=Mesh Root CA  until=2026-10-04T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/orders
+   check ok: orders, payments and reports carry their SPIFFE id and verify against the mesh CA
+   check ok: the rogue certificates claim orders and payments but the mesh CA did not sign them
+   check ok: the expired orders certificate is signed by the mesh CA but out of date
+
+## 2. Plaintext gRPC inside the platform
+   concept: "it is our network": no TLS; anyone on the path reads the call, and payments cannot tell who called
+   orders                           OK, payments saw caller=unknown
+   no client certificate            OK, payments saw caller=unknown
+   rogue CA, claims orders          OK, payments saw caller=unknown
+   orders, expired certificate      OK, payments saw caller=unknown
+   reports (trusted, not allowed)   OK, payments saw caller=unknown
+   the tap saw 437 bytes; card number READABLE; readable strings: HTTP/2.0 | order-plaintext-tapped | 4111111111111111 | pay_a7f3eaec | unknown
+   check ok: the call works and the card number crosses the wire in clear
+   check ok: every caller is accepted and payments sees caller=unknown
+
+## 3. TLS, server side only (like HTTPS)
+   concept: the wire is encrypted and orders knows it reached payments, but payments still accepts any caller
+   orders                           OK, payments saw caller=unknown
+   no client certificate            OK, payments saw caller=unknown
+   rogue CA, claims orders          OK, payments saw caller=unknown
+   orders, expired certificate      OK, payments saw caller=unknown
+   reports (trusted, not allowed)   OK, payments saw caller=unknown
+   the tap saw 5336 bytes; card number not readable; readable strings: payments
+   check ok: the card number is no longer readable on the wire
+   check ok: every caller, even one without a certificate, is still accepted as unknown
+
+## 4. Mutual TLS in the app
+   concept: payments asks for a client certificate from the mesh CA and reads the caller's SPIFFE id from it; an allowlist decides who may charge
+   orders                           OK, payments saw caller=spiffe://mesh.local/ns/shop/sa/orders
+   no client certificate            UNAVAILABLE: tlsv13 alert certificate required
+   rogue CA, claims orders          UNAVAILABLE: Failed to connect
+   orders, expired certificate      UNAVAILABLE: Failed to connect
+   reports (trusted, not allowed)   PERMISSION_DENIED: spiffe://mesh.local/ns/shop/sa/reports may not call Charge
+   the tap saw 10049 bytes; card number not readable; readable strings: payments
+   check ok: orders is accepted and payments knows it is orders, from the certificate
+   check ok: no certificate, a rogue CA and an expired certificate are all refused during the handshake
+   check ok: reports gets through the handshake but the allowlist answers PERMISSION_DENIED
+   orders -> a fake payments with a rogue-CA certificate for "payments": UNAVAILABLE: unable to verify the first certificate; the fake received 0 charges
+   check ok: orders refuses a payments impostor before sending anything
+   the cost: every service loads its key, certificate and CA, asks for and checks the peer's certificate, maps it to an identity and reloads certificates before they expire, in every language the platform uses
+
+## 5. Sidecars: the same plaintext apps, mTLS on the wire
+   concept: each app talks plaintext to an Envoy in its own network namespace; the sidecars do mTLS between them, check identities and pass the caller's id in x-forwarded-client-cert
+   mesh ready (0 retries while Envoy started)
+   orders app -> 127.0.0.1:15001 (its sidecar) -> tap -> payments' sidecar :15443 -> 127.0.0.1:50051: OK, payments saw caller=spiffe://mesh.local/ns/shop/sa/orders
+   (the tap has relayed every byte between the two sidecars since the stack started: 1 connection(s), handshake included)
+   the tap saw 6123 bytes; card number not readable; readable strings: payments
+   TLS calls or key/certificate files in orders-main.ts and payments-main.ts: 0 and 0
+   check ok: the call works and payments learns its caller from the sidecar's header
+   check ok: on the wire between the sidecars the card number is not readable
+   check ok: neither app has any TLS code or certificate
+   orders' sidecar: ssl.handshake=1 TLSv1.3=1 fail_verify_san=0
+   check ok: orders' sidecar did a TLS 1.3 handshake with payments' sidecar
+
+## 6. The sidecar decides who may call
+   concept: other workloads dial payments' sidecar directly with their own credentials; Envoy refuses unknown certificates at the handshake and RBAC allows Charge only for orders' SPIFFE id
+   orders                           OK, payments saw caller=spiffe://mesh.local/ns/shop/sa/orders
+   no client certificate            UNAVAILABLE: tlsv13 alert certificate required
+   rogue CA, claims orders          UNAVAILABLE: tlsv1 alert unknown ca
+   orders, expired certificate      UNAVAILABLE: ssl/tls alert certificate expired
+   reports (trusted, not allowed)   PERMISSION_DENIED: RBAC: access denied
+   check ok: another orders replica with a valid certificate is allowed and identified
+   check ok: no certificate, the rogue CA and the expired certificate are refused at the handshake
+   check ok: reports is authenticated but RBAC answers PERMISSION_DENIED
+   orders sends its own x-forwarded-client-cert claiming admin: OK, payments saw caller=spiffe://mesh.local/ns/shop/sa/orders
+   check ok: the forged header is replaced: payments still sees orders
+   payments' sidecar: handshake=4 fail_verify_no_cert=1 fail_verify_error=2 connection_error=0 rbac.allowed=4 rbac.denied=1
+   check ok: payments' sidecar counted the refusals: a missing certificate, untrusted ones, and one RBAC denial
+
+## 7. No way around the sidecar
+   concept: payments listens on 127.0.0.1 only, so a workload that dials its plaintext port directly finds nothing
+   orders app -> payments-app:50051 directly, plaintext: UNAVAILABLE: connect ECONNREFUSED 172.19.0.4:50051
+   check ok: the plaintext port is not reachable from the network
+
+## 8. Summary table
+   concept: out/results.svg: who gets through, and what the wire shows, in each mode
+   wrote out/results.svg (7003 bytes)
+   plaintext       orders: allowed, caller unknown; none: allowed, caller unknown; rogue: allowed, caller unknown; expired: allowed, caller unknown; reports: allowed, caller unknown; wire: card number readable
+   server TLS      orders: allowed, caller unknown; none: allowed, caller unknown; rogue: allowed, caller unknown; expired: allowed, caller unknown; reports: allowed, caller unknown; wire: encrypted
+   mTLS in app     orders: allowed as orders; none: refused at handshake; rogue: refused at handshake; expired: refused at handshake; reports: denied: not allowed; wire: encrypted
+   Envoy sidecars  orders: allowed as orders; none: refused at handshake; rogue: refused at handshake; expired: refused at handshake; reports: denied: not allowed; wire: encrypted
+   check ok: the table has a cell for every caller and the wire in all four modes
+
+22 checks passed
+
+== proof: orders' certificate (openssl x509): its identity is the URI SAN, valid for one day ==
+   subject=CN = orders
+   issuer=CN = Mesh Root CA, O = Samples platform
+   notBefore=Oct  5 17:09:16 2026 GMT
+   notAfter=Oct  6 17:10:16 2026 GMT
+   X509v3 Extended Key Usage: 
+       TLS Web Server Authentication, TLS Web Client Authentication
+   X509v3 Subject Alternative Name: 
+       URI:spiffe://mesh.local/ns/shop/sa/orders
+== proof: openssl verify against the mesh CA (the rogue and expired certificates fail) ==
+   orders          orders.crt: OK
+   payments        payments.crt: OK
+   reports         reports.crt: OK
+   rogue-orders    error 20 at 0 depth lookup: unable to get local issuer certificate
+   expired-orders  error 10 at 0 depth lookup: certificate has expired
+== proof: the containers; each sidecar shares its app's network namespace (network_mode: service:...) ==
+NAME                              STATE     PORTS
+51-mtls-mesh-orders-app-1         running   0.0.0.0:53061->53061/tcp
+51-mtls-mesh-orders-sidecar-1     running   
+51-mtls-mesh-payments-app-1       running   0.0.0.0:53161->15443/tcp
+51-mtls-mesh-payments-sidecar-1   running   
+51-mtls-mesh-tap-1                running   0.0.0.0:53261->8080/tcp
+   orders-sidecar    network mode: container:9f17aaadc037...
+   payments-sidecar  network mode: container:6647a9d6a495...
+== proof: the sidecars' TLS and RBAC counters (Envoy admin /stats, read through the orders app) ==
+   cluster.payments.ssl.fail_verify_error = 0
+   cluster.payments.ssl.fail_verify_no_cert = 0
+   cluster.payments.ssl.fail_verify_san = 0
+   cluster.payments.ssl.handshake = 1
+   cluster.payments.ssl.versions.TLSv1.3 = 1
+   http.inbound.rbac.allowed = 4
+   http.inbound.rbac.denied = 1
+   listener.0.0.0.0_15443.ssl.fail_verify_error = 2
+   listener.0.0.0.0_15443.ssl.fail_verify_no_cert = 1
+   listener.0.0.0.0_15443.ssl.fail_verify_san = 0
+   listener.0.0.0.0_15443.ssl.handshake = 4
+   listener.0.0.0.0_15443.ssl.versions.TLSv1.3 = 4
+== proof: what the tap between the sidecars holds (bytes, connections, whether the card number appears) ==
+   {"bytes":6123,"connections":1,"sawCard":false,"words":["payments"]}
+== proof: out/certs.txt and out/results.svg ==
+   905 out/certs.txt
+   7003 out/results.svg
+== screenshot: screenshots/results.png (out/results.svg rendered by tools/render.mjs) ==
+59908 screenshots/results.png

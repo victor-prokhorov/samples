@@ -1,0 +1,58 @@
+# The mesh half of the sample: two apps that speak plaintext gRPC, each with an Envoy sidecar in its network namespace
+# (network_mode: service:..., like containers in one Kubernetes pod), and a tap on the wire between the sidecars.
+x-node: &node
+  image: node:22-slim
+  init: true
+  working_dir: /app
+  volumes:
+    - .:/app:ro
+
+x-envoy: &envoy
+  image: envoyproxy/envoy:v1.35.3
+  environment:
+    ENVOY_UID: "0"
+
+services:
+  orders-app:
+    <<: *node
+    command: ["node_modules/.bin/tsx", "src/orders-main.ts"]
+    ports:
+      - "53061:53061"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:53061/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+  orders-sidecar:
+    <<: *envoy
+    network_mode: "service:orders-app"
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "warn"]
+    volumes:
+      - ./envoy/orders-sidecar.yaml:/etc/envoy/envoy.yaml:ro
+      - ./certs/ca.crt:/certs/ca.crt:ro
+      - ./certs/orders.crt:/certs/orders.crt:ro
+      - ./certs/orders.key:/certs/orders.key:ro
+    depends_on: [orders-app]
+
+  payments-app:
+    <<: *node
+    command: ["node_modules/.bin/tsx", "src/payments-main.ts"]
+    ports:
+      # payments' sidecar listener, published so the demo can play other workloads (no cert, rogue CA, reports)
+      - "53161:15443"
+  payments-sidecar:
+    <<: *envoy
+    network_mode: "service:payments-app"
+    command: ["envoy", "-c", "/etc/envoy/envoy.yaml", "--log-level", "warn"]
+    volumes:
+      - ./envoy/payments-sidecar.yaml:/etc/envoy/envoy.yaml:ro
+      - ./certs/ca.crt:/certs/ca.crt:ro
+      - ./certs/payments.crt:/certs/payments.crt:ro
+      - ./certs/payments.key:/certs/payments.key:ro
+    depends_on: [payments-app]
+
+  tap:
+    <<: *node
+    command: ["node_modules/.bin/tsx", "src/tap-main.ts"]
+    ports:
+      - "53261:8080"

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1128" height="760" viewBox="0 0 1128 760" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">50. DNS service discovery: call a name, not an address</text>
+<rect x="40" y="90" width="1040" height="560" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">One Compose network: every service is registered under its name</text>
+<rect x="70" y="140" width="260" height="170" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="200.0" y="201.0" font-size="16" text-anchor="middle">probe (the client)</text><text x="200.0" y="221.0" font-size="16" text-anchor="middle">knows only catalog:8080</text><text x="200.0" y="241.0" font-size="16" text-anchor="middle">pinned / fresh /</text><text x="200.0" y="261.0" font-size="16" text-anchor="middle">cached / resilient</text>
+<rect x="420" y="140" width="280" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="560.0" y="176.0" font-size="16" text-anchor="middle">Docker DNS 127.0.0.11</text><text x="560.0" y="196.0" font-size="16" text-anchor="middle">catalog: one A per replica, TTL 600 s</text>
+<rect x="420" y="340" width="280" height="110" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="560.0" y="371.0" font-size="16" text-anchor="middle">In the client, not in DNS:</text><text x="560.0" y="391.0" font-size="16" text-anchor="middle">cache lifetime, keep-alive,</text><text x="560.0" y="411.0" font-size="16" text-anchor="middle">timeout, drop a failed address</text><text x="560.0" y="431.0" font-size="16" text-anchor="middle">and retry another</text>
+<rect x="420" y="520" width="280" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="560.0" y="561.0" font-size="16" text-anchor="middle">CoreDNS, svc.internal</text><text x="560.0" y="581.0" font-size="16" text-anchor="middle">SRV: priority, weight, port</text>
+<rect x="800" y="130" width="250" height="50" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="925.0" y="161.0" font-size="16" text-anchor="middle">catalog-1 :8080</text>
+<rect x="800" y="195" width="250" height="50" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="925.0" y="226.0" font-size="16" text-anchor="middle">catalog-2 :8080</text>
+<rect x="800" y="260" width="250" height="50" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="925.0" y="291.0" font-size="16" text-anchor="middle">catalog-3 :8080</text>
+<rect x="800" y="325" width="250" height="50" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="925.0" y="346.0" font-size="16" text-anchor="middle">scaled out, then stopped:</text><text x="925.0" y="366.0" font-size="16" text-anchor="middle">gone from DNS</text>
+<rect x="800" y="390" width="250" height="50" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="925.0" y="421.0" font-size="16" text-anchor="middle">paused: still in DNS</text>
+<rect x="800" y="495" width="250" height="50" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="925.0" y="526.0" font-size="16" text-anchor="middle">ledger-a :8081, weight 3</text>
+<rect x="800" y="560" width="250" height="50" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="925.0" y="591.0" font-size="16" text-anchor="middle">ledger-b :8082, weight 1</text>
+<polyline points="330,180 380,180 420,180" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="344.5" y="169.3" width="71.0" height="21.5" fill="#ffffff"/>
+<text x="380.0" y="185.3" font-size="14" text-anchor="middle">1. lookup</text>
+<polyline points="330,285 560,285 800,285" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="514.0" y="274.3" width="92.0" height="21.5" fill="#ffffff"/>
+<text x="560.0" y="290.3" font-size="14" text-anchor="middle">2. GET by IP</text>
+<polyline points="200,310 200,395 420,395" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<polyline points="110,310 110,565 420,565" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="71.0" y="554.3" width="78.0" height="21.5" fill="#ffffff"/>
+<text x="110.0" y="570.3" font-size="14" text-anchor="middle">SRV lookup</text>
+<polyline points="700,532.5 800,532.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="700,585 800,585" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<text x="40.0" y="696.0" font-size="16" text-anchor="start">DNS knows names, not health: a stopped replica leaves DNS at once, a hung one stays until a timeout finds it.</text><text x="40.0" y="716.0" font-size="16" text-anchor="start">Caches and keep-alive connections decide when a client sees a change; a short timeout and a retry on another address cover the gap.</text></svg>

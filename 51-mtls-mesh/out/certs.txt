@@ -1,0 +1,7 @@
+ca              issuer=Mesh Root CA  until=2027-10-05T17:10Z signed-by-mesh-CA=yes (no SAN)
+payments        issuer=Mesh Root CA  until=2026-10-06T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/payments, DNS:payments, DNS:localhost
+orders          issuer=Mesh Root CA  until=2026-10-06T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/orders
+reports         issuer=Mesh Root CA  until=2026-10-06T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/reports
+rogue-orders    issuer=Rogue CA      until=2026-10-06T17:10Z signed-by-mesh-CA=no  URI:spiffe://mesh.local/ns/shop/sa/orders
+rogue-payments  issuer=Rogue CA      until=2026-10-06T17:10Z signed-by-mesh-CA=no  URI:spiffe://mesh.local/ns/shop/sa/payments, DNS:payments, DNS:localhost
+expired-orders  issuer=Mesh Root CA  until=2026-10-04T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/orders

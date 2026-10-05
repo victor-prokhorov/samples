@@ -10,7 +10,7 @@ Browse the samples, diagrams and screenshots at <https://victor-prokhorov.github
 
 Small, real TypeScript samples, one idea each, for engineers who change, build and run a live system. They are written for a reader who wants to see a pattern work rather than read about it: every sample runs with one script and leaves a committed proof log, so you can check the claim on GitHub without running anything.
 
-- **Skills they prove**: changing a live system without downtime, replacing legacy code safely, calling services that fail, publishing events, scaling and isolating data in Postgres, building an accessible bilingual full-stack portal with single sign-on, testing it at every level, and running it with pipelines, runbooks and KPIs.
+- **Skills they prove**: changing a live system without downtime, replacing legacy code safely, calling services that fail, finding services by DNS and securing their calls with mTLS, publishing events, scaling and isolating data in Postgres, building an accessible bilingual full-stack portal with single sign-on, testing it at every level, and running it with pipelines, runbooks and KPIs.
 - **Three highlights**: [15](15-multi-tenancy/) shows each multi-tenancy pitfall leaking another tenant's rows, then fixes it with row-level security; [24](24-characterization/) pins a legacy PL/pgSQL calculation with a golden master and explains every mismatch; [06](06-service-reliability/) cuts a dependency's wasted database time from 15098 ms to 2393 ms by propagating deadlines.
 - **Read the story, not just the code**: three one-page [case studies](docs/case-studies/) (replacing a legacy system, an accessible bilingual portal, running the service) tie the samples to real decisions, and [49](49-capstone/) shows the product pieces working as one portal, with screenshots.
 - **Run one in two minutes**: with Node 22 and nothing else, `./04-parallel-run/run.sh` (no Docker) runs a rewrite next to legacy code on 1000 orders and writes [`logs/04-parallel-run.log`](logs/04-parallel-run.log).
@@ -19,10 +19,10 @@ Each folder's README has the full story: pain, when to use it and when not, how 
 
 ## Prerequisites
 
-- **Docker** with Compose, for every sample that lists infrastructure (most use only `postgres:16`; 38 also pulls `node:22-slim`, trivy and gitleaks).
+- **Docker** with Compose, for every sample that lists infrastructure (most use only `postgres:16`; 38 also pulls `node:22-slim`, trivy and gitleaks; 50 pulls `node:22-slim` and `coredns/coredns`; 51 pulls `node:22-slim` and `envoyproxy/envoy`).
 - **Node 22** ([`.nvmrc`](.nvmrc)); every `package.json` declares `"engines": {"node": ">=22"}`.
-- **Chromium for Playwright** for the browser tests and every screenshot (21, 22, 30, 32 and most of 33-49): `npx playwright install chromium` (Playwright 1.56.1).
-- **Command-line tools** used by the run scripts: `jq`, `rsync` (30), `curl` (30 downloads the pipeline schemas, 46 downloads k6), `perl`, `unzip` (22), and poppler's `pdftoppm` for screenshots of PDFs.
+- **Chromium for Playwright** for the browser tests and every screenshot (21, 22, 30, 32 and most of 33-51): `npx playwright install chromium` (Playwright 1.56.1).
+- **Command-line tools** used by the run scripts: `jq`, `rsync` (30), `curl` (30 downloads the pipeline schemas, 46 downloads k6), `perl`, `unzip` (22), `openssl` (51), and poppler's `pdftoppm` for screenshots of PDFs.
 - **Network** on the first run: npm installs, and the downloads above.
 - **One click instead**: open the repo in the [devcontainer](.devcontainer/devcontainer.json) (GitHub Codespaces or VS Code Dev Containers), which has Docker-in-Docker, Node 22, Playwright Chromium, jq, rsync, curl, poppler and the Postgres client.
 
@@ -32,7 +32,7 @@ Each path is ordered: read it left to right. The main table is numbered by compl
 
 - **Product engineer**: 20 server-rendered portal, 21 accessible forms, 25 two languages, 26 single sign-on, 37 authorization, 33 API contract, 34 test pyramid, 22 end-to-end tests, 23 executable specs, 35 design tokens, 39 web performance, 49 capstone.
 - **Legacy replacement**: 01 audit trail, 02 expand/contract, 24 characterization tests, 04 parallel run, 05 strangler fig, 27 data import, 40 feature flags, 41 anti-corruption layer, 32 design case, 30 pipeline, 31 runbooks.
-- **Operations**: 06 timeouts and retries, 19 leader election, 28 resumable batch, 29 KPIs and SLOs, 36 tracing, 38 containers, 30 pipeline, 31 runbooks, 42 security headers, 45 rate limiting, 46 load test.
+- **Operations**: 06 timeouts and retries, 19 leader election, 28 resumable batch, 29 KPIs and SLOs, 36 tracing, 38 containers, 50 DNS discovery, 51 mTLS and sidecars, 30 pipeline, 31 runbooks, 42 security headers, 45 rate limiting, 46 load test.
 - **Data and distributed systems**: 03 event sourcing, 08 saga, 09 outbox, 10 CDC, 11 outbox via CDC, 12 choreography, 13 partitioning, 14 sharding, 15 multi-tenancy, 16 serializable, 17 audit outbox, 18 crypto-shredding, 43 data export, 44 HTTP caching, 47 search, 48 object storage.
 
 ## Skill index
@@ -42,7 +42,8 @@ Each path is ordered: read it left to right. The main table is numbered by compl
 | Auditing and history | [01](01-crud-audit/), [03](03-event-sourcing/), [17](17-audit-outbox/) |
 | Zero-downtime schema and deploys | [02](02-expand-contract/), [38](38-containers/), [40](40-feature-flags/) |
 | Replacing legacy code | [04](04-parallel-run/), [05](05-strangler-fig/), [24](24-characterization/), [32](32-casebook/), [41](41-crm-integration/) |
-| Resilient calls between services | [06](06-service-reliability/), [45](45-rate-limiting/) |
+| Resilient calls between services | [06](06-service-reliability/), [45](45-rate-limiting/), [50](50-dns-discovery/) |
+| Service discovery and service mesh | [50](50-dns-discovery/), [51](51-mtls-mesh/) |
 | HTTP API design | [07](07-file-upload/), [33](33-api-contract/), [44](44-http-caching/) |
 | Sagas and event publishing | [08](08-saga/), [09](09-outbox-polling/), [10](10-cdc-debezium/), [11](11-outbox-debezium/), [12](12-choreographed-saga/) |
 | Scaling Postgres | [13](13-partitioning/), [14](14-sharding-replicas/), [47](47-full-text-search/) |
@@ -53,7 +54,7 @@ Each path is ordered: read it left to right. The main table is numbered by compl
 | Accessibility and UI quality | [21](21-accessibility/), [35](35-design-tokens/), [39](39-web-performance/) |
 | Testing at every level | [22](22-playwright/), [23](23-specs/), [24](24-characterization/), [34](34-test-pyramid/) |
 | Internationalisation | [25](25-bilingual/), [47](47-full-text-search/) |
-| Web security | [26](26-sso/), [37](37-authorization/), [42](42-security-headers/), [48](48-object-storage/) |
+| Web security | [26](26-sso/), [37](37-authorization/), [42](42-security-headers/), [48](48-object-storage/), [51](51-mtls-mesh/) |
 | Data loads and integrations | [27](27-import/), [41](41-crm-integration/), [48](48-object-storage/) |
 | Observability, KPIs and capacity | [29](29-kpis/), [36](36-observability/), [46](46-load-test/) |
 | Delivery and operations | [30](30-pipeline/), [31](31-runbook/), [38](38-containers/), [40](40-feature-flags/) |
@@ -121,6 +122,9 @@ Each path is ordered: read it left to right. The main table is numbered by compl
 | 48 | [`48-object-storage/`](48-object-storage/) | large uploads through the app server | presigned PUT/GET (AWS SDK v3) with signed content type and length, SigV4 verification, browser direct upload with bucket CORS, quarantine prefix and EICAR scanner, Content-Disposition downloads | Postgres, s3rver behind a SigV4 gate, Chromium | `./48-object-storage/run.sh` | [`logs/48-object-storage.log`](logs/48-object-storage.log) |
 | | **Putting it together** | | | | | |
 | 49 | [`49-capstone/`](49-capstone/) | pieces that never form one product | one portal from the samples' pieces: OIDC + PKCE into Next.js server components, RLS per transaction, design tokens (35), ICU/Intl EN-FR, error summary, four eyes, usage events to KPI tiles | Postgres, oidc-provider (npm), Chromium | `./49-capstone/run.sh` | [`logs/49-capstone.log`](logs/49-capstone.log) |
+| | **Finding and securing services** | | | | | |
+| 50 | [`50-dns-discovery/`](50-dns-discovery/) | addresses in config | service name as the address, Compose's embedded DNS, one A record per replica, DNS round robin in the client, keep-alive pinning, TTL and caches, scale out without config, a stopped replica leaves DNS and a hung one stays, timeout + retry another address (outlier ejection), SRV records (priority, weight, port, RFC 2782) from CoreDNS | 3-5 catalog replicas, 2 ledgers, CoreDNS, a probe client (node:22-slim) | `./50-dns-discovery/run.sh` | [`logs/50-dns-discovery.log`](logs/50-dns-discovery.log) |
+| 51 | [`51-mtls-mesh/`](51-mtls-mesh/) | plaintext calls inside a "trusted" network | gRPC between two services, a tap on the wire, server TLS vs mutual TLS, private CA, SPIFFE ids in the URI SAN, short-lived certificates, authentication vs authorization (allowlist, Envoy RBAC), Envoy sidecars in the app's network namespace, `x-forwarded-client-cert` sanitized, app bound to localhost | orders and payments (node:22-slim), 2 Envoy sidecars, a tap | `./51-mtls-mesh/run.sh` | [`logs/51-mtls-mesh.log`](logs/51-mtls-mesh.log) |
 
 Each script starts from a fresh state (`docker compose down -v && up` where there is infra), installs deps, runs the demo, then dumps the raw state as proof. Everything it prints goes to `logs/<name>.log`.
 
@@ -154,7 +158,8 @@ Chosen to avoid clashing with other local services. From 21 on: Postgres `55430 
 | 22 | Postgres 55452, HTTP 53032 portal (hand run; test workers use free ports) | 47 | Postgres 55477, HTTP 53057 search page |
 | 23 | Postgres 55453 | 48 | Postgres 55478, HTTP 53058 app, 53158 storage (SigV4 gate) |
 | 24 | Postgres 55454 | 49 | Postgres 55479, HTTP 53059 portal (next start), 53159 IdP |
-| 25 | HTTP 53035 member page |  |  |
+| 25 | HTTP 53035 member page | 50 | HTTP 53060 probe (the client inside the network); the replicas publish nothing |
+|  |  | 51 | HTTP 53061 orders, 53161 payments' sidecar (mTLS), 53261 tap stats |
 
 ## Which one when
 
@@ -207,10 +212,12 @@ Chosen to avoid clashing with other local services. From 21 on: Postgres `55430 
 - **Full-text search (47)**: search in French or with typos misses obvious matches: Postgres full-text search with a French configuration and `unaccent`, `pg_trgm` for typos, ranking and highlighting, before reaching for a search engine.
 - **Object storage (48)**: large files go through the app server: presigned uploads and downloads with expiry and size limits, and a quarantine step before a file is used.
 - **Capstone (49)**: once the pieces work alone: one styled, bilingual, accessible portal with single sign-on, tests and KPIs, showing how they fit in one product.
+- **DNS service discovery (50)**: services run as replicas that come and go and callers should find them by name: resolve the platform's service name, keep timeouts short and retry another address, and do not expect DNS to know which replica is healthy or caches to forget quickly.
+- **mTLS and sidecars (51)**: services call each other inside the platform and each call must be encrypted and its caller proven: mutual TLS with workload certificates from a private CA, an allowlist by SPIFFE id, and sidecar proxies once many services or languages need the same thing.
 
 ## How they combine
 
-A strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga (12) publishes its events through per-service outboxes; every retried write between services carries 06's idempotency key; an event-sourced service (03) can publish its events through an outbox/CDC relay and keep its personal data crypto-shredded (18); a singleton relay or waker (09, 08) either claims rows or runs under a leader lease (19). On the product side, the portal (20) is the thing the others protect: its forms follow 21, its journeys are tested by 22 and its rules by 23, a rewrite of a legacy screen starts with 24, every string goes through 25, login comes from 26, the monthly import (27) and yearly campaign (28) are run from 31's runbooks, 29 says whether it works for members, 30 gates every change, and 32 is how the whole plan is written down before any of it is built. Samples 33 to 49 close the loop: 33 and 34 keep the portal's API and tests honest, 37 and 42 harden it, 36, 39 and 46 measure it, 38 and 40 ship it safely, 41 and 48 connect it to partners and files, and 49 puts the whole product together.
+A strangler migration verifies with parallel runs and feeds the new service through CDC; a choreographed saga (12) publishes its events through per-service outboxes; every retried write between services carries 06's idempotency key; an event-sourced service (03) can publish its events through an outbox/CDC relay and keep its personal data crypto-shredded (18); a singleton relay or waker (09, 08) either claims rows or runs under a leader lease (19). On the product side, the portal (20) is the thing the others protect: its forms follow 21, its journeys are tested by 22 and its rules by 23, a rewrite of a legacy screen starts with 24, every string goes through 25, login comes from 26, the monthly import (27) and yearly campaign (28) are run from 31's runbooks, 29 says whether it works for members, 30 gates every change, and 32 is how the whole plan is written down before any of it is built. Samples 33 to 49 close the loop: 33 and 34 keep the portal's API and tests honest, 37 and 42 harden it, 36, 39 and 46 measure it, 38 and 40 ship it safely, 41 and 48 connect it to partners and files, and 49 puts the whole product together. Between services, 50 finds the replicas by name and 51 encrypts and authenticates each call, the job a service mesh takes off 06's hand-written client logic.
 
 ## Repo conventions
 

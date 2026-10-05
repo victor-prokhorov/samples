@@ -20,7 +20,17 @@ function renderRows(table: HTMLElement, rows: Row[]) {
   }
 }
 
+// An A/B-testing snippet run synchronously before anything renders "so the page never flickers": it blocks the main
+// thread for about 200 ms while it decides (on any machine: it waits on the clock, not on the CPU).
+function decideExperiments() {
+  const until = performance.now() + 200;
+  let n = 0;
+  while (performance.now() < until) n++;
+  return n;
+}
+
 function start() {
+  decideExperiments();
   const rows = history();
   const byYear = _.groupBy(rows, (r) => moment(r.date).year());
   const app = document.getElementById("app")!;

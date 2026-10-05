@@ -1,0 +1,11 @@
+$ORIGIN svc.internal.
+$TTL 5
+@        IN SOA  ns.svc.internal. admin.svc.internal. 2026100501 60 60 3600 5
+         IN NS   ns.svc.internal.
+ns       IN A    127.0.0.1
+; RFC 2782: _service._proto.name  TTL  SRV  priority weight port target
+; Same priority: clients split by weight, 3 to 1. The port comes from DNS, not from the client's config.
+_http._tcp.ledger  IN SRV 10 3 8081 ledger-a.
+_http._tcp.ledger  IN SRV 10 1 8082 ledger-b.
+; A lower-priority (higher number) entry is used only when every priority-10 target is down.
+_http._tcp.ledger  IN SRV 20 1 8080 catalog.

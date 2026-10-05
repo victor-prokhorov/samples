@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="1248" height="800" viewBox="0 0 1248 800" font-family="Helvetica, Arial, sans-serif" fill="#1e1e1e"><defs><marker id="head" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0,0 L10,5 L0,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker><marker id="head-start" viewBox="0 0 10 10" refX="1" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M10,0 L0,5 L10,10" fill="none" stroke="#1e1e1e" stroke-width="1.5"/></marker></defs><rect width="100%" height="100%" fill="#ffffff"/><text x="40.0" y="52.0" font-size="28" text-anchor="start" font-weight="bold">51. mTLS between services: in the app, then in sidecars</text>
+<rect x="40" y="90" width="1040" height="170" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="116.0" font-size="18" text-anchor="start" font-weight="bold">Steps 2-4: in the app (plaintext, then server TLS, then mTLS)</text>
+<rect x="70" y="140" width="300" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="220.0" y="171.0" font-size="16" text-anchor="middle">orders</text><text x="220.0" y="191.0" font-size="16" text-anchor="middle">loads its key, cert and the CA</text><text x="220.0" y="211.0" font-size="16" text-anchor="middle">grpc.credentials.createSsl(...)</text>
+<rect x="720" y="140" width="330" height="90" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="885.0" y="171.0" font-size="16" text-anchor="middle">payments</text><text x="885.0" y="191.0" font-size="16" text-anchor="middle">requires a client certificate,</text><text x="885.0" y="211.0" font-size="16" text-anchor="middle">reads the SPIFFE id, allowlist</text>
+<polyline points="370,185 720,185" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)" marker-start="url(#head-start)"/>
+<rect x="527.0" y="174.3" width="36.0" height="21.5" fill="#ffffff"/>
+<text x="545.0" y="190.3" font-size="14" text-anchor="middle">gRPC</text>
+<rect x="340" y="285" width="420" height="60" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="550.0" y="311.0" font-size="16" text-anchor="middle">Mesh CA signs spiffe://mesh.local/ns/shop/sa/&lt;name&gt;,</text><text x="550.0" y="331.0" font-size="16" text-anchor="middle">valid for one day</text>
+<rect x="40" y="370" width="1040" height="330" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="50.0" y="396.0" font-size="18" text-anchor="start" font-weight="bold">Steps 5-7: the apps speak plaintext, sidecars do mTLS (the service mesh idea)</text>
+<rect x="60" y="420" width="330" height="140" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="70.0" y="446.0" font-size="18" text-anchor="start" font-weight="bold">orders: one network namespace</text>
+<rect x="75" y="465" width="145" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="147.5" y="488.5" font-size="16" text-anchor="middle">orders app</text><text x="147.5" y="508.5" font-size="16" text-anchor="middle">no TLS code,</text><text x="147.5" y="528.5" font-size="16" text-anchor="middle">plaintext</text>
+<rect x="235" y="465" width="140" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="305.0" y="498.5" font-size="16" text-anchor="middle">Envoy</text><text x="305.0" y="518.5" font-size="16" text-anchor="middle">127.0.0.1:15001</text>
+<rect x="455" y="465" width="150" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="530.0" y="498.5" font-size="16" text-anchor="middle">tap</text><text x="530.0" y="518.5" font-size="16" text-anchor="middle">sees ciphertext</text>
+<rect x="680" y="420" width="380" height="140" rx="0" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="690.0" y="446.0" font-size="18" text-anchor="start" font-weight="bold">payments: one network namespace</text>
+<rect x="695" y="465" width="170" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="2"/>
+<text x="780.0" y="498.5" font-size="16" text-anchor="middle">Envoy :15443</text><text x="780.0" y="518.5" font-size="16" text-anchor="middle">mTLS, RBAC, XFCC</text>
+<rect x="880" y="465" width="165" height="75" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1"/>
+<text x="962.5" y="488.5" font-size="16" text-anchor="middle">payments app</text><text x="962.5" y="508.5" font-size="16" text-anchor="middle">plaintext on</text><text x="962.5" y="528.5" font-size="16" text-anchor="middle">127.0.0.1:50051</text>
+<polyline points="220,502.5 235,502.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<polyline points="375,502.5 455,502.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="397.0" y="491.8" width="36.0" height="21.5" fill="#ffffff"/>
+<text x="415.0" y="507.8" font-size="14" text-anchor="middle">mTLS</text>
+<polyline points="605,502.5 695,502.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="632.0" y="491.8" width="36.0" height="21.5" fill="#ffffff"/>
+<text x="650.0" y="507.8" font-size="14" text-anchor="middle">mTLS</text>
+<polyline points="865,502.5 880,502.5" fill="none" stroke="#1e1e1e" stroke-width="1.2" marker-end="url(#head)"/>
+<rect x="290" y="600" width="450" height="80" rx="8" fill="none" stroke="#1e1e1e" stroke-width="1" stroke-dasharray="8 6"/>
+<text x="515.0" y="636.0" font-size="16" text-anchor="middle">no cert, rogue CA, expired: refused at handshake</text><text x="515.0" y="656.0" font-size="16" text-anchor="middle">reports (trusted CA): RBAC, PERMISSION_DENIED</text>
+<polyline points="740,640 780,640 780,540" fill="none" stroke="#1e1e1e" stroke-width="1.2" stroke-dasharray="6 5" marker-end="url(#head)"/>
+<text x="40.0" y="736.0" font-size="16" text-anchor="start">Same result both ways: only orders gets through, and payments knows it is orders. In the app, every service carries TLS code;</text><text x="40.0" y="756.0" font-size="16" text-anchor="start">with sidecars, the apps stay plaintext on localhost and the platform issues and checks identities for all of them (a real mesh also rotates them).</text></svg>

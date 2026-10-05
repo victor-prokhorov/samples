@@ -1,0 +1,8 @@
+# svc.internal comes from the zone file; everything else goes to Docker's embedded DNS.
+svc.internal:53 {
+  file /etc/coredns/svc.internal.zone
+  log
+}
+.:53 {
+  forward . 127.0.0.11
+}

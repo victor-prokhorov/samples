@@ -1,0 +1,107 @@
+# 50-dns-discovery run 2026-10-05T17:10:28Z
+== deps on the host; the containers mount this folder and run the same node_modules ==
+== fresh network: 3 catalog replicas, ledger-a, ledger-b, CoreDNS and the probe (docker compose down -v && up) ==
+ Container 50-dns-discovery-catalog-1 Healthy 
+== demo: four clients find catalog by name; scale out, stop one, pause one; then SRV records ==
+   the four clients in the probe (all configured with the name catalog:8080 only):
+     pinned     keep-alive connection to catalog:8080 (one lookup per connection)
+     fresh      resolve4(catalog) on every request, random pick, new connection
+     cached     answer cached 12 s, random pick, 500 ms timeout, no retry
+     resilient  answer cached 12 s, 300 ms timeout, on failure drop the address and retry another (3 attempts)
+
+## 1. A name, several addresses
+   concept: Compose registers every container of a service under the service name in its embedded DNS (127.0.0.11); one A record per replica
+   resolve4("catalog") -> 172.18.0.4 (catalog-2, ttl 600 s), 172.18.0.7 (catalog-3, ttl 600 s), 172.18.0.8 (catalog-1, ttl 600 s)
+   check ok: DNS returns one A record per running replica (3), the same addresses Docker assigned
+   check ok: Docker's DNS answers with a TTL of 600 s: a client that honours it may keep a gone address for minutes
+
+## 2. Spreading the load
+   concept: a keep-alive connection is opened once and reused, so a client that resolves per connection sticks to one replica; resolving per request and picking at random spreads it
+   pinned      150 sent  catalog-2=150  p50 1 ms, max 14 ms, 193 ms in all
+   fresh       150 sent  catalog-1=52 catalog-2=56 catalog-3=42  p50 1 ms, max 6 ms, 349 ms in all
+   cached      150 sent  catalog-1=55 catalog-2=47 catalog-3=48  p50 2 ms, max 5 ms, 289 ms in all
+   resilient   150 sent  catalog-1=57 catalog-2=37 catalog-3=56  p50 2 ms, max 7 ms, 300 ms in all
+   check ok: the keep-alive client sends all 150 requests to one replica
+   check ok: resolving per request reaches all 3 replicas, none with less than 20% of the requests
+
+## 3. Scale out, no config change
+   concept: docker compose up --scale catalog=5: the new replicas are in DNS as soon as they start; a client that cached the old answer does not see them until its cache expires
+   after scaling, resolve4("catalog") -> 5 records: catalog-2, catalog-3, catalog-1, catalog-4, catalog-5 (2.2 s after the cached client last asked)
+   check ok: DNS lists all 5 replicas right after they start
+   fresh       200 sent  catalog-1=47 catalog-2=41 catalog-3=33 catalog-4=45 catalog-5=34  p50 1 ms, max 2 ms, 217 ms in all
+   cached      200 sent  catalog-1=65 catalog-2=72 catalog-3=63  p50 1 ms, max 3 ms, 120 ms in all
+   check ok: the client that resolves per request reaches all 5 replicas at once
+   check ok: the client with an 12 s cache still uses only the 3 old replicas
+   waiting 9.7 s for the cached answer to expire
+   cached      200 sent  catalog-1=35 catalog-2=44 catalog-3=38 catalog-4=47 catalog-5=36  p50 1 ms, max 3 ms, 159 ms in all
+   check ok: once its cache expires, the cached client spreads over all 5
+   the keep-alive client is on catalog-2 again: its idle connection was closed during the wait (Node's server closes idle keep-alive connections after 5 s), and the new lookup happened to return the same replica first
+
+## 4. A replica leaves (docker stop)
+   concept: a stopped container drops out of DNS at once, but a cached address still points at it; the keep-alive client loses its connection and looks up again
+   stopped catalog-2 (172.18.0.4); resolve4("catalog") -> 4 records, without catalog-2
+   check ok: the stopped replica is gone from DNS immediately
+   resilient   100 sent  catalog-1=16 catalog-3=21 catalog-4=30 catalog-5=33  (1 retried)  p50 1 ms, max 305 ms, 375 ms in all
+   cached       40 sent  catalog-1=5 catalog-3=8 catalog-4=11 catalog-5=9  FAILED: 7 x timeout after 500 ms (catalog-2)  p50 1 ms, max 502 ms, 3553 ms in all
+   pinned      100 sent  catalog-5=100  p50 0 ms, max 3 ms, 39 ms in all
+   fresh       100 sent  catalog-1=28 catalog-3=22 catalog-4=28 catalog-5=22  p50 1 ms, max 4 ms, 114 ms in all
+   check ok: while its cache lasts, the cached client keeps picking the stopped replica's address and times out (about 1 request in 5)
+   check ok: the resilient client drops the dead address after one timeout and loses no request
+   check ok: the keep-alive client loses its connection, looks up again and lands on a live replica (at most 1 failure)
+   check ok: the client that resolves per request never sees the stopped replica
+
+## 5. A replica hangs (docker pause)
+   concept: DNS knows names, not health: a paused container is still registered, so every DNS-based client keeps choosing it until a timeout says otherwise
+   paused catalog-4 (172.18.0.9); resolve4("catalog") -> 4 records, still including catalog-4
+   check ok: the paused replica is still in DNS
+   fresh        60 sent  catalog-1=14 catalog-3=16 catalog-5=15  FAILED: 15 x timeout after 1000 ms (catalog-4)  p50 1 ms, max 1002 ms, 15096 ms in all
+   resilient    60 sent  catalog-1=25 catalog-3=18 catalog-5=17  (1 retried)  p50 1 ms, max 302 ms, 346 ms in all
+   check ok: the client that resolves per request times out on about a quarter of its requests
+   check ok: the resilient client times out once (300 ms), drops the address and loses no request
+
+## 6. SRV records: port and weight from DNS
+   concept: RFC 2782: _http._tcp.ledger.svc.internal lists each instance with a priority, a weight and a port; the client tries the lowest priority first and splits by weight
+   SRV 10 3 8081 ledger-a
+   SRV 10 1 8082 ledger-b
+   SRV 20 1 8080 catalog
+   check ok: CoreDNS serves 3 SRV records, each with its own port
+   400 requests: ledger-a:8081=295 ledger-b:8082=105
+   check ok: weights 3 and 1 split the traffic about 75/25 (ledger-a got 74%), and nothing goes to the priority-20 backup
+   ledger-a and ledger-b stopped, 50 requests: catalog:8080=50
+     16 x tried ledger-b:8082 -> ledger-a:8081 -> catalog:8080
+     34 x tried ledger-a:8081 -> ledger-b:8082 -> catalog:8080
+   check ok: with every priority-10 target gone, all 50 requests fall back to the priority-20 target
+
+## 7. Chart
+   concept: out/requests.svg: which replica answered each client, step by step
+   wrote out/requests.svg (15748 bytes, 15 bars)
+   check ok: the chart has one bar per client run (15)
+
+20 checks passed
+
+== proof: the containers now (the catalog replica stopped in step 4 and the two ledgers stopped in step 6 are not listed; the paused one was unpaused) ==
+NAME                         SERVICE   STATE
+50-dns-discovery-catalog-1   catalog   running
+50-dns-discovery-catalog-3   catalog   running
+50-dns-discovery-catalog-4   catalog   running
+50-dns-discovery-catalog-5   catalog   running
+50-dns-discovery-coredns-1   coredns   running
+50-dns-discovery-probe-1     probe     running
+== proof: what a container is told to use for DNS (Docker's embedded resolver) ==
+nameserver 127.0.0.11
+options timeout:2 attempts:3 ndots:0
+== proof: getent ahostsv4 catalog in the probe (glibc's view: one line per live replica) ==
+172.18.0.7
+172.18.0.8
+172.18.0.9
+172.18.0.10
+== proof: the SRV zone CoreDNS serves (dns/svc.internal.zone) ==
+_http._tcp.ledger  IN SRV 10 3 8081 ledger-a.
+_http._tcp.ledger  IN SRV 10 1 8082 ledger-b.
+_http._tcp.ledger  IN SRV 20 1 8080 catalog.
+== proof: CoreDNS's query log, the last SRV lookups ==
+"SRV IN _http._tcp.ledger.svc.internal. udp 48 false 512" NOERROR qr,aa,rd 262 0.000077466s
+"SRV IN _http._tcp.ledger.svc.internal. udp 48 false 512" NOERROR qr,aa,rd 262 0.000068555s
+"SRV IN _http._tcp.ledger.svc.internal. udp 48 false 512" NOERROR qr,aa,rd 262 0.000078892s
+== screenshot: screenshots/requests.png (out/requests.svg rendered by tools/render.mjs) ==
+105609 screenshots/requests.png

@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package payments;
+
+// The one call orders makes to payments. The card number makes it obvious on the wire whether the call is encrypted.
+service Payments {
+  rpc Charge (ChargeRequest) returns (ChargeReply);
+}
+
+message ChargeRequest {
+  string order_id = 1;
+  string card_number = 2;
+  int64 amount_cents = 3;
+}
+
+message ChargeReply {
+  string payment_id = 1;
+  // Who payments believes called it: from the client certificate (in-app mTLS)
+  // or from the x-forwarded-client-cert header its sidecar adds (mesh); "unknown" without either.
+  string caller = 2;
+}
