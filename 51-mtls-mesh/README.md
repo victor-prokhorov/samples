@@ -6,7 +6,7 @@
 
 **Reach for it when** services call each other inside a platform and you want zero trust between them: every call encrypted, every caller proven by a certificate, and a policy that says which service may call which. This is the default in a service mesh (Istio, Linkerd, Consul Connect), and often a compliance requirement (payment card data, health data) for traffic inside the platform, not only at the edge.
 
-**Do not reach for it when** you have two services and one team: TLS from the platform's ingress plus a network policy may be enough, and a mesh adds a control plane, a proxy per pod and new failure modes. In-app mTLS (steps 2 to 4) is fine for a few services in one language. Sidecars pay off when many services, languages or teams need the same encryption, identity and policy, and you want to change it without changing their code. mTLS proves *which workload* is calling, not *which user*: keep end-user authorization (37) on top.
+**Do not reach for it when** you have two services and one team: TLS from the platform's ingress plus a network policy may be enough, and a mesh adds a control plane, a proxy per pod and new failure modes. In-app mTLS (step 4) is fine for a few services in one language. Sidecars pay off when many services, languages or teams need the same encryption, identity and policy, and you want to change it without changing their code. mTLS proves *which workload* is calling, not *which user*: keep end-user authorization (37) on top.
 
 Sam Newman's *Building Microservices* (2nd edition) treats mutual TLS as the way for services to authenticate each other, and the service mesh as the way to give it to every service without each one implementing it. This sample does it both ways and checks that they give the same answers.
 
@@ -25,12 +25,13 @@ docker compose up -d --wait                # orders-app + sidecar, payments-app 
 curl localhost:53061/checkout              # orders -> its sidecar -> tap -> payments' sidecar -> payments
 curl localhost:53261/stats                 # what the tap saw: no card number
 curl localhost:53061/stats                 # both sidecars' TLS and RBAC counters
-npm run demo                               # the eight steps below
-openssl s_client -connect localhost:53161 -CAfile certs/ca.crt -servername payments </dev/null   # no client cert: refused
+npm run demo                               # steps 1-8 (see the log)
+openssl s_client -connect localhost:53161 -CAfile certs/ca.crt -servername payments </dev/null   # no client cert: CONNECTED and the server's chain print first, then the "certificate required" alert (TLS 1.3 checks the client after the handshake output)
 ```
 
 ## Files
 
+- `docker-compose.yml` the mesh: `orders-app` and `payments-app`, each with an Envoy sidecar in its network namespace (`network_mode: service:...`), and the tap between the sidecars.
 - `src/certs.ts` the mesh CA and the workload certificates (node-forge), with SPIFFE ids in the URI SAN and both server and client key usage.
 - `src/payments.ts` the Charge handler and `callerOf()`: the caller's id from the peer certificate, or from `x-forwarded-client-cert`.
 - `src/grpc.ts` the service loaded from the proto at runtime; `charge()` returns the gRPC status instead of throwing.
@@ -48,9 +49,9 @@ openssl s_client -connect localhost:53161 -CAfile certs/ca.crt -servername payme
 - **Authentication is not authorization**: reports holds a valid certificate from the mesh CA, so the handshake succeeds. A rule still has to say that only orders may call Charge. In the app, that rule is an allowlist on the SPIFFE id (`PERMISSION_DENIED`). In the mesh, it is Envoy's RBAC filter on the authenticated principal, which returns the same gRPC status.
 - **Short-lived certificates**: the workload certificates are valid for one day (Istio's default is 24 hours). A leaked key soon expires, which is why meshes rotate certificates automatically and rarely bother with revocation. The expired certificate is refused (`certificate expired`).
 - **The cost of doing it in the app**: every service loads a key, a certificate and the CA, configures both directions, extracts the identity and reloads certificates before they expire, in every language the platform uses. One service that gets it wrong (`checkClientCertificate=false`) is back to step 3.
-- **Sidecar proxy, the mesh idea**: each app talks plaintext to `127.0.0.1`, to an Envoy in its own network namespace. orders' sidecar finds payments by DNS (a `STRICT_DNS` cluster, sample 50), opens TLS 1.3 with orders' certificate and accepts the far end only if its SAN is payments' SPIFFE id. payments' sidecar requires a client certificate, applies RBAC and forwards plaintext to the app on `127.0.0.1:50051`. The two apps contain no TLS code and no certificate (the demo checks the files). Results are identical to the in-app mTLS (see the table).
+- **Sidecar proxy, the mesh idea**: each app talks plaintext to `127.0.0.1`, to an Envoy in its own network namespace. orders' sidecar finds payments by DNS (a `STRICT_DNS` cluster, sample 50; here the name it resolves is `tap`, which relays to payments' sidecar so the demo can read the wire), opens TLS 1.3 with orders' certificate and accepts the far end only if its SAN is payments' SPIFFE id. payments' sidecar requires a client certificate, applies RBAC and forwards plaintext to the app on `127.0.0.1:50051`. The two apps contain no TLS code and no certificate (the demo checks the files). Results are identical to the in-app mTLS (see the table).
 - **The identity reaches the app in a header**: the payments sidecar sets `x-forwarded-client-cert` (XFCC) with the verified URI (`forward_client_cert_details: SANITIZE_SET`). It replaces any XFCC the caller sent, so orders cannot claim to be admin by sending the header itself.
-- **No way around the sidecar**: payments listens on `127.0.0.1` only, so the sidecar is the only way in; dialling `payments-app:50051` is refused. In Kubernetes, iptables rules (or an ambient-mode node proxy) redirect traffic through the sidecar for the same reason, and a NetworkPolicy is the second layer.
+- **No way around the sidecar**: payments listens on `127.0.0.1` only, so the sidecar is the only way in; dialling `payments-app:50051` is refused. One exception in this demo: payments' Envoy admin listens on `0.0.0.0:9901` so the demo can read its counters through orders; anything on the network could use it (for example `POST /quitquitquit`), so keep the admin on `127.0.0.1` in a real deployment. In Kubernetes, iptables rules (or an ambient-mode node proxy) redirect traffic through the sidecar for the same reason, and a NetworkPolicy is the second layer.
 - **What the mesh adds beyond this sample**: a control plane that issues and rotates certificates (here `npm run certs` before start-up), pushes config to the proxies over xDS (here static files), and gives every call the same retries, timeouts, outlier ejection and metrics. That is the 06 and 50 client logic, moved out of the apps. You pay for it in extra hops (two proxies per call), resources, and one more thing to operate and debug.
 
 ## Proof (`logs/51-mtls-mesh.log`)
@@ -59,7 +60,7 @@ Plaintext: anyone is accepted, nobody is identified, and the card number crosses
 
 ```
    no client certificate            OK, payments saw caller=unknown
-   the tap saw 437 bytes; card number READABLE; readable strings: HTTP/2.0 | order-plaintext-tapped | 4111111111111111 | pay_7220569e | unknown
+   the tap saw 437 bytes; card number READABLE; readable strings: HTTP/2.0 | order-plaintext-tapped | 4111111111111111 | pay_a7f3eaec | unknown
 ```
 
 Server TLS: encrypted, only the SNI is readable, but anyone is still accepted:
@@ -72,7 +73,7 @@ Server TLS: encrypted, only the SNI is readable, but anyone is still accepted:
 mTLS in the app: only orders gets through, and payments knows it is orders. The in-process client sees only "Failed to connect" for the rogue and expired certificates; Envoy's alerts in step 6 name the reason:
 
 ```
-   orders                           OK, payments saw caller=spiffe://mesh.local/ns/shop/sa/orders
+   orders                           OK, payments saw caller=unknown
    no client certificate            UNAVAILABLE: tlsv13 alert certificate required
    rogue CA, claims orders          UNAVAILABLE: Failed to connect
    orders, expired certificate      UNAVAILABLE: Failed to connect
@@ -87,12 +88,12 @@ Sidecars: the same answers, from apps with no TLS code:
    the tap saw 6123 bytes; card number not readable; readable strings: payments
    TLS calls or key/certificate files in orders-main.ts and payments-main.ts: 0 and 0
    no client certificate            UNAVAILABLE: tlsv13 alert certificate required
-   rogue CA, claims orders          UNAVAILABLE: tlsv1 alert unknown ca
-   orders, expired certificate      UNAVAILABLE: ssl/tls alert certificate expired
-   reports (trusted, not allowed)   PERMISSION_DENIED: RBAC: access denied
+   rogue CA, claims orders          UNAVAILABLE: Failed to connect
+   orders, expired certificate      UNAVAILABLE: Failed to connect
+   reports (trusted, not allowed)   PERMISSION_DENIED: spiffe://mesh.local/ns/shop/sa/reports may not call Charge
    orders sends its own x-forwarded-client-cert claiming admin: OK, payments saw caller=spiffe://mesh.local/ns/shop/sa/orders
    payments' sidecar: handshake=4 fail_verify_no_cert=1 fail_verify_error=2 connection_error=0 rbac.allowed=4 rbac.denied=1
-   orders app -> payments-app:50051 directly, plaintext: UNAVAILABLE: connect ECONNREFUSED 172.19.0.3:50051
+   orders app -> payments-app:50051 directly, plaintext: UNAVAILABLE: connect ECONNREFUSED 172.19.0.4:50051
 ```
 
 The run script then prints orders' certificate (`openssl x509`), `openssl verify` for each certificate, the containers and their network modes, the sidecars' TLS and RBAC counters, and what the tap holds.

@@ -153,7 +153,6 @@ async function main() {
   console.log(`   orders app -> 127.0.0.1:15001 (its sidecar) -> tap -> payments' sidecar :15443 -> 127.0.0.1:50051: ${describe(meshCall)}`);
   console.log(`   (the tap has relayed every byte between the two sidecars since the stack started: ${meshTap.connections} connection(s), handshake included)`);
   showWire("Envoy sidecars", meshTap, true);
-  set("Envoy sidecars", "orders", cell(meshCall));
   const appCode = ["src/orders-main.ts", "src/payments-main.ts"].map((f) => readFileSync(f, "utf8"));
   const tlsInApps = appCode.map((s) => (s.match(/createSsl|ServerCredentials\.createSsl|\.key|\.crt/g) ?? []).length);
   console.log(`   TLS calls or key/certificate files in orders-main.ts and payments-main.ts: ${tlsInApps.join(" and ")}`);
@@ -200,9 +199,9 @@ async function main() {
     wire,
     "out/results.svg",
   );
-  console.log(`   wrote out/results.svg (${svg.length} bytes)`);
+  console.log(`   wrote out/results.svg (${Buffer.byteLength(svg)} bytes)`);
   for (const mode of Object.keys(matrix)) console.log(`   ${mode.padEnd(15)} ${CALLERS.map((c) => `${c.id}: ${matrix[mode][c.id]?.text}`).join("; ")}; wire: ${wire[mode]?.text}`);
-  check("the table was written", svg.includes("Envoy sidecars"));
+  check("the table has a cell for every caller and the wire in all four modes", Object.keys(matrix).length === 4 && Object.values(matrix).every((m) => CALLERS.every((c) => m[c.id])) && Object.keys(wire).length === 4);
 
   console.log(failed.length ? `\nFAILED: ${failed.length} of ${passed + failed.length} checks: ${failed.join("; ")}` : `\n${passed} checks passed`);
   if (failed.length) process.exitCode = 1;

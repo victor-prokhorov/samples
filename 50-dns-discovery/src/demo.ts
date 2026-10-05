@@ -61,6 +61,8 @@ function show(stepName: string, r: RunResult) {
   return { replicas: by.map(([ip]) => ip), failed: Object.values(r.errors).reduce((a, b) => a + b, 0) };
 }
 
+// the SRV targets in the chart: the priority-20 fallback is catalog, named so it is not read as one more replica
+const srvLabel = (target: string) => (target.startsWith("catalog") ? "catalog (SRV backup)" : target.split(":")[0]);
 const run = (client: string, n: number) => probe<RunResult>(`/run?client=${client}&n=${n}`);
 const resolve = () => probe<{ address: string; ttl: number }[]>("/resolve?name=catalog");
 
@@ -87,6 +89,7 @@ async function main() {
   check("resolving per request reaches all 3 replicas, none with less than 20% of the requests", f2.replicas.length === 3 && Object.values(s2.fresh.byIp).every((n) => n >= 30));
 
   step("3. Scale out, no config change", "docker compose up --scale catalog=5: the new replicas are in DNS as soon as they start; a client that cached the old answer does not see them until its cache expires");
+  await probe("/forget");
   await run("cached", 1); // the cached client's cache now holds the 3 addresses, for CACHE_MS
   const warmed = Date.now();
   compose("up", "-d", "--wait", "--no-recreate", "--scale", "catalog=5");
@@ -105,7 +108,7 @@ async function main() {
   check("once its cache expires, the cached client spreads over all 5", c3b.replicas.length === 5);
   const pinnedIp = Object.keys((await run("pinned", 1)).byIp)[0];
   console.log(pinnedIp === p2.replicas[0]
-    ? `   the keep-alive client is still on ${label(pinnedIp)}: its connection never closed, so it never looked up again`
+    ? `   the keep-alive client is on ${label(pinnedIp)} again: its idle connection was closed during the wait (Node's server closes idle keep-alive connections after 5 s), and the new lookup happened to return the same replica first`
     : `   the keep-alive client moved from ${label(p2.replicas[0])} to ${label(pinnedIp)} only because its idle connection was closed during the wait (Node's server closes idle keep-alive connections after 5 s) and the new connection looked the name up again`);
 
   step("4. A replica leaves (docker stop)", "a stopped container drops out of DNS at once, but a cached address still points at it; the keep-alive client loses its connection and looks up again");
@@ -119,12 +122,13 @@ async function main() {
   const a4 = await resolve();
   console.log(`   stopped ${victim} (${pinnedIp}); resolve4("catalog") -> ${a4.length} records, ${a4.some((r) => r.address === pinnedIp) ? "still including" : "without"} ${victim}`);
   check("the stopped replica is gone from DNS immediately", a4.length === 4 && !a4.some((r) => r.address === pinnedIp));
+  // resilient first (it needs one hit on the dead address), then cached: 40 requests stay inside its cache lifetime
   const s4r = await run("resilient", 100);
   const r4 = show("4. one replica stopped", s4r);
-  const c4 = show("4. one replica stopped", await run("cached", 100));
+  const c4 = show("4. one replica stopped", await run("cached", 40));
   const p4 = show("4. one replica stopped", await run("pinned", 100));
   const f4 = show("4. one replica stopped", await run("fresh", 100));
-  check("the cached client keeps sending to the stopped replica's address and times out (about 1 in 5)", c4.failed >= 5);
+  check("while its cache lasts, the cached client keeps picking the stopped replica's address and times out (about 1 request in 5)", c4.failed >= 3);
   check("the resilient client drops the dead address after one timeout and loses no request", r4.failed === 0 && s4r.retried >= 1);
   check("the keep-alive client loses its connection, looks up again and lands on a live replica (at most 1 failure)", p4.failed <= 1 && p4.replicas.length === 1 && p4.replicas[0] !== pinnedIp);
   check("the client that resolves per request never sees the stopped replica", f4.failed === 0 && !f4.replicas.includes(pinnedIp));
@@ -153,22 +157,23 @@ async function main() {
   check("CoreDNS serves 3 SRV records, each with its own port", srv.length === 3 && new Set(srv.map((r) => r.port)).size === 3);
   const s6 = await probe<{ counts: Record<string, number>; paths: Record<string, number> }>(`/srv-run?name=${SRV_NAME}&n=400`);
   console.log(`   400 requests: ${Object.entries(s6.counts).map(([t, n]) => `${t}=${n}`).join(" ")}`);
-  rows.push({ step: "6. SRV, weights 3:1", client: "srv", byReplica: Object.fromEntries(Object.entries(s6.counts).map(([t, n]) => [t.split(":")[0], n])), failed: s6.counts.failed ?? 0 });
+  rows.push({ step: "6. SRV, weights 3:1", client: "srv", byReplica: Object.fromEntries(Object.entries(s6.counts).map(([t, n]) => [srvLabel(t), n])), failed: s6.counts.failed ?? 0 });
   const share = (s6.counts["ledger-a:8081"] ?? 0) / 400;
   check(`weights 3 and 1 split the traffic about 75/25 (ledger-a got ${(share * 100).toFixed(0)}%), and nothing goes to the priority-20 backup`, share > 0.65 && share < 0.85 && !s6.counts["catalog:8080"]);
   compose("stop", "-t", "1", "ledger-a", "ledger-b");
   const s6b = await probe<{ counts: Record<string, number>; paths: Record<string, number> }>(`/srv-run?name=${SRV_NAME}&n=50`);
   console.log(`   ledger-a and ledger-b stopped, 50 requests: ${Object.entries(s6b.counts).map(([t, n]) => `${t}=${n}`).join(" ")}`);
   for (const [p, n] of Object.entries(s6b.paths)) console.log(`     ${n} x tried ${p}`);
-  rows.push({ step: "6. SRV, priority-10 down", client: "srv", byReplica: Object.fromEntries(Object.entries(s6b.counts).map(([t, n]) => [t.split(":")[0], n])), failed: s6b.counts.failed ?? 0 });
-  for (const t of Object.keys({ ...s6.counts, ...s6b.counts })) seen.add(t.split(":")[0]);
+  rows.push({ step: "6. SRV, priority-10 down", client: "srv", byReplica: Object.fromEntries(Object.entries(s6b.counts).map(([t, n]) => [srvLabel(t), n])), failed: s6b.counts.failed ?? 0 });
+  for (const t of Object.keys({ ...s6.counts, ...s6b.counts })) if (t !== "failed") seen.add(srvLabel(t));
   check("with every priority-10 target gone, all 50 requests fall back to the priority-20 target", s6b.counts["catalog:8080"] === 50);
 
   step("7. Chart", "out/requests.svg: which replica answered each client, step by step");
-  const order = [...seen].filter((s) => s !== "failed").sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const replicas = [...seen].filter((s) => /^catalog-\d/.test(s)).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const order = [...replicas, ...[...seen].filter((s) => !replicas.includes(s))]; // the SRV targets last
   const svg = requestsChart(rows, order, "out/requests.svg");
   console.log(`   wrote out/requests.svg (${svg.length} bytes, ${rows.length} bars)`);
-  check("the chart was written", svg.includes("catalog-1"));
+  check(`the chart has one bar per client run (${rows.length})`, (svg.match(/<g class="bar">/g) ?? []).length === rows.length);
 
   console.log(failed.length ? `\nFAILED: ${failed.length} of ${passed + failed.length} checks: ${failed.join("; ")}` : `\n${passed} checks passed`);
   if (failed.length) process.exitCode = 1;

@@ -1,4 +1,4 @@
-# 51-mtls-mesh run 2026-10-05T16:42:53Z
+# 51-mtls-mesh run 2026-10-05T17:10:15Z
 == deps on the host; the app containers mount this folder and run the same node_modules ==
 == a fresh private CA and workload certificates in certs/ (gitignored; the sidecars mount them) ==
 certs: wrote <repo>/51-mtls-mesh/certs/
@@ -9,13 +9,13 @@ sidecars: Envoy 1.35.3
 
 ## 1. A private CA and one identity per workload
    concept: the platform's CA signs a short-lived certificate per service; the identity is a SPIFFE URI in the SAN, not an IP or a hostname
-   ca              issuer=Mesh Root CA  until=2027-10-05T16:42Z signed-by-mesh-CA=yes (no SAN)
-   payments        issuer=Mesh Root CA  until=2026-10-06T16:42Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/payments, DNS:payments, DNS:localhost
-   orders          issuer=Mesh Root CA  until=2026-10-06T16:42Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/orders
-   reports         issuer=Mesh Root CA  until=2026-10-06T16:42Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/reports
-   rogue-orders    issuer=Rogue CA      until=2026-10-06T16:42Z signed-by-mesh-CA=no  URI:spiffe://mesh.local/ns/shop/sa/orders
-   rogue-payments  issuer=Rogue CA      until=2026-10-06T16:42Z signed-by-mesh-CA=no  URI:spiffe://mesh.local/ns/shop/sa/payments, DNS:payments, DNS:localhost
-   expired-orders  issuer=Mesh Root CA  until=2026-10-04T16:42Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/orders
+   ca              issuer=Mesh Root CA  until=2027-10-05T17:10Z signed-by-mesh-CA=yes (no SAN)
+   payments        issuer=Mesh Root CA  until=2026-10-06T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/payments, DNS:payments, DNS:localhost
+   orders          issuer=Mesh Root CA  until=2026-10-06T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/orders
+   reports         issuer=Mesh Root CA  until=2026-10-06T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/reports
+   rogue-orders    issuer=Rogue CA      until=2026-10-06T17:10Z signed-by-mesh-CA=no  URI:spiffe://mesh.local/ns/shop/sa/orders
+   rogue-payments  issuer=Rogue CA      until=2026-10-06T17:10Z signed-by-mesh-CA=no  URI:spiffe://mesh.local/ns/shop/sa/payments, DNS:payments, DNS:localhost
+   expired-orders  issuer=Mesh Root CA  until=2026-10-04T17:10Z signed-by-mesh-CA=yes URI:spiffe://mesh.local/ns/shop/sa/orders
    check ok: orders, payments and reports carry their SPIFFE id and verify against the mesh CA
    check ok: the rogue certificates claim orders and payments but the mesh CA did not sign them
    check ok: the expired orders certificate is signed by the mesh CA but out of date
@@ -27,7 +27,7 @@ sidecars: Envoy 1.35.3
    rogue CA, claims orders          OK, payments saw caller=unknown
    orders, expired certificate      OK, payments saw caller=unknown
    reports (trusted, not allowed)   OK, payments saw caller=unknown
-   the tap saw 437 bytes; card number READABLE; readable strings: HTTP/2.0 | order-plaintext-tapped | 4111111111111111 | pay_7220569e | unknown
+   the tap saw 437 bytes; card number READABLE; readable strings: HTTP/2.0 | order-plaintext-tapped | 4111111111111111 | pay_a7f3eaec | unknown
    check ok: the call works and the card number crosses the wire in clear
    check ok: every caller is accepted and payments sees caller=unknown
 
@@ -87,25 +87,25 @@ sidecars: Envoy 1.35.3
 
 ## 7. No way around the sidecar
    concept: payments listens on 127.0.0.1 only, so a workload that dials its plaintext port directly finds nothing
-   orders app -> payments-app:50051 directly, plaintext: UNAVAILABLE: connect ECONNREFUSED 172.19.0.3:50051
+   orders app -> payments-app:50051 directly, plaintext: UNAVAILABLE: connect ECONNREFUSED 172.19.0.4:50051
    check ok: the plaintext port is not reachable from the network
 
 ## 8. Summary table
    concept: out/results.svg: who gets through, and what the wire shows, in each mode
-   wrote out/results.svg (6961 bytes)
+   wrote out/results.svg (7003 bytes)
    plaintext       orders: allowed, caller unknown; none: allowed, caller unknown; rogue: allowed, caller unknown; expired: allowed, caller unknown; reports: allowed, caller unknown; wire: card number readable
    server TLS      orders: allowed, caller unknown; none: allowed, caller unknown; rogue: allowed, caller unknown; expired: allowed, caller unknown; reports: allowed, caller unknown; wire: encrypted
    mTLS in app     orders: allowed as orders; none: refused at handshake; rogue: refused at handshake; expired: refused at handshake; reports: denied: not allowed; wire: encrypted
    Envoy sidecars  orders: allowed as orders; none: refused at handshake; rogue: refused at handshake; expired: refused at handshake; reports: denied: not allowed; wire: encrypted
-   check ok: the table was written
+   check ok: the table has a cell for every caller and the wire in all four modes
 
 22 checks passed
 
 == proof: orders' certificate (openssl x509): its identity is the URI SAN, valid for one day ==
    subject=CN = orders
    issuer=CN = Mesh Root CA, O = Samples platform
-   notBefore=Oct  5 16:41:54 2026 GMT
-   notAfter=Oct  6 16:42:54 2026 GMT
+   notBefore=Oct  5 17:09:16 2026 GMT
+   notAfter=Oct  6 17:10:16 2026 GMT
    X509v3 Extended Key Usage: 
        TLS Web Server Authentication, TLS Web Client Authentication
    X509v3 Subject Alternative Name: 
@@ -123,8 +123,8 @@ NAME                              STATE     PORTS
 51-mtls-mesh-payments-app-1       running   0.0.0.0:53161->15443/tcp
 51-mtls-mesh-payments-sidecar-1   running   
 51-mtls-mesh-tap-1                running   0.0.0.0:53261->8080/tcp
-   orders-sidecar    network mode: container:f07e702b8379...
-   payments-sidecar  network mode: container:7c36519e7d76...
+   orders-sidecar    network mode: container:9f17aaadc037...
+   payments-sidecar  network mode: container:6647a9d6a495...
 == proof: the sidecars' TLS and RBAC counters (Envoy admin /stats, read through the orders app) ==
    cluster.payments.ssl.fail_verify_error = 0
    cluster.payments.ssl.fail_verify_no_cert = 0

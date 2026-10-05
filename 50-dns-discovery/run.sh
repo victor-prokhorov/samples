@@ -20,7 +20,7 @@ echo "== proof: the containers now (the catalog replica stopped in step 4 and th
 docker compose ps --format 'table {{.Name}}\t{{.Service}}\t{{.State}}'
 echo "== proof: what a container is told to use for DNS (Docker's embedded resolver) =="
 docker compose exec -T probe grep -v '^#' /etc/resolv.conf | grep -v '^$'
-echo "== proof: getent hosts catalog in the probe (glibc's view: one line per live replica) =="
+echo "== proof: getent ahostsv4 catalog in the probe (glibc's view: one line per live replica) =="
 docker compose exec -T probe getent ahostsv4 catalog | awk '$2 == "STREAM" {print $1}' | sort -V
 echo "== proof: the SRV zone CoreDNS serves (dns/svc.internal.zone) =="
 grep -E 'SRV' dns/svc.internal.zone | grep -v '^;'

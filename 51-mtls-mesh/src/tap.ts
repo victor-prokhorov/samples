@@ -28,11 +28,6 @@ export class Tap {
     return (this.server.address() as { port: number }).port;
   }
 
-  reset() {
-    this.chunks = [];
-    this.connections = 0;
-  }
-
   // Like strings(1): runs of 6 or more word-like characters, which is what a reader of the capture would see.
   stats(): TapStats {
     const all = Buffer.concat(this.chunks);

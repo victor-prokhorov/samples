@@ -1,6 +1,6 @@
 // orders in the mesh: plaintext gRPC to its own sidecar on 127.0.0.1:15001. The sidecar finds payments, opens mTLS
 // with orders' certificate and checks that the far end is payments. This file has no TLS code at all.
-// It also takes requests from the demo on :53061 (POST /checkout, GET /bypass, GET /stats).
+// It also takes requests from the demo on :53061 (GET /checkout, GET /bypass, GET /stats).
 import { createServer } from "node:http";
 import * as grpc from "@grpc/grpc-js";
 import { CARD, Payments, charge } from "./grpc.js";

@@ -5,12 +5,12 @@ import { writeFileSync } from "node:fs";
 export type Row = { step: string; client: string; byReplica: Record<string, number>; failed: number };
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-const SHADES = ["#f2f2f2", "#cfcfcf", "#a6a6a6", "#7a7a7a", "#4d4d4d", "#262626"];
+const SHADES = ["#f7f7f7", "#dedede", "#c2c2c2", "#a3a3a3", "#858585", "#666666", "#474747", "#262626"];
 
 export function requestsChart(rows: Row[], replicas: string[], file: string) {
   const W = 1100, left = 300, barW = 720, rowH = 30, top = 90;
   const shade = (r: string) => SHADES[replicas.indexOf(r) % SHADES.length];
-  const ink = (r: string) => (replicas.indexOf(r) % SHADES.length >= 3 ? "#fff" : "#111");
+  const ink = (r: string) => (replicas.indexOf(r) % SHADES.length >= 5 ? "#fff" : "#111");
   const out: string[] = [];
   out.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${top + rows.length * rowH + 80}" font-family="Helvetica, Arial, sans-serif">`);
   out.push(`<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#fff"/><line x1="0" y1="0" x2="0" y2="6" stroke="#111" stroke-width="2"/></pattern></defs>`);
@@ -21,7 +21,7 @@ export function requestsChart(rows: Row[], replicas: string[], file: string) {
   for (const r of [...replicas, "failed"]) {
     out.push(`<rect x="${lx}" y="52" width="16" height="16" fill="${r === "failed" ? "url(#hatch)" : shade(r)}" stroke="#111"/>`);
     out.push(`<text x="${lx + 22}" y="65" font-size="13" fill="#111">${esc(r)}</text>`);
-    lx += 34 + r.length * 7.5;
+    lx += 34 + r.length * 7;
   }
   let lastStep = "";
   rows.forEach((row, i) => {
@@ -31,6 +31,7 @@ export function requestsChart(rows: Row[], replicas: string[], file: string) {
       out.push(`<text x="20" y="${y + 17}" font-size="13" font-weight="700" fill="#111">${esc(row.step)}</text>`);
       lastStep = row.step;
     }
+    out.push(`<g class="bar">`);
     out.push(`<text x="${left - 10}" y="${y + 17}" font-size="13" fill="#111" text-anchor="end">${esc(row.client)}</text>`);
     const total = Object.values(row.byReplica).reduce((a, b) => a + b, 0) + row.failed;
     let x = left;
@@ -45,6 +46,7 @@ export function requestsChart(rows: Row[], replicas: string[], file: string) {
       if (w > 26) out.push(`<text x="${cx.toFixed(1)}" y="${y + 16}" font-size="12" text-anchor="middle" fill="${r === "failed" ? "#111" : ink(r)}"${r === "failed" ? ' font-weight="700"' : ""}>${esc(t)}</text>`);
       x += w;
     }
+    out.push(`</g>`);
   });
   out.push(`<text x="20" y="${top + rows.length * rowH + 30}" font-size="12" fill="#444">Each bar is one client's run of sequential requests; numbers are requests answered by each replica. Hatched: timed out or refused.</text>`);
   out.push(`</svg>`);

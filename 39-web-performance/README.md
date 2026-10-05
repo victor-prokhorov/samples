@@ -2,7 +2,7 @@
 
 ![Overview](diagrams/overview.svg)
 
-**Pain: a slow portal nobody measures.** The member page loads a 5.5 MB PNG for a 400 px wide banner, blocks rendering on a stylesheet, a third-party tag and a 467 kB script (moment with all its locales, the whole of lodash), builds its content in the browser, and pushes a notice in above everything once it has loaded. On the team's laptops it feels fine: unthrottled, the p75 LCP is 1.4 s. On a phone on slow 4G, Lighthouse measures an LCP of 30.8 s; across simulated visits the p75 is 12.1 s for LCP and 584 ms for the tap on "Show full history". Nobody knew, because nothing measured it and no budget said what too slow means.
+**Pain: a slow portal nobody measures.** The member page loads a 5.5 MB PNG for a 400 px wide banner, blocks rendering on a stylesheet, a third-party tag and a 467 kB script (moment with all its locales, the whole of lodash), runs a synchronous A/B-testing snippet before anything renders, builds its content in the browser, and pushes a notice in above everything once it has loaded. On the team's laptops it feels fine: unthrottled, the p75 LCP is 1.4 s. On a phone on slow 4G, Lighthouse measures an LCP of 30.8 s; across simulated visits the p75 is 11.8 s for LCP and 584 ms for the tap on "Show full history". Nobody knew, because nothing measured it and no budget said what too slow means.
 
 **Reach for it when** a page is public or used on phones, when you add a dependency or an image, and in CI on every change: a bundle budget at build time, Lighthouse on the key pages, and Core Web Vitals from real visits, all judged by the same budgets file.
 
@@ -28,7 +28,7 @@ VISITS=2 npm run demo   # fewer visits per profile, faster
 
 ## Files
 
-- `src/client/slow.ts` the slow page's script: lodash and moment-with-locales, client-side rendering row by row with a layout read after each row, a synchronous click handler, a late notice.
+- `src/client/slow.ts` the slow page's script: lodash and moment-with-locales, a synchronous A/B-testing snippet that blocks the main thread for 200 ms on the clock (so TBT stays over budget on fast CI machines), client-side rendering row by row with a layout read after each row, a synchronous click handler, a late notice.
 - `src/client/fast.ts` the fast page's script: only the "full history" button; `Intl` instead of moment, feedback painted before the work, rows built in chunks of 100 with a yield between.
 - `src/client/vitals.ts` `web-vitals` (`onLCP`, `onCLS`, `onINP`, `onFCP`, `onTTFB`) to `navigator.sendBeacon`, tagged with page and profile.
 - `src/client/data.ts` the member's 957 payments over 25 years (Initech, Globex, then Acme), deterministic. `src/client/tag.ts` the stand-in third-party tag (40 ms of main-thread work).
@@ -44,7 +44,7 @@ VISITS=2 npm run demo   # fewer visits per profile, faster
 ## Concepts
 
 - **Core Web Vitals**: three user-centred metrics. LCP (Largest Contentful Paint), when the largest image or text block in the viewport is painted: good is 2.5 s or less. CLS (Cumulative Layout Shift), how much visible content moves unexpectedly, summed over the worst burst: good is 0.1 or less. INP (Interaction to Next Paint), the slowest interaction (tap, click, key) from input to the next frame, roughly the worst of a visit: good is 200 ms or less. They are judged at the 75th percentile of page loads.
-- **Lab versus field**: the lab (Lighthouse) loads a page once on one emulated device and network, so a change can be measured before it ships and compared run to run. The field (real user monitoring) collects what real visitors get, across devices and networks, and is what users feel. Here the lab says LCP 30.8 s for the slow page on simulated slow 4G; the field p75 is 12.1 s across a mix of profiles, and 1.4 s on an unthrottled desktop, which is why a team testing on its own laptops sees nothing.
+- **Lab versus field**: the lab (Lighthouse) loads a page once on one emulated device and network, so a change can be measured before it ships and compared run to run. The field (real user monitoring) collects what real visitors get, across devices and networks, and is what users feel. Here the lab says LCP 30.8 s for the slow page on simulated slow 4G; the field p75 is 11.8 s across a mix of profiles, and 1.4 s on an unthrottled desktop, which is why a team testing on its own laptops sees nothing.
 - **Simulated throttling**: Lighthouse loads the page at full speed, records a trace, then models the load on a slow 4G network (150 ms RTT, 1.6 Mbit/s) and a CPU four times slower (Lantern). It is fast and repeatable, but not a real slow device; the field visits here use real throttling through the Chrome DevTools Protocol instead (`Network.emulateNetworkConditions`, `Emulation.setCPUThrottlingRate`).
 - **TBT as the lab stand-in for INP**: a navigation in the lab has no user, so there is no interaction to time. Total Blocking Time sums the part of each main-thread task beyond 50 ms between first paint and interactive: long tasks at load are what makes the first taps slow.
 - **Render-blocking resources**: a stylesheet, or a script without `async`, `defer` or `type="module"`, in `<head>` stops the first paint until it has downloaded (and, for a script, run). Lighthouse lists them; the fast page has none: critical CSS inline, the module script deferred by default, the tag `async`.
@@ -62,37 +62,37 @@ The bundle budget fails the slow page at build time and says why:
 
 ```
    FAIL  bundle slow  app.js (gzip)                114.4 kB  budget 30.0 kB
-         minified 466.8 kB; largest inputs: moment/min/moment-with-locales.js 383.4 kB, lodash/lodash.js 73.2 kB, web-vitals/dist/web-vitals.js 5.8 kB, src/client/slow.ts 1.9 kB
+         minified 466.9 kB; largest inputs: moment/min/moment-with-locales.js 383.4 kB, lodash/lodash.js 73.2 kB, web-vitals/dist/web-vitals.js 5.8 kB, src/client/slow.ts 2.0 kB
    pass  bundle fast  app.js (gzip)                  3.2 kB  budget 30.0 kB
 ```
 
 Lighthouse (mobile, simulated slow 4G) breaks all four lab budgets on the slow page and names its render-blocking resources:
 
 ```
-   slow: score 47, LCP 30768 ms (body > main > img.hero), FCP 3918 ms, CLS 0.137, TBT 456 ms, 7 requests, scripts 467.3 kB, images 5511.0 kB, total 5980.7 kB
+   slow: score 36, LCP 30755 ms (body > main > img.hero), FCP 4387 ms, CLS 0.137, TBT 891 ms, 7 requests, scripts 467.4 kB, images 5511.0 kB, total 5980.8 kB
          render-blocking: /slow/tag.js, /slow/app.js, /slow/styles.css; report out/lighthouse-slow.html
-   fast: score 99, LCP 1295 ms (body > main > picture > img.hero), FCP 815 ms, CLS 0, TBT 115 ms, 6 requests, scripts 3.7 kB, images 2.4 kB, total 8.0 kB
+   fast: score 99, LCP 902 ms (body > main > picture > img.hero), FCP 752 ms, CLS 0, TBT 113 ms, 6 requests, scripts 3.7 kB, images 2.4 kB, total 8.0 kB
 ```
 
 Every visit reported its metrics through `sendBeacon`, and the p75 fails the slow page on all three Core Web Vitals:
 
 ```
    collector stored 120 metrics from 24 visits; a malformed beacon got HTTP 400
-   FAIL  field  slow  LCP p75                      12068 ms  budget 2500 ms
+   FAIL  field  slow  LCP p75                      11756 ms  budget 2500 ms
    FAIL  field  slow  CLS p75                         0.137  budget 0.100
    FAIL  field  slow  INP p75                        584 ms  budget 200 ms
-   pass  field  fast  LCP p75                        364 ms  budget 2500 ms
+   pass  field  fast  LCP p75                        304 ms  budget 2500 ms
    pass  field  fast  CLS p75                         0.000  budget 0.100
-   pass  field  fast  INP p75                         48 ms  budget 200 ms
+   pass  field  fast  INP p75                         40 ms  budget 200 ms
 ```
 
 The same file recomputed with `jq` per profile: the desktop numbers alone would have hidden the problem:
 
 ```
-  slow INP desktop: n=4 values=[224,224,248,272] p75=248
-  slow INP slow-4g: n=4 values=[584,792,832,848] p75=832
-  slow LCP desktop: n=4 values=[1288,1308,1440,1496] p75=1440
-  slow LCP slow-4g: n=4 values=[12068,12204,12232,12348] p75=12232
+  slow INP desktop: n=4 values=[160,168,176,184] p75=176
+  slow INP slow-4g: n=4 values=[584,584,616,632] p75=616
+  slow LCP desktop: n=4 values=[1164,1192,1428,1448] p75=1428
+  slow LCP slow-4g: n=4 values=[11756,11772,11772,11784] p75=11772
 ```
 
 ## Screenshots

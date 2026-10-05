@@ -1,4 +1,4 @@
-# 39-web-performance run 2026-10-04T00:47:48Z
+# 39-web-performance run 2026-10-05T17:04:52Z
 == no infra: the member page (node:http :53049) and the RUM collector (:53149) run inside the demo; Lighthouse and the visits use the Chromium in PLAYWRIGHT_BROWSERS_PATH ==
 == demo: build, bundle budget, Lighthouse (lab), web-vitals beacons (field, p75), one budget report ==
 
@@ -16,7 +16,7 @@
 ## 2. Bundle-size budget
    concept: budgets.json caps each page's app.js at 30 kB gzip; the metafile says which inputs to blame when it is over
    FAIL  bundle slow  app.js (gzip)                114.4 kB  budget 30.0 kB
-         minified 466.8 kB; largest inputs: moment/min/moment-with-locales.js 383.4 kB, lodash/lodash.js 73.2 kB, web-vitals/dist/web-vitals.js 5.8 kB, src/client/slow.ts 1.9 kB
+         minified 466.9 kB; largest inputs: moment/min/moment-with-locales.js 383.4 kB, lodash/lodash.js 73.2 kB, web-vitals/dist/web-vitals.js 5.8 kB, src/client/slow.ts 2.0 kB
    pass  bundle fast  app.js (gzip)                  3.2 kB  budget 30.0 kB
          minified 7.5 kB; largest inputs: web-vitals/dist/web-vitals.js 5.6 kB, src/client/fast.ts 0.9 kB, src/client/data.ts 0.7 kB, src/client/vitals.ts 0.4 kB
    ok: the slow bundle is over budget, the fast one within it
@@ -24,17 +24,17 @@
 
 ## 3. Lab: Lighthouse on both pages
    concept: Lighthouse 13 headless on the Chromium in PLAYWRIGHT_BROWSERS_PATH (chrome-launcher, --no-sandbox): mobile, simulated slow 4G and 4x CPU. It reports LCP, CLS and TBT (the lab stand-in for INP: there is no user to interact) and every byte loaded
-   slow: score 47, LCP 30768 ms (body > main > img.hero), FCP 3918 ms, CLS 0.137, TBT 456 ms, 7 requests, scripts 467.3 kB, images 5511.0 kB, total 5980.7 kB
+   slow: score 36, LCP 30755 ms (body > main > img.hero), FCP 4387 ms, CLS 0.137, TBT 891 ms, 7 requests, scripts 467.4 kB, images 5511.0 kB, total 5980.8 kB
          render-blocking: /slow/tag.js, /slow/app.js, /slow/styles.css; report out/lighthouse-slow.html
-   fast: score 99, LCP 1295 ms (body > main > picture > img.hero), FCP 815 ms, CLS 0, TBT 115 ms, 6 requests, scripts 3.7 kB, images 2.4 kB, total 8.0 kB
+   fast: score 99, LCP 902 ms (body > main > picture > img.hero), FCP 752 ms, CLS 0, TBT 113 ms, 6 requests, scripts 3.7 kB, images 2.4 kB, total 8.0 kB
          render-blocking: none; report out/lighthouse-fast.html
-   FAIL  lab    slow  largest-contentful-paint     30768 ms  budget 2500 ms
+   FAIL  lab    slow  largest-contentful-paint     30755 ms  budget 2500 ms
    FAIL  lab    slow  cumulative-layout-shift         0.137  budget 0.100
-   FAIL  lab    slow  total-blocking-time            456 ms  budget 200 ms
-   FAIL  lab    slow  script-transfer-size         467.3 kB  budget 100.0 kB
-   pass  lab    fast  largest-contentful-paint      1295 ms  budget 2500 ms
+   FAIL  lab    slow  total-blocking-time            891 ms  budget 200 ms
+   FAIL  lab    slow  script-transfer-size         467.4 kB  budget 100.0 kB
+   pass  lab    fast  largest-contentful-paint       902 ms  budget 2500 ms
    pass  lab    fast  cumulative-layout-shift         0.000  budget 0.100
-   pass  lab    fast  total-blocking-time            115 ms  budget 200 ms
+   pass  lab    fast  total-blocking-time            113 ms  budget 200 ms
    pass  lab    fast  script-transfer-size           3.7 kB  budget 100.0 kB
    ok: the slow page breaks all four lab budgets (LCP, CLS, TBT, script bytes)
    ok: the fast page meets all four
@@ -45,35 +45,35 @@
    profile desktop  no throttling
    profile 4g       9.0 Mbit/s down, 60 ms latency, CPU 2x slower
    profile slow-4g  4.0 Mbit/s down, 120 ms latency, CPU 4x slower
-   slow x desktop  4 visits, 3.7s 3.7s 3.6s 3.9s
-   slow x 4g       4 visits, 8.7s 8.5s 8.4s 8.4s
-   slow x slow-4g  4 visits, 15.3s 15.8s 15.1s 15.6s
-   fast x desktop  4 visits, 3.3s 3.3s 3.3s 3.3s
-   fast x 4g       4 visits, 3.5s 3.4s 3.4s 3.5s
-   fast x slow-4g  4 visits, 4.0s 4.4s 3.9s 3.8s
+   slow x desktop  4 visits, 3.7s 3.7s 3.7s 3.6s
+   slow x 4g       4 visits, 7.8s 7.8s 7.8s 7.8s
+   slow x slow-4g  4 visits, 14.6s 14.6s 14.6s 14.6s
+   fast x desktop  4 visits, 3.2s 3.2s 3.2s 3.2s
+   fast x 4g       4 visits, 3.3s 3.3s 3.3s 3.3s
+   fast x slow-4g  4 visits, 3.6s 3.5s 3.6s 3.6s
    collector stored 120 metrics from 24 visits; a malformed beacon got HTTP 400
    ok: every visit reported LCP, CLS and INP (and FCP, TTFB)
    ok: the collector validates what it stores: a beacon with a non-numeric value is refused with 400
    p75 per page and metric (GET /summary), and the median for comparison:
-     slow LCP  n=12  p75  12068 ms  median   5888 ms  max  12348 ms
+     slow LCP  n=12  p75  11756 ms  median   5356 ms  max  11784 ms
      slow CLS  n=12  p75     0.137  median     0.137  max     0.137
-     slow INP  n=12  p75    584 ms  median    456 ms  max    848 ms
-     slow FCP  n=12  p75   2568 ms  median   1600 ms  max   2776 ms
-     slow TTFB n=12  p75     37 ms  median     18 ms  max    249 ms
-     fast LCP  n=12  p75    364 ms  median    240 ms  max    420 ms
+     slow INP  n=12  p75    584 ms  median    344 ms  max    632 ms
+     slow FCP  n=12  p75   2392 ms  median   1692 ms  max   2464 ms
+     slow TTFB n=12  p75      5 ms  median      3 ms  max      7 ms
+     fast LCP  n=12  p75    304 ms  median    208 ms  max    316 ms
      fast CLS  n=12  p75     0.000  median     0.000  max     0.000
-     fast INP  n=12  p75     48 ms  median     40 ms  max     64 ms
-     fast FCP  n=12  p75    224 ms  median    164 ms  max    304 ms
-     fast TTFB n=12  p75     17 ms  median     15 ms  max     49 ms
-   FAIL  field  slow  LCP p75                      12068 ms  budget 2500 ms
+     fast INP  n=12  p75     40 ms  median     40 ms  max     48 ms
+     fast FCP  n=12  p75    200 ms  median    124 ms  max    208 ms
+     fast TTFB n=12  p75      3 ms  median      3 ms  max      8 ms
+   FAIL  field  slow  LCP p75                      11756 ms  budget 2500 ms
    FAIL  field  slow  CLS p75                         0.137  budget 0.100
    FAIL  field  slow  INP p75                        584 ms  budget 200 ms
-   pass  field  fast  LCP p75                        364 ms  budget 2500 ms
+   pass  field  fast  LCP p75                        304 ms  budget 2500 ms
    pass  field  fast  CLS p75                         0.000  budget 0.100
-   pass  field  fast  INP p75                         48 ms  budget 200 ms
+   pass  field  fast  INP p75                         40 ms  budget 200 ms
    ok: in the field the slow page fails LCP, CLS and INP at p75
    ok: the fast page is good on all three at p75
-   ok: measured only on an unthrottled desktop, the slow page would look much better: p75 LCP 1440 ms and INP 248 ms, against 12068 ms and 584 ms over all profiles
+   ok: measured only on an unthrottled desktop, the slow page would look much better: p75 LCP 1428 ms and INP 176 ms, against 11756 ms and 584 ms over all profiles
 
 ## 5. One report for both
    concept: out/budgets.html puts every budget, before and after, on one page; the run script and CI fail on the same verdicts
@@ -98,7 +98,7 @@ dist/img:
   6538 hero-800.webp
   5510819 hero.png
 dist/slow:
-  466808 app.js
+  466898 app.js
   101 tag.js
 == proof: the head of each page: render-blocking in slow, inline CSS + preload + module in fast ==
 -- slow
@@ -113,41 +113,41 @@ dist/slow:
   <picture><source type="image/avif" srcset="/img/hero-480.avif 480w, /img/hero-800.avif 800w, /img/hero-1200.avif 1200w" sizes="(min-width: 832px) 768px, calc(100vw - 32px)">
   <img class="hero" src="/img/hero-800.webp" srcset="/img/hero-480.webp 480w, /img/hero-800.webp 800w, /img/hero-1200.webp 1200w" sizes="(min-width: 832px) 768px, calc(100vw - 32px)" width="1200" height="500" alt="A couple
 == proof: out/lab-summary.json (Lighthouse, one run per page) ==
-  slow: Lighthouse 13.5.0, score 47, LCP 30768 ms, FCP 3918 ms, CLS 0.137, TBT 456 ms, script 467272 B, image 5510997 B, 7 requests
-  fast: Lighthouse 13.5.0, score 99, LCP 1295 ms, FCP 815 ms, CLS 0, TBT 115 ms, script 3746 B, image 2430 B, 6 requests
+  slow: Lighthouse 13.5.0, score 36, LCP 30755 ms, FCP 4387 ms, CLS 0.137, TBT 891 ms, script 467362 B, image 5510997 B, 7 requests
+  fast: Lighthouse 13.5.0, score 99, LCP 902 ms, FCP 752 ms, CLS 0, TBT 113 ms, script 3746 B, image 2430 B, 6 requests
 == proof: out/vitals.ndjson, the beacons as stored (first 6 of 120) ==
-  {"page":"slow","profile":"desktop","name":"TTFB","value":6.5999999940395355,"rating":"good","id":"v5-1791074903002-6877396087648","navigationType":"navigate","receivedAt":"2026-10-04T00:48:23.099Z"}
-  {"page":"slow","profile":"desktop","name":"FCP","value":1288,"rating":"good","id":"v5-1791074903002-5957786746351","navigationType":"navigate","receivedAt":"2026-10-04T00:48:23.154Z"}
-  {"page":"slow","profile":"desktop","name":"LCP","value":1288,"rating":"good","id":"v5-1791074903001-4622878149636","navigationType":"navigate","receivedAt":"2026-10-04T00:48:24.909Z"}
-  {"page":"slow","profile":"desktop","name":"INP","value":224,"rating":"needs-improvement","id":"v5-1791074903002-2072066900468","navigationType":"navigate","receivedAt":"2026-10-04T00:48:25.301Z"}
-  {"page":"slow","profile":"desktop","name":"CLS","value":0.13711447708644608,"rating":"needs-improvement","id":"v5-1791074903152-1128641064059","navigationType":"navigate","receivedAt":"2026-10-04T00:48:25.301Z"}
-  {"page":"slow","profile":"desktop","name":"TTFB","value":36.70000000298023,"rating":"good","id":"v5-1791074907273-7615759012247","navigationType":"navigate","receivedAt":"2026-10-04T00:48:27.492Z"}
+  {"page":"slow","profile":"desktop","name":"TTFB","value":4.599999999627471,"rating":"good","id":"v5-1791219924935-8409056819708","navigationType":"navigate","receivedAt":"2026-10-05T17:05:25.229Z"}
+  {"page":"slow","profile":"desktop","name":"FCP","value":1192,"rating":"good","id":"v5-1791219924935-1953719941072","navigationType":"navigate","receivedAt":"2026-10-05T17:05:25.232Z"}
+  {"page":"slow","profile":"desktop","name":"LCP","value":1192,"rating":"good","id":"v5-1791219924934-7177084759423","navigationType":"navigate","receivedAt":"2026-10-05T17:05:26.949Z"}
+  {"page":"slow","profile":"desktop","name":"INP","value":176,"rating":"good","id":"v5-1791219924935-7293784001449","navigationType":"navigate","receivedAt":"2026-10-05T17:05:27.258Z"}
+  {"page":"slow","profile":"desktop","name":"CLS","value":0.13711447708644608,"rating":"needs-improvement","id":"v5-1791219925226-3425140258179","navigationType":"navigate","receivedAt":"2026-10-05T17:05:27.258Z"}
+  {"page":"slow","profile":"desktop","name":"TTFB","value":2.5,"rating":"good","id":"v5-1791219928752-3489959746176","navigationType":"navigate","receivedAt":"2026-10-05T17:05:29.022Z"}
 == proof: the same file recomputed with jq: p75 (nearest rank) of LCP and INP per page and profile ==
-  fast INP 4g: n=4 values=[8,16,24,40] p75=24
-  fast INP desktop: n=4 values=[16,40,40,64] p75=40
-  fast INP slow-4g: n=4 values=[48,48,48,48] p75=48
-  fast LCP 4g: n=4 values=[188,200,240,252] p75=240
-  fast LCP desktop: n=4 values=[92,100,108,136] p75=108
-  fast LCP slow-4g: n=4 values=[364,376,412,420] p75=412
-  slow INP 4g: n=4 values=[384,440,456,560] p75=456
-  slow INP desktop: n=4 values=[224,224,248,272] p75=248
-  slow INP slow-4g: n=4 values=[584,792,832,848] p75=832
-  slow LCP 4g: n=4 values=[5700,5728,5888,6032] p75=5888
-  slow LCP desktop: n=4 values=[1288,1308,1440,1496] p75=1440
-  slow LCP slow-4g: n=4 values=[12068,12204,12232,12348] p75=12232
+  fast INP 4g: n=4 values=[16,16,48,48] p75=48
+  fast INP desktop: n=4 values=[16,40,40,40] p75=40
+  fast INP slow-4g: n=4 values=[8,16,16,40] p75=16
+  fast LCP 4g: n=4 values=[160,176,208,208] p75=208
+  fast LCP desktop: n=4 values=[48,48,64,64] p75=64
+  fast LCP slow-4g: n=4 values=[304,304,312,316] p75=312
+  slow INP 4g: n=4 values=[320,344,344,352] p75=344
+  slow INP desktop: n=4 values=[160,168,176,184] p75=176
+  slow INP slow-4g: n=4 values=[584,584,616,632] p75=616
+  slow LCP 4g: n=4 values=[5328,5356,5356,5388] p75=5356
+  slow LCP desktop: n=4 values=[1164,1192,1428,1448] p75=1428
+  slow LCP slow-4g: n=4 values=[11756,11772,11772,11784] p75=11772
 == proof: out/field-summary.json (GET /summary) ==
-{"slow":{"TTFB":{"n":12,"p75":36.70000000298023},"FCP":{"n":12,"p75":2568},"LCP":{"n":12,"p75":12068},"INP":{"n":12,"p75":584},"CLS":{"n":12,"p75":0.13711447708644608}},"fast":{"FCP":{"n":12,"p75":224},"TTFB":{"n":12,"p75":17.299999997019768},"LCP":{"n":12,"p75":364},"INP":{"n":12,"p75":48},"CLS":{"n":12,"p75":0}}}
+{"slow":{"TTFB":{"n":12,"p75":4.599999999627471},"FCP":{"n":12,"p75":2392},"LCP":{"n":12,"p75":11756},"INP":{"n":12,"p75":584},"CLS":{"n":12,"p75":0.13711447708644608}},"fast":{"FCP":{"n":12,"p75":200},"TTFB":{"n":12,"p75":3.3000000002793968},"LCP":{"n":12,"p75":304},"INP":{"n":12,"p75":40},"CLS":{"n":12,"p75":0}}}
 == proof: committed reports and screenshots ==
 out:
-  2522 budgets.html
+  2521 budgets.html
   602 field-summary.json
-  722 lab-summary.json
-  581627 lighthouse-fast.html
-  453813 lighthouse-slow.html
-  22583 vitals.ndjson
+  721 lab-summary.json
+  581153 lighthouse-fast.html
+  429155 lighthouse-slow.html
+  22467 vitals.ndjson
 screenshots:
-  92342 budgets.png
-  98146 lighthouse-fast.png
-  94906 lighthouse-slow.png
+  92769 budgets.png
+  97905 lighthouse-fast.png
+  95974 lighthouse-slow.png
   98420 page-fast.png
   132585 page-slow.png

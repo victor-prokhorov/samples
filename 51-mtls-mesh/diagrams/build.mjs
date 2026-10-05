@@ -4,10 +4,10 @@ import { fileURLToPath } from "node:url";
 import { diagram } from "../../tools/diagrams/lib.mjs";
 
 diagram("overview", "51. mTLS between services: in the app, then in sidecars")
-  .frame("app", 40, 90, 1040, 170, "Steps 2-4: mTLS in each app")
+  .frame("app", 40, 90, 1040, 170, "Steps 2-4: in the app (plaintext, then server TLS, then mTLS)")
   .box("oa", 70, 140, 300, 90, "orders\nloads its key, cert and the CA\ngrpc.credentials.createSsl(...)")
   .box("pa", 720, 140, 330, 90, "payments\nrequires a client certificate,\nreads the SPIFFE id, allowlist", { bold: true })
-  .arrow("oa", "pa", { label: "gRPC over mTLS", both: true })
+  .arrow("oa", "pa", { label: "gRPC", both: true })
   .box("ca", 340, 285, 420, 60, "Mesh CA signs spiffe://mesh.local/ns/shop/sa/<name>,\nvalid for one day")
   .frame("mesh", 40, 370, 1040, 330, "Steps 5-7: the apps speak plaintext, sidecars do mTLS (the service mesh idea)")
   .frame("pod1", 60, 420, 330, 140, "orders: one network namespace")
@@ -23,5 +23,5 @@ diagram("overview", "51. mTLS between services: in the app, then in sidecars")
   .arrow("penv", "papp")
   .box("bad", 290, 600, 450, 80, "no cert, rogue CA, expired: refused at handshake\nreports (trusted CA): RBAC, PERMISSION_DENIED", { dashed: true })
   .arrow("bad", "penv", { dashed: true, via: [[780, 640]] })
-  .text(40, 720, "Same result both ways: only orders gets through, and payments knows it is orders. In the app, every service carries TLS code;\nwith sidecars, the apps stay plaintext on localhost and the platform issues, checks and rotates identities for all of them.")
+  .text(40, 720, "Same result both ways: only orders gets through, and payments knows it is orders. In the app, every service carries TLS code;\nwith sidecars, the apps stay plaintext on localhost and the platform issues and checks identities for all of them (a real mesh also rotates them).")
   .write(dirname(fileURLToPath(import.meta.url)));
