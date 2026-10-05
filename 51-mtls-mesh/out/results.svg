@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="444" font-family="Helvetica, Arial, sans-serif">
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="20" y="36" font-size="20" font-weight="700" fill="#111">orders -> payments over gRPC: who gets through, and what the wire shows</text>
+<text x="365" y="94" font-size="15" font-weight="700" text-anchor="middle" fill="#111">plaintext</text>
+<text x="575" y="94" font-size="15" font-weight="700" text-anchor="middle" fill="#111">server TLS</text>
+<text x="785" y="94" font-size="15" font-weight="700" text-anchor="middle" fill="#111">mTLS in app</text>
+<text x="995" y="94" font-size="15" font-weight="700" text-anchor="middle" fill="#111">Envoy sidecars</text>
+<text x="20" y="94" font-size="13" fill="#444">caller</text>
+<line x1="20" x2="1100" y1="110" y2="110" stroke="#ccc"/>
+<text x="20" y="137" font-size="14" fill="#111">orders</text>
+<rect x="268" y="117" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="365" y="137" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="478" y="117" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="575" y="137" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="688" y="117" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="785" y="137" font-size="13" text-anchor="middle" fill="#111">✓ allowed as orders</text>
+<rect x="898" y="117" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="995" y="137" font-size="13" text-anchor="middle" fill="#111">✓ allowed as orders</text>
+<line x1="20" x2="1100" y1="154" y2="154" stroke="#ccc"/>
+<text x="20" y="181" font-size="14" fill="#111">no client certificate</text>
+<rect x="268" y="161" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="365" y="181" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="478" y="161" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="575" y="181" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="688" y="161" width="194" height="30" rx="4" fill="#fff" stroke="#111" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="785" y="181" font-size="13" text-anchor="middle" fill="#111">✗ refused at handshake</text>
+<rect x="898" y="161" width="194" height="30" rx="4" fill="#fff" stroke="#111" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="995" y="181" font-size="13" text-anchor="middle" fill="#111">✗ refused at handshake</text>
+<line x1="20" x2="1100" y1="198" y2="198" stroke="#ccc"/>
+<text x="20" y="225" font-size="14" fill="#111">rogue CA, claims orders</text>
+<rect x="268" y="205" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="365" y="225" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="478" y="205" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="575" y="225" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="688" y="205" width="194" height="30" rx="4" fill="#fff" stroke="#111" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="785" y="225" font-size="13" text-anchor="middle" fill="#111">✗ refused at handshake</text>
+<rect x="898" y="205" width="194" height="30" rx="4" fill="#fff" stroke="#111" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="995" y="225" font-size="13" text-anchor="middle" fill="#111">✗ refused at handshake</text>
+<line x1="20" x2="1100" y1="242" y2="242" stroke="#ccc"/>
+<text x="20" y="269" font-size="14" fill="#111">orders, expired certificate</text>
+<rect x="268" y="249" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="365" y="269" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="478" y="249" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="575" y="269" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="688" y="249" width="194" height="30" rx="4" fill="#fff" stroke="#111" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="785" y="269" font-size="13" text-anchor="middle" fill="#111">✗ refused at handshake</text>
+<rect x="898" y="249" width="194" height="30" rx="4" fill="#fff" stroke="#111" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="995" y="269" font-size="13" text-anchor="middle" fill="#111">✗ refused at handshake</text>
+<line x1="20" x2="1100" y1="286" y2="286" stroke="#ccc"/>
+<text x="20" y="313" font-size="14" fill="#111">reports (trusted, not allowed)</text>
+<rect x="268" y="293" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="365" y="313" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="478" y="293" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="575" y="313" font-size="13" text-anchor="middle" fill="#111">✓ allowed, caller unknown</text>
+<rect x="688" y="293" width="194" height="30" rx="4" fill="#fff" stroke="#111" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="785" y="313" font-size="13" text-anchor="middle" fill="#111">✗ denied: not allowed</text>
+<rect x="898" y="293" width="194" height="30" rx="4" fill="#fff" stroke="#111" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="995" y="313" font-size="13" text-anchor="middle" fill="#111">✗ denied: not allowed</text>
+<line x1="20" x2="1100" y1="330" y2="330" stroke="#111"/>
+<text x="20" y="357" font-size="14" fill="#111" font-style="italic">the wire, read by a tap</text>
+<rect x="268" y="337" width="194" height="30" rx="4" fill="#fff" stroke="#111" stroke-width="1.5" stroke-dasharray="4 3"/>
+<text x="365" y="357" font-size="13" text-anchor="middle" fill="#111">✗ card number readable</text>
+<rect x="478" y="337" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="575" y="357" font-size="13" text-anchor="middle" fill="#111">encrypted</text>
+<rect x="688" y="337" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="785" y="357" font-size="13" text-anchor="middle" fill="#111">encrypted</text>
+<rect x="898" y="337" width="194" height="30" rx="4" fill="#e6e6e6" stroke="#111" stroke-width="0.75"/>
+<text x="995" y="357" font-size="13" text-anchor="middle" fill="#111">encrypted</text>
+<line x1="20" x2="1100" y1="374" y2="374" stroke="#ccc"/>
+<text x="20" y="414" font-size="12" fill="#444">Grey: the call went through, or the wire was encrypted. Dashed: refused, or readable. Only orders should get through, and only as orders; everyone else should be refused.</text>
+</svg>

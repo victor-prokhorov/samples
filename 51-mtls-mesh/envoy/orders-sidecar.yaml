@@ -1,0 +1,56 @@
+# orders' sidecar: outbound only. The app sends plaintext gRPC to 127.0.0.1:15001; Envoy finds payments by DNS,
+# opens mTLS with orders' certificate, and accepts the far end only if the mesh CA signed it for payments' SPIFFE id.
+admin:
+  address: { socket_address: { address: 127.0.0.1, port_value: 9901 } }
+
+static_resources:
+  listeners:
+    - name: outbound_payments
+      address: { socket_address: { address: 127.0.0.1, port_value: 15001 } }
+      filter_chains:
+        - filters:
+            - name: envoy.filters.network.http_connection_manager
+              typed_config:
+                "@type": type.googleapis.com/envoy.extensions.filters.network.http_connection_manager.v3.HttpConnectionManager
+                stat_prefix: outbound_payments
+                codec_type: HTTP2
+                route_config:
+                  virtual_hosts:
+                    - name: payments
+                      domains: ["*"]
+                      routes:
+                        - match: { prefix: "/payments.Payments/" }
+                          route: { cluster: payments, timeout: 5s }
+                http_filters:
+                  - name: envoy.filters.http.router
+                    typed_config: { "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router }
+
+  clusters:
+    - name: payments
+      # The name is resolved by DNS (sample 50); "tap" relays to payments' sidecar so the demo can read the wire.
+      type: STRICT_DNS
+      connect_timeout: 1s
+      typed_extension_protocol_options:
+        envoy.extensions.upstreams.http.v3.HttpProtocolOptions:
+          "@type": type.googleapis.com/envoy.extensions.upstreams.http.v3.HttpProtocolOptions
+          explicit_http_config: { http2_protocol_options: {} }
+      load_assignment:
+        cluster_name: payments
+        endpoints:
+          - lb_endpoints:
+              - endpoint: { address: { socket_address: { address: tap, port_value: 15443 } } }
+      transport_socket:
+        name: envoy.transport_sockets.tls
+        typed_config:
+          "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          sni: payments
+          common_tls_context:
+            tls_params: { tls_minimum_protocol_version: TLSv1_3, tls_maximum_protocol_version: TLSv1_3 }
+            tls_certificates:
+              - certificate_chain: { filename: /certs/orders.crt }
+                private_key: { filename: /certs/orders.key }
+            validation_context:
+              trusted_ca: { filename: /certs/ca.crt }
+              match_typed_subject_alt_names:
+                - san_type: URI
+                  matcher: { exact: "spiffe://mesh.local/ns/shop/sa/payments" }

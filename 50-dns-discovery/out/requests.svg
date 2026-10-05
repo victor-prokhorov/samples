@@ -1,0 +1,149 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="620" font-family="Helvetica, Arial, sans-serif">
+<defs><pattern id="hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="6" height="6" fill="#fff"/><line x1="0" y1="0" x2="0" y2="6" stroke="#111" stroke-width="2"/></pattern></defs>
+<rect width="100%" height="100%" fill="#fff"/>
+<text x="20" y="34" font-size="20" font-weight="700" fill="#111">Which replica answered: four clients that only know "catalog:8080"</text>
+<rect x="20" y="52" width="16" height="16" fill="#f2f2f2" stroke="#111"/>
+<text x="42" y="65" font-size="13" fill="#111">catalog</text>
+<rect x="106.5" y="52" width="16" height="16" fill="#cfcfcf" stroke="#111"/>
+<text x="128.5" y="65" font-size="13" fill="#111">catalog-1</text>
+<rect x="208" y="52" width="16" height="16" fill="#a6a6a6" stroke="#111"/>
+<text x="230" y="65" font-size="13" fill="#111">catalog-2</text>
+<rect x="309.5" y="52" width="16" height="16" fill="#7a7a7a" stroke="#111"/>
+<text x="331.5" y="65" font-size="13" fill="#111">catalog-3</text>
+<rect x="411" y="52" width="16" height="16" fill="#4d4d4d" stroke="#111"/>
+<text x="433" y="65" font-size="13" fill="#111">catalog-4</text>
+<rect x="512.5" y="52" width="16" height="16" fill="#262626" stroke="#111"/>
+<text x="534.5" y="65" font-size="13" fill="#111">catalog-5</text>
+<rect x="614" y="52" width="16" height="16" fill="#f2f2f2" stroke="#111"/>
+<text x="636" y="65" font-size="13" fill="#111">ledger-a</text>
+<rect x="708" y="52" width="16" height="16" fill="#cfcfcf" stroke="#111"/>
+<text x="730" y="65" font-size="13" fill="#111">ledger-b</text>
+<rect x="802" y="52" width="16" height="16" fill="url(#hatch)" stroke="#111"/>
+<text x="824" y="65" font-size="13" fill="#111">failed</text>
+<line x1="20" x2="1080" y1="87" y2="87" stroke="#bbb"/>
+<text x="20" y="107" font-size="13" font-weight="700" fill="#111">2. three replicas</text>
+<text x="290" y="107" font-size="13" fill="#111" text-anchor="end">pinned</text>
+<rect x="300.0" y="90" width="720.0" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>pinned: catalog-2 150</title></rect>
+<text x="660.0" y="106" font-size="12" text-anchor="middle" fill="#111">catalog-2 150</text>
+<text x="290" y="137" font-size="13" fill="#111" text-anchor="end">fresh</text>
+<rect x="300.0" y="120" width="225.6" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>fresh: catalog-1 47</title></rect>
+<text x="412.8" y="136" font-size="12" text-anchor="middle" fill="#111">catalog-1 47</text>
+<rect x="525.6" y="120" width="211.2" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>fresh: catalog-2 44</title></rect>
+<text x="631.2" y="136" font-size="12" text-anchor="middle" fill="#111">catalog-2 44</text>
+<rect x="736.8" y="120" width="283.2" height="22" fill="#7a7a7a" stroke="#111" stroke-width="0.75"><title>fresh: catalog-3 59</title></rect>
+<text x="878.4" y="136" font-size="12" text-anchor="middle" fill="#fff">catalog-3 59</text>
+<text x="290" y="167" font-size="13" fill="#111" text-anchor="end">cached</text>
+<rect x="300.0" y="150" width="288.0" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>cached: catalog-1 60</title></rect>
+<text x="444.0" y="166" font-size="12" text-anchor="middle" fill="#111">catalog-1 60</text>
+<rect x="588.0" y="150" width="206.4" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>cached: catalog-2 43</title></rect>
+<text x="691.2" y="166" font-size="12" text-anchor="middle" fill="#111">catalog-2 43</text>
+<rect x="794.4" y="150" width="225.6" height="22" fill="#7a7a7a" stroke="#111" stroke-width="0.75"><title>cached: catalog-3 47</title></rect>
+<text x="907.2" y="166" font-size="12" text-anchor="middle" fill="#fff">catalog-3 47</text>
+<text x="290" y="197" font-size="13" fill="#111" text-anchor="end">resilient</text>
+<rect x="300.0" y="180" width="249.6" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>resilient: catalog-1 52</title></rect>
+<text x="424.8" y="196" font-size="12" text-anchor="middle" fill="#111">catalog-1 52</text>
+<rect x="549.6" y="180" width="230.4" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>resilient: catalog-2 48</title></rect>
+<text x="664.8" y="196" font-size="12" text-anchor="middle" fill="#111">catalog-2 48</text>
+<rect x="780.0" y="180" width="240.0" height="22" fill="#7a7a7a" stroke="#111" stroke-width="0.75"><title>resilient: catalog-3 50</title></rect>
+<text x="900.0" y="196" font-size="12" text-anchor="middle" fill="#fff">catalog-3 50</text>
+<line x1="20" x2="1080" y1="207" y2="207" stroke="#bbb"/>
+<text x="20" y="227" font-size="13" font-weight="700" fill="#111">3. scaled to five</text>
+<text x="290" y="227" font-size="13" fill="#111" text-anchor="end">fresh</text>
+<rect x="300.0" y="210" width="176.4" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>fresh: catalog-1 49</title></rect>
+<text x="388.2" y="226" font-size="12" text-anchor="middle" fill="#111">catalog-1 49</text>
+<rect x="476.4" y="210" width="115.2" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>fresh: catalog-2 32</title></rect>
+<text x="534.0" y="226" font-size="12" text-anchor="middle" fill="#111">catalog-2 32</text>
+<rect x="591.6" y="210" width="140.4" height="22" fill="#7a7a7a" stroke="#111" stroke-width="0.75"><title>fresh: catalog-3 39</title></rect>
+<text x="661.8" y="226" font-size="12" text-anchor="middle" fill="#fff">catalog-3 39</text>
+<rect x="732.0" y="210" width="147.6" height="22" fill="#4d4d4d" stroke="#111" stroke-width="0.75"><title>fresh: catalog-4 41</title></rect>
+<text x="805.8" y="226" font-size="12" text-anchor="middle" fill="#fff">catalog-4 41</text>
+<rect x="879.6" y="210" width="140.4" height="22" fill="#262626" stroke="#111" stroke-width="0.75"><title>fresh: catalog-5 39</title></rect>
+<text x="949.8" y="226" font-size="12" text-anchor="middle" fill="#fff">catalog-5 39</text>
+<text x="290" y="257" font-size="13" fill="#111" text-anchor="end">cached</text>
+<rect x="300.0" y="240" width="270.0" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>cached: catalog-1 75</title></rect>
+<text x="435.0" y="256" font-size="12" text-anchor="middle" fill="#111">catalog-1 75</text>
+<rect x="570.0" y="240" width="226.8" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>cached: catalog-2 63</title></rect>
+<text x="683.4" y="256" font-size="12" text-anchor="middle" fill="#111">catalog-2 63</text>
+<rect x="796.8" y="240" width="223.2" height="22" fill="#7a7a7a" stroke="#111" stroke-width="0.75"><title>cached: catalog-3 62</title></rect>
+<text x="908.4" y="256" font-size="12" text-anchor="middle" fill="#fff">catalog-3 62</text>
+<line x1="20" x2="1080" y1="267" y2="267" stroke="#bbb"/>
+<text x="20" y="287" font-size="13" font-weight="700" fill="#111">3. after the cache expired</text>
+<text x="290" y="287" font-size="13" fill="#111" text-anchor="end">cached</text>
+<rect x="300.0" y="270" width="172.8" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>cached: catalog-1 48</title></rect>
+<text x="386.4" y="286" font-size="12" text-anchor="middle" fill="#111">catalog-1 48</text>
+<rect x="472.8" y="270" width="129.6" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>cached: catalog-2 36</title></rect>
+<text x="537.6" y="286" font-size="12" text-anchor="middle" fill="#111">catalog-2 36</text>
+<rect x="602.4" y="270" width="90.0" height="22" fill="#7a7a7a" stroke="#111" stroke-width="0.75"><title>cached: catalog-3 25</title></rect>
+<text x="647.4" y="286" font-size="12" text-anchor="middle" fill="#fff">25</text>
+<rect x="692.4" y="270" width="172.8" height="22" fill="#4d4d4d" stroke="#111" stroke-width="0.75"><title>cached: catalog-4 48</title></rect>
+<text x="778.8" y="286" font-size="12" text-anchor="middle" fill="#fff">catalog-4 48</text>
+<rect x="865.2" y="270" width="154.8" height="22" fill="#262626" stroke="#111" stroke-width="0.75"><title>cached: catalog-5 43</title></rect>
+<text x="942.6" y="286" font-size="12" text-anchor="middle" fill="#fff">catalog-5 43</text>
+<line x1="20" x2="1080" y1="297" y2="297" stroke="#bbb"/>
+<text x="20" y="317" font-size="13" font-weight="700" fill="#111">4. one replica stopped</text>
+<text x="290" y="317" font-size="13" fill="#111" text-anchor="end">resilient</text>
+<rect x="300.0" y="300" width="230.4" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>resilient: catalog-1 32</title></rect>
+<text x="415.2" y="316" font-size="12" text-anchor="middle" fill="#111">catalog-1 32</text>
+<rect x="530.4" y="300" width="172.8" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>resilient: catalog-2 24</title></rect>
+<text x="616.8" y="316" font-size="12" text-anchor="middle" fill="#111">catalog-2 24</text>
+<rect x="703.2" y="300" width="180.0" height="22" fill="#4d4d4d" stroke="#111" stroke-width="0.75"><title>resilient: catalog-4 25</title></rect>
+<text x="793.2" y="316" font-size="12" text-anchor="middle" fill="#fff">catalog-4 25</text>
+<rect x="883.2" y="300" width="136.8" height="22" fill="#262626" stroke="#111" stroke-width="0.75"><title>resilient: catalog-5 19</title></rect>
+<text x="951.6" y="316" font-size="12" text-anchor="middle" fill="#fff">catalog-5 19</text>
+<text x="290" y="347" font-size="13" fill="#111" text-anchor="end">cached</text>
+<rect x="300.0" y="330" width="165.6" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>cached: catalog-1 23</title></rect>
+<text x="382.8" y="346" font-size="12" text-anchor="middle" fill="#111">catalog-1 23</text>
+<rect x="465.6" y="330" width="144.0" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>cached: catalog-2 20</title></rect>
+<text x="537.6" y="346" font-size="12" text-anchor="middle" fill="#111">catalog-2 20</text>
+<rect x="609.6" y="330" width="187.2" height="22" fill="#4d4d4d" stroke="#111" stroke-width="0.75"><title>cached: catalog-4 26</title></rect>
+<text x="703.2" y="346" font-size="12" text-anchor="middle" fill="#fff">catalog-4 26</text>
+<rect x="796.8" y="330" width="144.0" height="22" fill="#262626" stroke="#111" stroke-width="0.75"><title>cached: catalog-5 20</title></rect>
+<text x="868.8" y="346" font-size="12" text-anchor="middle" fill="#fff">catalog-5 20</text>
+<rect x="940.8" y="330" width="79.2" height="22" fill="url(#hatch)" stroke="#111" stroke-width="0.75"><title>cached: failed 11</title></rect>
+<rect x="968.4" y="333" width="24" height="16" fill="#fff"/>
+<text x="980.4" y="346" font-size="12" text-anchor="middle" fill="#111" font-weight="700">11</text>
+<text x="290" y="377" font-size="13" fill="#111" text-anchor="end">pinned</text>
+<rect x="300.0" y="360" width="720.0" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>pinned: catalog-2 100</title></rect>
+<text x="660.0" y="376" font-size="12" text-anchor="middle" fill="#111">catalog-2 100</text>
+<text x="290" y="407" font-size="13" fill="#111" text-anchor="end">fresh</text>
+<rect x="300.0" y="390" width="151.2" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>fresh: catalog-1 21</title></rect>
+<text x="375.6" y="406" font-size="12" text-anchor="middle" fill="#111">catalog-1 21</text>
+<rect x="451.2" y="390" width="223.2" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>fresh: catalog-2 31</title></rect>
+<text x="562.8" y="406" font-size="12" text-anchor="middle" fill="#111">catalog-2 31</text>
+<rect x="674.4" y="390" width="136.8" height="22" fill="#4d4d4d" stroke="#111" stroke-width="0.75"><title>fresh: catalog-4 19</title></rect>
+<text x="742.8" y="406" font-size="12" text-anchor="middle" fill="#fff">catalog-4 19</text>
+<rect x="811.2" y="390" width="208.8" height="22" fill="#262626" stroke="#111" stroke-width="0.75"><title>fresh: catalog-5 29</title></rect>
+<text x="915.6" y="406" font-size="12" text-anchor="middle" fill="#fff">catalog-5 29</text>
+<line x1="20" x2="1080" y1="417" y2="417" stroke="#bbb"/>
+<text x="20" y="437" font-size="13" font-weight="700" fill="#111">5. one replica paused</text>
+<text x="290" y="437" font-size="13" fill="#111" text-anchor="end">fresh</text>
+<rect x="300.0" y="420" width="180.0" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>fresh: catalog-1 15</title></rect>
+<text x="390.0" y="436" font-size="12" text-anchor="middle" fill="#111">catalog-1 15</text>
+<rect x="480.0" y="420" width="240.0" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>fresh: catalog-2 20</title></rect>
+<text x="600.0" y="436" font-size="12" text-anchor="middle" fill="#111">catalog-2 20</text>
+<rect x="720.0" y="420" width="132.0" height="22" fill="#262626" stroke="#111" stroke-width="0.75"><title>fresh: catalog-5 11</title></rect>
+<text x="786.0" y="436" font-size="12" text-anchor="middle" fill="#fff">catalog-5 11</text>
+<rect x="852.0" y="420" width="168.0" height="22" fill="url(#hatch)" stroke="#111" stroke-width="0.75"><title>fresh: failed 14</title></rect>
+<rect x="896.0" y="423" width="80" height="16" fill="#fff"/>
+<text x="936.0" y="436" font-size="12" text-anchor="middle" fill="#111" font-weight="700">failed 14</text>
+<text x="290" y="467" font-size="13" fill="#111" text-anchor="end">resilient</text>
+<rect x="300.0" y="450" width="300.0" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>resilient: catalog-1 25</title></rect>
+<text x="450.0" y="466" font-size="12" text-anchor="middle" fill="#111">catalog-1 25</text>
+<rect x="600.0" y="450" width="228.0" height="22" fill="#a6a6a6" stroke="#111" stroke-width="0.75"><title>resilient: catalog-2 19</title></rect>
+<text x="714.0" y="466" font-size="12" text-anchor="middle" fill="#111">catalog-2 19</text>
+<rect x="828.0" y="450" width="192.0" height="22" fill="#262626" stroke="#111" stroke-width="0.75"><title>resilient: catalog-5 16</title></rect>
+<text x="924.0" y="466" font-size="12" text-anchor="middle" fill="#fff">catalog-5 16</text>
+<line x1="20" x2="1080" y1="477" y2="477" stroke="#bbb"/>
+<text x="20" y="497" font-size="13" font-weight="700" fill="#111">6. SRV, weights 3:1</text>
+<text x="290" y="497" font-size="13" fill="#111" text-anchor="end">srv</text>
+<rect x="300.0" y="480" width="559.8" height="22" fill="#f2f2f2" stroke="#111" stroke-width="0.75"><title>srv: ledger-a 311</title></rect>
+<text x="579.9" y="496" font-size="12" text-anchor="middle" fill="#111">ledger-a 311</text>
+<rect x="859.8" y="480" width="160.2" height="22" fill="#cfcfcf" stroke="#111" stroke-width="0.75"><title>srv: ledger-b 89</title></rect>
+<text x="939.9" y="496" font-size="12" text-anchor="middle" fill="#111">ledger-b 89</text>
+<line x1="20" x2="1080" y1="507" y2="507" stroke="#bbb"/>
+<text x="20" y="527" font-size="13" font-weight="700" fill="#111">6. SRV, priority-10 down</text>
+<text x="290" y="527" font-size="13" fill="#111" text-anchor="end">srv</text>
+<rect x="300.0" y="510" width="720.0" height="22" fill="#f2f2f2" stroke="#111" stroke-width="0.75"><title>srv: catalog 50</title></rect>
+<text x="660.0" y="526" font-size="12" text-anchor="middle" fill="#111">catalog 50</text>
+<text x="20" y="570" font-size="12" fill="#444">Each bar is one client's run of sequential requests; numbers are requests answered by each replica. Hatched: timed out or refused.</text>
+</svg>

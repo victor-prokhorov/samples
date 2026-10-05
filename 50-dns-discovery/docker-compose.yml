@@ -1,0 +1,54 @@
+# Every service sits on the project's default network, where Docker's embedded DNS (127.0.0.11 in each container)
+# answers for service names. No service knows another's IP address; nothing is published except the probe's control port.
+x-node: &node
+  image: node:22-slim
+  init: true
+  working_dir: /app
+  volumes:
+    - .:/app:ro
+
+services:
+  # The service being discovered: scaled to 3, then 5, then one stopped and one paused by the demo.
+  catalog:
+    <<: *node
+    command: ["node_modules/.bin/tsx", "src/catalog.ts"]
+    deploy:
+      replicas: 3
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
+
+  # Two instances of a second service on different ports: SRV records say which port and how much traffic each gets.
+  ledger-a:
+    <<: *node
+    command: ["node_modules/.bin/tsx", "src/catalog.ts"]
+    environment:
+      PORT: "8081"
+      NAME: ledger-a
+  ledger-b:
+    <<: *node
+    command: ["node_modules/.bin/tsx", "src/catalog.ts"]
+    environment:
+      PORT: "8082"
+      NAME: ledger-b
+
+  # An authoritative DNS server for svc.internal, serving the SRV records in dns/svc.internal.zone.
+  coredns:
+    image: coredns/coredns:1.12.4
+    command: ["-conf", "/etc/coredns/Corefile"]
+    volumes:
+      - ./dns:/etc/coredns:ro
+
+  # A client inside the network: the demo (on the host) asks it to resolve names and send requests.
+  probe:
+    <<: *node
+    command: ["node_modules/.bin/tsx", "src/probe.ts"]
+    ports:
+      - "53060:53060"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:53060/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 1s
+      timeout: 2s
+      retries: 30
